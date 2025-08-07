@@ -1,0 +1,500 @@
+#!/usr/bin/env python3
+"""NER CLI - Named Entity Recognition Command Line Interface
+
+A comprehensive CLI tool for training, evaluating, and using NER models
+with support for multiple languages and custom configurations.
+
+Usage:
+    python ner.py <command> [options]
+
+Commands:
+    train       Train a new NER model
+    evaluate    Evaluate a trained model
+    predict     Make predictions on text
+    config      Manage configurations
+    data        Data processing utilities
+    model       Model management utilities
+    status      Show system status
+
+Examples:
+    # Train a model for UAE addresses
+    python ner.py train --country uae --data-path ./data/uae_train.json
+    
+    # Evaluate a model
+    python ner.py evaluate --model-path ./models/uae_model --data-path ./data/uae_test.json
+    
+    # Make predictions
+    python ner.py predict --model-path ./models/uae_model --text "123 Sheikh Zayed Road, Dubai"
+    
+    # Create a new country configuration
+    python ner.py config create --country egypt --template address_ner
+"""
+
+import sys
+import os
+import argparse
+from pathlib import Path
+
+# Add src directory to Python path
+src_path = Path(__file__).parent / "src"
+sys.path.insert(0, str(src_path))
+
+try:
+    from ner.cli.main import NERCLIManager
+    from ner.utils.logger import setup_logging
+except ImportError as e:
+    print(f"Error importing NER modules: {e}")
+    print("Please ensure the src/ner module is properly installed.")
+    sys.exit(1)
+
+def create_parser() -> argparse.ArgumentParser:
+    """Create the main argument parser"""
+    parser = argparse.ArgumentParser(
+        prog='ner',
+        description='Named Entity Recognition CLI Tool',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  %(prog)s train --country uae --data-path ./data/train.json
+  %(prog)s evaluate --model-path ./models/uae_model --data-path ./data/test.json
+  %(prog)s predict --model-path ./models/uae_model --text "Dubai Marina"
+  %(prog)s config list
+  %(prog)s data validate --data-path ./data/train.json
+  %(prog)s model list
+  %(prog)s status
+
+For more information on each command, use:
+  %(prog)s <command> --help
+"""
+    )
+    
+    # Global options
+    parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    
+    parser.add_argument(
+        '--log-level',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        default='INFO',
+        help='Set logging level (default: INFO)'
+    )
+    
+    parser.add_argument(
+        '--log-file',
+        type=str,
+        help='Log file path (default: logs/ner.log)'
+    )
+    
+    parser.add_argument(
+        '--config-dir',
+        type=str,
+        default='data/ner/configs',
+        help='Configuration directory (default: data/ner/configs)'
+    )
+    
+    parser.add_argument(
+        '--data-dir',
+        type=str,
+        default='data/ner',
+        help='Data directory (default: data/ner)'
+    )
+    
+    parser.add_argument(
+        '--model-dir',
+        type=str,
+        default='data/ner/models',
+        help='Model directory (default: data/ner/models)'
+    )
+    
+    parser.add_argument(
+        '--version',
+        action='version',
+        version='NER CLI 1.0.0'
+    )
+    
+    # Subcommands
+    subparsers = parser.add_subparsers(
+        dest='command',
+        help='Available commands',
+        metavar='<command>'
+    )
+    
+    # Train command
+    train_parser = subparsers.add_parser(
+        'train',
+        help='Train a new NER model',
+        description='Train a new NER model with specified configuration'
+    )
+    train_parser.add_argument(
+        '--country', '-c',
+        type=str,
+        required=True,
+        help='Country configuration to use (e.g., uae, egypt)'
+    )
+    train_parser.add_argument(
+        '--data-path', '-d',
+        type=str,
+        required=True,
+        help='Path to training data file'
+    )
+    train_parser.add_argument(
+        '--val-data-path',
+        type=str,
+        help='Path to validation data file'
+    )
+    train_parser.add_argument(
+        '--output-dir', '-o',
+        type=str,
+        help='Output directory for trained model'
+    )
+    train_parser.add_argument(
+        '--epochs',
+        type=int,
+        help='Number of training epochs'
+    )
+    train_parser.add_argument(
+        '--batch-size',
+        type=int,
+        help='Training batch size'
+    )
+    train_parser.add_argument(
+        '--learning-rate',
+        type=float,
+        help='Learning rate'
+    )
+    train_parser.add_argument(
+        '--resume',
+        type=str,
+        help='Resume training from checkpoint'
+    )
+    
+    # Evaluate command
+    eval_parser = subparsers.add_parser(
+        'evaluate',
+        help='Evaluate a trained model',
+        description='Evaluate a trained NER model on test data'
+    )
+    eval_parser.add_argument(
+        '--model-path', '-m',
+        type=str,
+        required=True,
+        help='Path to trained model'
+    )
+    eval_parser.add_argument(
+        '--data-path', '-d',
+        type=str,
+        required=True,
+        help='Path to evaluation data file'
+    )
+    eval_parser.add_argument(
+        '--output-dir', '-o',
+        type=str,
+        help='Output directory for evaluation results'
+    )
+    eval_parser.add_argument(
+        '--batch-size',
+        type=int,
+        help='Evaluation batch size'
+    )
+    
+    # Predict command
+    predict_parser = subparsers.add_parser(
+        'predict',
+        help='Make predictions on text',
+        description='Make NER predictions on input text'
+    )
+    predict_parser.add_argument(
+        '--model-path', '-m',
+        type=str,
+        required=True,
+        help='Path to trained model'
+    )
+    predict_group = predict_parser.add_mutually_exclusive_group(required=True)
+    predict_group.add_argument(
+        '--text', '-t',
+        type=str,
+        help='Text to analyze'
+    )
+    predict_group.add_argument(
+        '--file', '-f',
+        type=str,
+        help='File containing text to analyze'
+    )
+    predict_parser.add_argument(
+        '--output-format',
+        choices=['json', 'text', 'conll'],
+        default='json',
+        help='Output format (default: json)'
+    )
+    predict_parser.add_argument(
+        '--confidence-threshold',
+        type=float,
+        default=0.5,
+        help='Confidence threshold for predictions (default: 0.5)'
+    )
+    
+    # Config command
+    config_parser = subparsers.add_parser(
+        'config',
+        help='Manage configurations',
+        description='Manage NER configurations'
+    )
+    config_subparsers = config_parser.add_subparsers(
+        dest='config_action',
+        help='Configuration actions'
+    )
+    
+    # Config list
+    config_subparsers.add_parser(
+        'list',
+        help='List available configurations'
+    )
+    
+    # Config show
+    config_show_parser = config_subparsers.add_parser(
+        'show',
+        help='Show configuration details'
+    )
+    config_show_parser.add_argument(
+        'country',
+        type=str,
+        help='Country configuration to show'
+    )
+    
+    # Config create
+    config_create_parser = config_subparsers.add_parser(
+        'create',
+        help='Create new configuration'
+    )
+    config_create_parser.add_argument(
+        '--country',
+        type=str,
+        required=True,
+        help='Country name for new configuration'
+    )
+    config_create_parser.add_argument(
+        '--template',
+        type=str,
+        default='default',
+        help='Template to use (default: default)'
+    )
+    
+    # Config validate
+    config_validate_parser = config_subparsers.add_parser(
+        'validate',
+        help='Validate configuration'
+    )
+    config_validate_parser.add_argument(
+        'country',
+        type=str,
+        help='Country configuration to validate'
+    )
+    
+    # Data command
+    data_parser = subparsers.add_parser(
+        'data',
+        help='Data processing utilities',
+        description='Data processing and validation utilities'
+    )
+    data_subparsers = data_parser.add_subparsers(
+        dest='data_action',
+        help='Data actions'
+    )
+    
+    # Data validate
+    data_validate_parser = data_subparsers.add_parser(
+        'validate',
+        help='Validate data format'
+    )
+    data_validate_parser.add_argument(
+        '--data-path',
+        type=str,
+        required=True,
+        help='Path to data file'
+    )
+    data_validate_parser.add_argument(
+        '--format',
+        choices=['json', 'conll', 'csv'],
+        help='Data format (auto-detected if not specified)'
+    )
+    
+    # Data convert
+    data_convert_parser = data_subparsers.add_parser(
+        'convert',
+        help='Convert data format'
+    )
+    data_convert_parser.add_argument(
+        '--input-path',
+        type=str,
+        required=True,
+        help='Input data file path'
+    )
+    data_convert_parser.add_argument(
+        '--output-path',
+        type=str,
+        required=True,
+        help='Output data file path'
+    )
+    data_convert_parser.add_argument(
+        '--input-format',
+        choices=['json', 'conll', 'csv'],
+        help='Input format (auto-detected if not specified)'
+    )
+    data_convert_parser.add_argument(
+        '--output-format',
+        choices=['json', 'conll', 'csv'],
+        required=True,
+        help='Output format'
+    )
+    
+    # Data split
+    data_split_parser = data_subparsers.add_parser(
+        'split',
+        help='Split data into train/val/test sets'
+    )
+    data_split_parser.add_argument(
+        '--data-path',
+        type=str,
+        required=True,
+        help='Path to data file'
+    )
+    data_split_parser.add_argument(
+        '--output-dir',
+        type=str,
+        required=True,
+        help='Output directory for split files'
+    )
+    data_split_parser.add_argument(
+        '--train-ratio',
+        type=float,
+        default=0.8,
+        help='Training set ratio (default: 0.8)'
+    )
+    data_split_parser.add_argument(
+        '--val-ratio',
+        type=float,
+        default=0.1,
+        help='Validation set ratio (default: 0.1)'
+    )
+    
+    # Model command
+    model_parser = subparsers.add_parser(
+        'model',
+        help='Model management utilities',
+        description='Model management and analysis utilities'
+    )
+    model_subparsers = model_parser.add_subparsers(
+        dest='model_action',
+        help='Model actions'
+    )
+    
+    # Model list
+    model_subparsers.add_parser(
+        'list',
+        help='List available models'
+    )
+    
+    # Model info
+    model_info_parser = model_subparsers.add_parser(
+        'info',
+        help='Show model information'
+    )
+    model_info_parser.add_argument(
+        'model_name',
+        type=str,
+        help='Model name'
+    )
+    
+    # Model delete
+    model_delete_parser = model_subparsers.add_parser(
+        'delete',
+        help='Delete a model'
+    )
+    model_delete_parser.add_argument(
+        'model_name',
+        type=str,
+        help='Model name to delete'
+    )
+    model_delete_parser.add_argument(
+        '--force',
+        action='store_true',
+        help='Force deletion without confirmation'
+    )
+    
+    # Status command
+    status_parser = subparsers.add_parser(
+        'status',
+        help='Show system status',
+        description='Show NER system status and information'
+    )
+    status_parser.add_argument(
+        '--detailed',
+        action='store_true',
+        help='Show detailed status information'
+    )
+    
+    return parser
+
+def main():
+    """Main entry point"""
+    parser = create_parser()
+    args = parser.parse_args()
+    
+    # Show help if no command provided
+    if not args.command:
+        parser.print_help()
+        return 0
+    
+    # Setup logging
+    log_level = 'DEBUG' if args.verbose else args.log_level
+    log_file = args.log_file or 'logs/ner.log'
+    
+    logger = setup_logging(
+        level=log_level,
+        log_dir=Path(log_file).parent,
+        log_to_console=True,
+        log_to_file=True
+    )
+    
+    try:
+        # Initialize CLI manager
+        cli_manager = NERCLIManager(
+            config_dir=args.config_dir,
+            data_dir=args.data_dir,
+            model_dir=args.model_dir,
+            logger=logger
+        )
+        
+        # Execute command
+        result = cli_manager.execute_command(args.command, vars(args))
+        
+        if result:
+            logger.info(f"Command '{args.command}' completed successfully")
+            return 0
+        else:
+            logger.error(f"Command '{args.command}' failed")
+            return 1
+    
+    except KeyboardInterrupt:
+        logger.info("Operation cancelled by user")
+        return 130
+    
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        if args.verbose:
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+        return 1
+    
+    finally:
+        # Cleanup
+        try:
+            cli_manager.cleanup()
+        except:
+            pass
+
+if __name__ == '__main__':
+    sys.exit(main())

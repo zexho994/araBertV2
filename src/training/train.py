@@ -8,7 +8,8 @@ import json
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from transformers import AdamW, get_linear_schedule_with_warmup
+from transformers import get_linear_schedule_with_warmup
+from torch.optim import AdamW
 from sklearn.metrics import classification_report, f1_score
 from tqdm import tqdm
 import logging
@@ -283,19 +284,25 @@ class AddressNERTrainer:
 
 def main():
     """主函数"""
-    # 检查数据文件是否存在
-    train_data_path = os.path.join(PROCESSED_DATA_DIR, "processed_sample.json")
+    # 检查数据文件是否存在 - 使用修正后的数据
+    train_data_path = os.path.join(PROCESSED_DATA_DIR, "corrected_sample.json")
     
     if not os.path.exists(train_data_path):
         logger.error(f"训练数据文件不存在: {train_data_path}")
-        logger.info("请先运行数据预处理: python src/data_processing/preprocess.py")
+        logger.info("请确保已运行数据质量检查并生成修正后的数据")
         return
+
+    logger.info("开始训练模型...")
+    logger.info(f"训练数据路径: {train_data_path}")
+    logger.info("使用修正后的高质量标注数据进行训练")
     
     # 创建训练器
     trainer = AddressNERTrainer()
+
+    logger.info("创建训练器完成")
     
     # 开始训练
-    trainer.train(train_data_path)
+    trainer.train(train_data_path, train_data_path)
 
 
 if __name__ == "__main__":

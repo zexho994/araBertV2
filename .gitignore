@@ -36,6 +36,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.venv
 
 # IDE
 .vscode/
@@ -53,12 +54,21 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# Project specific
-outputs/models/
-outputs/logs/
 data/raw/
 *.log
 
 # Temporary files
 *.tmp
 *.temp
+.trae/
+data/dapt/models/
+data/dapt/evaluation/
+data/dapt/exports/
+data/dapt/logs/
+data/dapt/training_data/
+
+data/ner/models/
+data/ner/evaluation/
+data/ner/exports/
+data/ner/logs/
+data/ner/training_data/

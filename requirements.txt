@@ -1,12 +1,86 @@
+# Core ML and NLP libraries
 torch>=1.9.0
+torchvision>=0.10.0
 transformers>=4.20.0
+tokenizers>=0.12.0
 datasets>=2.0.0
-scikit-learn>=1.0.0
+
+# Arabic language support
+# Note: AraBERT models are accessed through transformers library
+# No separate arabertv2 package is needed - use model name directly:
+# "aubmindlab/bert-base-arabertv2" or "aubmindlab/bert-large-arabertv2"
+# arabertv2>=1.0.0  # This package does not exist on PyPI
+
+# Data processing and analysis
 numpy>=1.21.0
 pandas>=1.3.0
+scipy>=1.7.0
+scikit-learn>=1.0.0
+
+# Configuration and serialization
+PyYAML>=6.0
+jsonschema>=4.0.0
+pydantic>=1.8.0
+
+# Logging and monitoring
 tqdm>=4.62.0
-seqeval>=1.2.2
-accelerate>=0.12.0
+wandb>=0.12.0
 tensorboard>=2.8.0
-arabic-reshaper>=2.1.3
-python-bidi>=0.4.2
+
+# File handling and utilities
+click>=8.0.0
+colorama>=0.4.4
+tabulate>=0.8.9
+
+# Text processing
+nltk>=3.7
+spacy>=3.4.0
+python-Levenshtein>=0.12.2
+
+# Evaluation metrics
+seqeval>=1.2.2
+
+# Development and testing
+pytest>=6.2.0
+pytest-cov>=3.0.0
+black>=22.0.0
+flake8>=4.0.0
+isort>=5.10.0
+mypy>=0.950
+
+# Optional: GPU acceleration
+# nvidia-ml-py3>=7.352.0  # Uncomment if using NVIDIA GPUs
+
+# Optional: Advanced text processing
+# polyglot>=16.7.4  # Uncomment for additional language support
+# langdetect>=1.0.9  # Uncomment for language detection
+
+# Optional: Visualization
+# matplotlib>=3.5.0  # Uncomment for plotting
+# seaborn>=0.11.0    # Uncomment for statistical plots
+
+# Optional: API and web interface
+# fastapi>=0.75.0    # Uncomment for REST API
+# uvicorn>=0.17.0    # Uncomment for ASGI server
+# streamlit>=1.8.0   # Uncomment for web interface
+
+# System utilities
+psutil>=5.8.0
+requests>=2.27.0
+
+# Date and time handling
+python-dateutil>=2.8.0
+
+# Progress bars and CLI enhancements
+rich>=12.0.0
+
+# Configuration file formats
+toml>=0.10.2
+configparser>=5.2.0
+
+# Memory profiling (optional)
+# memory-profiler>=0.60.0  # Uncomment for memory profiling
+
+# Jupyter notebook support (optional)
+# jupyter>=1.0.0           # Uncomment for notebook support
+# ipywidgets>=7.6.0        # Uncomment for interactive widgets

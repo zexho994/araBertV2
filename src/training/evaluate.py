@@ -6,11 +6,7 @@
 import os
 import json
 import torch
-import numpy as np
-from sklearn.metrics import classification_report, confusion_matrix
 from seqeval.metrics import f1_score, precision_score, recall_score, classification_report as seq_classification_report
-import matplotlib.pyplot as plt
-import seaborn as sns
 from typing import List, Dict, Tuple
 
 import sys
@@ -257,7 +253,7 @@ def main():
     evaluator = ModelEvaluator(model_path)
     
     # 测试数据路径
-    test_data_path = os.path.join(PROCESSED_DATA_DIR, "processed_sample.json")
+    test_data_path = os.path.join(PROCESSED_DATA_DIR, "corrected_sample.json")
     
     if os.path.exists(test_data_path):
         # 评估数据集
