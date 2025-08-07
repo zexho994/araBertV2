@@ -1,0 +1,12 @@
+data/dapt/evaluation/uae/datasets/*.txt
+data/ner/evaluation/*
+data/dapt/evaluation/*
+model.safetensors
+.trae/TODO.md
+data/dapt/models/*
+data/ner/models/*
+src/arabertv2_toolkit.egg-info/*
+data/dapt/training_data/*
+data/ner/training_data/*
+src/dapt_arabertv2.egg-info/*
+.trae/
