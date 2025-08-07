@@ -1,0 +1,128 @@
+{
+  "country": {
+    "code": "default",
+    "name": "Default Country",
+    "language": "en",
+    "description": "Default configuration template for NER address parsing"
+  },
+  "model": {
+    "name": "default_ner_model",
+    "type": "bert",
+    "pretrained_model": "bert-base-multilingual-cased",
+    "max_length": 512,
+    "dropout": 0.1,
+    "hidden_size": 768,
+    "num_attention_heads": 12,
+    "num_hidden_layers": 12
+  },
+  "training": {
+    "epochs": 10,
+    "batch_size": 16,
+    "learning_rate": 2e-5,
+    "optimizer": "adamw",
+    "scheduler": "linear",
+    "warmup_steps": 500,
+    "weight_decay": 0.01,
+    "gradient_accumulation_steps": 1,
+    "max_grad_norm": 1.0,
+    "early_stopping": {
+      "enabled": true,
+      "patience": 3,
+      "min_delta": 0.001
+    },
+    "validation_steps": 500,
+    "logging_steps": 100
+  },
+  "data": {
+    "train_file": "train.jsonl",
+    "val_file": "val.jsonl",
+    "test_file": "test.jsonl",
+    "data_format": "jsonl",
+    "text_column": "text",
+    "labels_column": "labels",
+    "preprocessing": {
+      "lowercase": false,
+      "remove_diacritics": false,
+      "normalize_whitespace": true,
+      "remove_special_chars": false
+    },
+    "augmentation": {
+      "enabled": false,
+      "techniques": []
+    }
+  },
+  "labels": {
+    "num_labels": 11,
+    "label_names": [
+      "O",
+      "B-STREET", "I-STREET",
+      "B-BUILDING", "I-BUILDING",
+      "B-AREA", "I-AREA",
+      "B-CITY", "I-CITY",
+      "B-COUNTRY", "I-COUNTRY"
+    ],
+    "label_mapping": {
+      "O": 0,
+      "B-STREET": 1,
+      "I-STREET": 2,
+      "B-BUILDING": 3,
+      "I-BUILDING": 4,
+      "B-AREA": 5,
+      "I-AREA": 6,
+      "B-CITY": 7,
+      "I-CITY": 8,
+      "B-COUNTRY": 9,
+      "I-COUNTRY": 10
+    },
+    "label_descriptions": {
+      "O": "Outside any entity",
+      "B-STREET": "Beginning of street name",
+      "I-STREET": "Inside street name",
+      "B-BUILDING": "Beginning of building name",
+      "I-BUILDING": "Inside building name",
+      "B-AREA": "Beginning of area/district",
+      "I-AREA": "Inside area/district",
+      "B-CITY": "Beginning of city name",
+      "I-CITY": "Inside city name",
+      "B-COUNTRY": "Beginning of country name",
+      "I-COUNTRY": "Inside country name"
+    }
+  },
+  "evaluation": {
+    "metrics": ["precision", "recall", "f1", "accuracy", "entity_f1"],
+    "save_predictions": true,
+    "save_detailed_report": true,
+    "compute_per_label_metrics": true,
+    "confusion_matrix": true
+  },
+  "output": {
+    "model_dir": "models",
+    "save_steps": 1000,
+    "save_total_limit": 3,
+    "overwrite_output_dir": true,
+    "save_best_model": true,
+    "load_best_model_at_end": true
+  },
+  "hardware": {
+    "device": "auto",
+    "mixed_precision": true,
+    "dataloader_num_workers": 4,
+    "pin_memory": true,
+    "gradient_checkpointing": false
+  },
+  "logging": {
+    "level": "INFO",
+    "log_file": "training.log",
+    "error_log_file": "errors.log",
+    "wandb": {
+      "enabled": false,
+      "project": "ner-training",
+      "entity": null,
+      "tags": []
+    },
+    "tensorboard": {
+      "enabled": true,
+      "log_dir": "tensorboard_logs"
+    }
+  }
+}
