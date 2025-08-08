@@ -413,12 +413,21 @@ class NEREvaluator:
         predictions = []
         
         for text in texts:
-            result = self.model.predict(
-                text, 
-                self.tokenizer, 
-                confidence_threshold=confidence_threshold,
-                device=self.device
-            )
+            # Check if model is wrapped (TransformersNERModelWrapper)
+            if hasattr(self.model, 'tokenizer') and hasattr(self.model, 'id2label'):
+                # Use wrapped model's predict method (doesn't need tokenizer parameter)
+                result = self.model.predict(
+                    text, 
+                    confidence_threshold=confidence_threshold
+                )
+            else:
+                # Use standard model predict method (BertNERModel)
+                result = self.model.predict(
+                    text, 
+                    self.tokenizer, 
+                    confidence_threshold=confidence_threshold,
+                    device=self.device
+                )
             predictions.append(result['labels'])
         
         # Compute metrics

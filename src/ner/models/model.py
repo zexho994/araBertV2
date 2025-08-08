@@ -108,18 +108,22 @@ class NERModel(PreTrainedModel):
             max_length=512
         )
         
+        # Get word IDs before moving to device
+        word_ids = tokenized.word_ids(batch_index=0)
+        
         # Move to device
         tokenized = {k: v.to(device) for k, v in tokenized.items()}
         
         # Get predictions
         with torch.no_grad():
             outputs = self(**tokenized)
-            logits = outputs.logits
+            # Handle both dict and object outputs
+            if isinstance(outputs, dict):
+                logits = outputs['logits']
+            else:
+                logits = outputs.logits
             probabilities = torch.softmax(logits, dim=-1)
             predictions = torch.argmax(logits, dim=-1)
-        
-        # Get word IDs for alignment
-        word_ids = tokenized.word_ids()
         
         # Align predictions with words
         word_predictions = []
@@ -133,7 +137,8 @@ class NERModel(PreTrainedModel):
                     confidence = probabilities[0][i][pred_id].item()
                     
                     if confidence >= confidence_threshold:
-                        label = self.config.id2label.get(pred_id, 'O')
+                        # Handle both string and integer keys in id2label
+                        label = self.config.id2label.get(str(pred_id), self.config.id2label.get(pred_id, 'O'))
                     else:
                         label = 'O'
                     

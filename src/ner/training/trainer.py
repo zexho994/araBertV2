@@ -378,24 +378,64 @@ class NERTrainer:
     
     def save_final_model(self):
         """Save final trained model"""
-        model_dir = self.output_dir / f"{self.config['country']}_model"
+        model_dir = self.output_dir / f"{self.config['country']['code']}_model"
         model_dir.mkdir(parents=True, exist_ok=True)
         
         # Save model
         self.model.save_pretrained(model_dir)
         self.tokenizer.save_pretrained(model_dir)
         
-        # Save configuration and mappings
+        # Create standard Transformers config.json
+        # Get transformers config from country configuration with defaults
+        transformers_defaults = self.config.get('transformers_config', {})
+        
+        transformers_config = {
+            "_name_or_path": self.config['model']['pretrained_model'],
+            "architectures": transformers_defaults.get('architectures', ["BertForTokenClassification"]),
+            "attention_probs_dropout_prob": transformers_defaults.get('attention_probs_dropout_prob', 0.1),
+            "classifier_dropout": self.config['model'].get('dropout', 0.1),
+            "hidden_act": transformers_defaults.get('hidden_act', "gelu"),
+            "hidden_dropout_prob": transformers_defaults.get('hidden_dropout_prob', 0.1),
+            "hidden_size": self.config['model'].get('hidden_size', 768),
+            "initializer_range": transformers_defaults.get('initializer_range', 0.02),
+            "intermediate_size": transformers_defaults.get('intermediate_size', 3072),
+            "layer_norm_eps": transformers_defaults.get('layer_norm_eps', 1e-12),
+            "max_position_embeddings": transformers_defaults.get('max_position_embeddings', 512),
+            "model_type": transformers_defaults.get('model_type', "bert"),
+            "num_attention_heads": self.config['model'].get('num_attention_heads', 12),
+            "num_hidden_layers": self.config['model'].get('num_hidden_layers', 12),
+            "pad_token_id": transformers_defaults.get('pad_token_id', 0),
+            "position_embedding_type": transformers_defaults.get('position_embedding_type', "absolute"),
+            "transformers_version": transformers_defaults.get('transformers_version', "4.21.0"),
+            "type_vocab_size": transformers_defaults.get('type_vocab_size', 2),
+            "use_cache": transformers_defaults.get('use_cache', True),
+            "vocab_size": transformers_defaults.get('vocab_size', 64000),
+            "num_labels": self.config['labels']['num_labels'],
+            "id2label": self.id2label,
+            "label2id": self.label2id
+        }
+        
+        # Save standard config.json
         config_path = model_dir / "config.json"
         with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(transformers_config, f, indent=2, ensure_ascii=False)
+        
+        # Save training metadata separately
+        metadata_path = model_dir / "training_metadata.json"
+        with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump({
-                'config': self.config,
-                'label2id': self.label2id,
-                'id2label': self.id2label,
-                'training_history': self.training_history
+                'training_config': self.config,
+                'training_history': self.training_history,
+                'model_info': {
+                    'country': self.config['country']['code'],
+                    'pretrained_model': self.config['model']['pretrained_model'],
+                    'num_labels': self.config['labels']['num_labels'],
+                    'label_names': self.config['labels']['label_names']
+                }
             }, f, indent=2, ensure_ascii=False)
         
         self.logger.info(f"Saved final model to {model_dir}")
+        self.logger.info(f"Saved training metadata to {metadata_path}")
     
     def train(self):
         """Main training loop"""

@@ -176,13 +176,26 @@ class EvaluateCommand(BaseCommand):
     
     def setup_parser(self, parser):
         parser.add_argument(
-            "--model",
+            "--model-path", "-m",
+            type=str,
             required=True,
-            help="Model name or path to evaluate"
+            help="Path to trained model"
         )
         parser.add_argument(
-            "--test-data",
-            help="Path to test data file"
+            "--data-path", "-d",
+            type=str,
+            required=True,
+            help="Path to evaluation data file"
+        )
+        parser.add_argument(
+            "--output-dir", "-o",
+            type=str,
+            help="Output directory for evaluation results"
+        )
+        parser.add_argument(
+            "--batch-size",
+            type=int,
+            help="Evaluation batch size"
         )
         parser.add_argument(
             "--country",
@@ -203,49 +216,121 @@ class EvaluateCommand(BaseCommand):
             action="store_true",
             help="Generate detailed evaluation report"
         )
-        parser.add_argument(
-            "--eval-dir",
-            help="Directory to save evaluation results"
-        )
     
     def execute(self, args) -> bool:
         try:
             # Import evaluator
+            import torch
             from ..evaluation import NEREvaluator
             from ..models import NERModelManager
+            from ..models.wrapper import TransformersNERModelWrapper
             
             # Load model
             model_manager = NERModelManager(self.global_config.get('model_dir'))
-            model = model_manager.load_model(args.model)
+            model = model_manager.load_model(args.model_path)
+            
+            # Load tokenizer separately
+            from transformers import AutoTokenizer
+            tokenizer = AutoTokenizer.from_pretrained(args.model_path)
+            
+            # Get label list from model config first
+            if hasattr(model, 'config') and hasattr(model.config, 'id2label'):
+                id2label = model.config.id2label
+                label_list = list(id2label.values())
+            else:
+                # Fallback to default labels if not available
+                label_list = ['O', 'B-PER', 'I-PER', 'B-LOC', 'I-LOC', 'B-ORG', 'I-ORG']
+                id2label = {i: label for i, label in enumerate(label_list)}
+            
+            # Check if model has predict method, if not, wrap it
+            if not hasattr(model, 'predict'):
+                print("Model doesn't have predict method, wrapping with TransformersNERModelWrapper...")
+                # Get label mappings
+                if hasattr(model, 'config') and hasattr(model.config, 'label2id'):
+                    label2id = model.config.label2id
+                else:
+                    label2id = {label: i for i, label in id2label.items()}
+                
+                # Wrap the model
+                model = TransformersNERModelWrapper(model, tokenizer, id2label, label2id)
+                print("Model successfully wrapped.")
             
             # Load configuration if country specified
             config = None
-            if args.country:
+            if hasattr(args, 'country') and args.country:
                 config_manager = ConfigManager(self.global_config.get('config_dir'))
                 config = config_manager.load_country_config(args.country)
             
             # Initialize evaluator
-            evaluator = NEREvaluator(model, config, self.global_config)
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            model = model.to(device)  # Move model to device
+            evaluator = NEREvaluator(model, tokenizer, label_list, device)
             
-            # Run evaluation
-            results = evaluator.evaluate(
-                test_data_path=args.test_data,
-                metrics=args.metrics,
-                detailed_report=args.detailed_report,
-                output_dir=args.eval_dir or self.global_config.get('eval_dir')
+            # Load evaluation data
+            import json
+            texts = []
+            true_labels = []
+            
+            with open(args.data_path, 'r', encoding='utf-8') as f:
+                # Try to load as JSON array first
+                try:
+                    data_list = json.load(f)
+                    for data in data_list:
+                        # Use pre-tokenized tokens if available, otherwise split text
+                        if 'tokens' in data:
+                            text = ' '.join(data['tokens'])  # Reconstruct text from tokens
+                        else:
+                            text = data.get('text', '')
+                        texts.append(text)
+                        true_labels.append(data.get('labels', []))
+                except json.JSONDecodeError:
+                    # If that fails, try JSONL format
+                    f.seek(0)
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            data = json.loads(line)
+                            # Use pre-tokenized tokens if available, otherwise split text
+                            if 'tokens' in data:
+                                text = ' '.join(data['tokens'])  # Reconstruct text from tokens
+                            else:
+                                text = data.get('text', '')
+                            texts.append(text)
+                            true_labels.append(data.get('labels', []))
+            
+            # Run evaluation with configurable confidence threshold
+            confidence_threshold = getattr(args, 'confidence_threshold', 0.1)  # Lower default threshold
+            results = evaluator.evaluate_text(
+                texts=texts,
+                true_labels=true_labels,
+                confidence_threshold=confidence_threshold
             )
             
             # Print results
             print("Evaluation Results:")
-            for metric, value in results.items():
+            print("\nToken-level Metrics:")
+            for metric, value in results.get('token_metrics', {}).items():
                 print(f"  {metric}: {value:.4f}")
             
+            print("\nEntity-level Metrics:")
+            for metric, value in results.get('entity_metrics', {}).items():
+                print(f"  {metric}: {value:.4f}")
+            
+            if 'per_entity_metrics' in results:
+                print("\nPer-Entity Metrics:")
+                for entity, metrics in results['per_entity_metrics'].items():
+                    print(f"  {entity}:")
+                    for metric, value in metrics.items():
+                        print(f"    {metric}: {value:.4f}")
+            
+            print(f"\nTotal samples evaluated: {results.get('num_samples', 0)}")
+            
             # Compare with another model if specified
-            if args.compare_with:
+            if hasattr(args, 'compare_with') and args.compare_with:
                 other_model = model_manager.load_model(args.compare_with)
                 other_evaluator = NEREvaluator(other_model, config, self.global_config)
                 other_results = other_evaluator.evaluate(
-                    test_data_path=args.test_data,
+                    test_data_path=args.data_path,
                     metrics=args.metrics
                 )
                 
