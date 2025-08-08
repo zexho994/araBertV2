@@ -46,9 +46,9 @@ DAPT (Domain Adaptive Pre-Training) 是一个专门为阿拉伯语自然语言�
 
 ```bash
 # 创建虚拟环境
-python -m venv dapt_env
-source dapt_env/bin/activate  # Linux/macOS
-# 或 dapt_env\Scripts\activate  # Windows
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+# 或 venv\Scripts\activate  # Windows
 
 # 安装依赖
 pip install -r requirements.txt
@@ -63,6 +63,9 @@ dapt --version
 ### 基本使用
 
 #### 1. 训练模型
+
+> 以下 dapt 命令可以使用 python dapt_cli.py 替换
+
 
 ```bash
 # 使用预配置训练 UAE 模型

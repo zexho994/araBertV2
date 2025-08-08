@@ -248,9 +248,14 @@ For more information on each command, use:
     )
     
     # Config list
-    config_subparsers.add_parser(
+    config_list_parser = config_subparsers.add_parser(
         'list',
         help='List available configurations'
+    )
+    config_list_parser.add_argument(
+        '--templates',
+        action='store_true',
+        help='List available templates instead of country configurations'
     )
     
     # Config show
@@ -280,6 +285,11 @@ For more information on each command, use:
         type=str,
         default='default',
         help='Template to use (default: default)'
+    )
+    config_create_parser.add_argument(
+        '--external-template',
+        type=str,
+        help='Path to external template file (overrides --template)'
     )
     
     # Config validate
@@ -469,7 +479,7 @@ def main():
         )
         
         # Execute command
-        result = cli_manager.execute_command(args.command, vars(args))
+        result = cli_manager.execute_command(args.command, args)
         
         if result:
             logger.info(f"Command '{args.command}' completed successfully")

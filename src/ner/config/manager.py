@@ -10,6 +10,14 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 from copy import deepcopy
 
+# Try to import json5 for enhanced JSON parsing with comments support
+try:
+    import json5
+    HAS_JSON5 = True
+except ImportError:
+    json5 = None
+    HAS_JSON5 = False
+
 class ConfigManager:
     """Manages NER configuration files and settings"""
     
@@ -79,11 +87,22 @@ class ConfigManager:
         Returns:
             Dictionary containing template configuration
         """
+        # Try to load .json5 file first if json5 is available
+        if HAS_JSON5:
+            json5_file = self.templates_dir / f"{template}.json5"
+            if json5_file.exists():
+                try:
+                    with open(json5_file, 'r', encoding='utf-8') as f:
+                        return json5.load(f)
+                except Exception as e:
+                    raise ValueError(f"Invalid JSON5 in template file {json5_file}: {e}")
+        
+        # Fall back to .json file
         template_file = self.templates_dir / f"{template}.json"
         
         if not template_file.exists():
             raise FileNotFoundError(
-                f"Template '{template}' not found at {template_file}"
+                f"Template '{template}' not found at {template_file} or {template}.json5"
             )
         
         try:
@@ -91,6 +110,48 @@ class ConfigManager:
                 return json.load(f)
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in template file {template_file}: {e}")
+    
+    def load_external_template(self, template_path: str) -> Dict[str, Any]:
+        """Load a configuration template from an external file path
+        
+        Args:
+            template_path: Full path to the template file
+            
+        Returns:
+            Dictionary containing template configuration
+        """
+        template_file = Path(template_path)
+        
+        if not template_file.exists():
+            raise FileNotFoundError(
+                f"External template not found at {template_file}"
+            )
+        
+        # Determine file format based on extension
+        if template_file.suffix.lower() == '.json5' and HAS_JSON5:
+            try:
+                with open(template_file, 'r', encoding='utf-8') as f:
+                    return json5.load(f)
+            except Exception as e:
+                raise ValueError(f"Invalid JSON5 in external template file {template_file}: {e}")
+        elif template_file.suffix.lower() in ['.json', '.jsonl']:
+            try:
+                with open(template_file, 'r', encoding='utf-8') as f:
+                    # Handle JSONL format (load first line only)
+                    if template_file.suffix.lower() == '.jsonl':
+                        first_line = f.readline().strip()
+                        if not first_line:
+                            raise ValueError("JSONL file is empty")
+                        return json.loads(first_line)
+                    else:
+                        return json.load(f)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid JSON in external template file {template_file}: {e}")
+        else:
+            raise ValueError(
+                f"Unsupported template file format: {template_file.suffix}. "
+                f"Supported formats: .json, .json5{', .jsonl' if HAS_JSON5 else ''}"
+            )
     
     def save_country_config(self, country: str, config: Dict[str, Any]) -> None:
         """Save configuration for a country
@@ -114,22 +175,33 @@ class ConfigManager:
         except Exception as e:
             raise ValueError(f"Error saving configuration for {country}: {e}")
     
-    def create_country_config(self, country: str, template: str = "default") -> Dict[str, Any]:
+    def create_country_config(self, country: str, template: str = "default", 
+                                external_template_path: Optional[str] = None) -> Dict[str, Any]:
         """Create a new country configuration from template
         
         Args:
             country: Country code for new configuration
-            template: Template to use as base
+            template: Template to use as base (ignored if external_template_path is provided)
+            external_template_path: Optional path to external template file
             
         Returns:
             New configuration dictionary
         """
-        # Load template
-        config = self.load_template_config(template)
+        # Load template from external path or standard template
+        if external_template_path:
+            config = self.load_external_template(external_template_path)
+            # Fix DAPT template structure for NER compatibility
+            self._fix_template_structure(config)
+        else:
+            config = self.load_template_config(template)
         
-        # Update country-specific information
-        config["country"]["code"] = country
-        config["country"]["name"] = country.upper()
+        # Apply placeholder replacement
+        config = self._replace_placeholders(config, country)
+        
+        # Update country-specific information (in case placeholders weren't used)
+        if "country" in config:
+            config["country"]["code"] = country
+            config["country"]["name"] = country.upper()
         
         # Save the new configuration
         self.save_country_config(country, config)
@@ -160,11 +232,18 @@ class ConfigManager:
         if not self.templates_dir.exists():
             return []
         
-        templates = []
-        for template_file in self.templates_dir.glob("*.json"):
-            templates.append(template_file.stem)
+        templates = set()
         
-        return sorted(templates)
+        # Add .json5 templates if json5 is available
+        if HAS_JSON5:
+            for template_file in self.templates_dir.glob("*.json5"):
+                templates.add(template_file.stem)
+        
+        # Add .json templates
+        for template_file in self.templates_dir.glob("*.json"):
+            templates.add(template_file.stem)
+        
+        return sorted(list(templates))
     
     def country_exists(self, country: str) -> bool:
         """Check if a country configuration exists
@@ -198,6 +277,68 @@ class ConfigManager:
     def clear_cache(self) -> None:
         """Clear the configuration cache"""
         self._config_cache.clear()
+    
+    def _replace_placeholders(self, config: Dict[str, Any], country: str) -> Dict[str, Any]:
+        """Replace placeholders in configuration template
+        
+        Args:
+            config: Configuration dictionary with placeholders
+            country: Country code to use for replacement
+            
+        Returns:
+            Configuration dictionary with placeholders replaced
+        """
+        # Convert config to JSON string for placeholder replacement
+        config_str = json.dumps(config, ensure_ascii=False, indent=2)
+        
+        # Generate country name from country code (capitalize and replace underscores)
+        country_name = country.replace('_', ' ').title()
+        
+        # Replace placeholders
+        config_str = config_str.replace('{country_code}', country)
+        config_str = config_str.replace('{country_name}', country_name)
+        
+        # Parse back to dictionary
+        try:
+            return json.loads(config_str)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Error parsing configuration after placeholder replacement: {e}")
+    
+    def _fix_template_structure(self, config: Dict[str, Any]) -> None:
+        """Fix template structure for NER compatibility
+        
+        This method handles differences between DAPT and NER template structures,
+        particularly moving num_labels from model section to labels section and
+        fixing model field names.
+        
+        Args:
+            config: Configuration dictionary to fix (modified in-place)
+        """
+        # Fix model section fields
+        if 'model' in config:
+            model_config = config['model']
+            
+            # Convert base_model to name and pretrained_model
+            if 'base_model' in model_config and 'name' not in model_config:
+                model_config['name'] = model_config['base_model'].split('/')[-1]  # Extract model name
+                model_config['pretrained_model'] = model_config['base_model']
+            
+            # Add missing type field
+            if 'type' not in model_config:
+                model_config['type'] = 'bert'  # Default to bert type
+        
+        # Check if num_labels is in model section but missing from labels section
+        if ('model' in config and 'num_labels' in config['model'] and 
+            'labels' in config and 'num_labels' not in config['labels']):
+            
+            # Move num_labels from model to labels section
+            config['labels']['num_labels'] = config['model']['num_labels']
+            
+        # If labels section exists but num_labels is still missing, calculate it
+        if ('labels' in config and 'num_labels' not in config['labels'] and 
+            'label_names' in config['labels']):
+            
+            config['labels']['num_labels'] = len(config['labels']['label_names'])
     
     def _validate_config(self, config: Dict[str, Any], country: str) -> None:
         """Validate configuration structure and required fields

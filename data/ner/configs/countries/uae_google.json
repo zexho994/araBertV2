@@ -1,6 +1,6 @@
 {
     "country": {
-        "code": "uae",
+        "code": "uae_google",
         "name": "United Arab Emirates",
         "language": "ar",
         "description": "Configuration for UAE address parsing with comprehensive entity recognition"
@@ -137,7 +137,7 @@
         },
         "tensorboard": {
             "enabled": true,
-            "log_dir": "ner_data/logs/tensorboard/uae"
+            "log_dir": "ner_data/logs/tensorboard/uae_google"
         }
     }
 }

@@ -394,6 +394,7 @@ class ConfigCommand(BaseCommand):
         create_parser = subparsers.add_parser("create", help="Create new configuration")
         create_parser.add_argument("--country", required=True, help="Country code")
         create_parser.add_argument("--template", default="default", help="Template to use")
+        create_parser.add_argument("--external-template", help="Path to external template file (overrides --template)")
         
         # Validate configuration
         validate_parser = subparsers.add_parser("validate", help="Validate configuration")
@@ -430,8 +431,17 @@ class ConfigCommand(BaseCommand):
                     print(f"Configuration for '{args.country}' already exists")
                     return False
                 
-                config = config_manager.create_country_config(args.country, args.template)
-                print(f"Created configuration for '{args.country}' using template '{args.template}'")
+                if hasattr(args, 'external_template') and args.external_template:
+                    config = config_manager.create_country_config(
+                        args.country, 
+                        args.template, 
+                        external_template_path=args.external_template
+                    )
+                    print(f"Created configuration for '{args.country}' using external template '{args.external_template}'")
+                else:
+                    config = config_manager.create_country_config(args.country, args.template)
+                    print(f"Created configuration for '{args.country}' using template '{args.template}'")
+
                 
             elif args.config_action == "validate":
                 config = config_manager.load_country_config(args.country)

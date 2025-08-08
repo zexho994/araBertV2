@@ -21,6 +21,7 @@ scikit-learn>=1.0.0
 PyYAML>=6.0
 jsonschema>=4.0.0
 pydantic>=1.8.0
+json5>=0.9.6
 
 # Logging and monitoring
 tqdm>=4.62.0

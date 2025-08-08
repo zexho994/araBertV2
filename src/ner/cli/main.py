@@ -22,14 +22,37 @@ from ..utils import NERLogger, setup_logging
 class NERCLIManager:
     """Manages NER CLI commands and global configuration"""
     
-    def __init__(self):
-        """Initialize the CLI manager"""
+    def __init__(self, config_dir: str = "data/ner/configs", data_dir: str = "data/ner", 
+                 model_dir: str = "data/ner/models", logger = None):
+        """Initialize the CLI manager
+        
+        Args:
+            config_dir: Directory for configuration files
+            data_dir: Directory for data files
+            model_dir: Directory for model files
+            logger: Logger instance
+        """
         self.commands = {}
-        self.global_config = {}
-        self.logger = None
+        self.config_dir = config_dir
+        self.data_dir = data_dir
+        self.model_dir = model_dir
+        self.logger = logger
+        
+        # Initialize global config with provided directories
+        self.global_config = {
+            'config_dir': config_dir,
+            'data_dir': data_dir,
+            'model_dir': model_dir,
+            'log_dir': f"{data_dir}/logs",
+            'eval_dir': f"{data_dir}/eval"
+        }
         
         # Register all available commands
         self._register_commands()
+        
+        # Pass global config to all commands immediately
+        for command in self.commands.values():
+            command.set_global_config(self.global_config)
     
     def _register_commands(self):
         """Register all available CLI commands"""
@@ -69,14 +92,16 @@ class NERCLIManager:
         Args:
             config: Global configuration dictionary
         """
-        self.global_config = config
+        # Merge with existing global config
+        self.global_config.update(config)
         
         # Setup logging with global config
-        self._setup_logging()
+        if self.logger is None:
+            self._setup_logging()
         
         # Pass global config to all commands
         for command in self.commands.values():
-            command.set_global_config(config)
+            command.set_global_config(self.global_config)
     
     def execute_command(self, command_name: str, args) -> bool:
         """Execute a specific command
@@ -97,11 +122,6 @@ class NERCLIManager:
         try:
             self.logger.info(f"Executing command: {command_name}")
             result = command.execute(args)
-            
-            if result:
-                self.logger.info(f"Command '{command_name}' completed successfully")
-            else:
-                self.logger.error(f"Command '{command_name}' failed")
             
             return result
             

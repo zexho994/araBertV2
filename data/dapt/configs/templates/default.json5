@@ -48,31 +48,6 @@
       "truncation": true                  // 是否截断超长序列，建议设为true防止内存溢出
     }
   },
-  // 标签配置 - 定义命名实体识别的标签体系（BIO标注格式）
-  "labels": {
-    "label_names": [
-      "O",           // Outside：非实体标签
-      "B-STREET",    // Begin-Street：街道名称的开始标签
-      "I-STREET",    // Inside-Street：街道名称的内部标签
-      "B-BUILDING",  // Begin-Building：建筑物名称的开始标签
-      "I-BUILDING",  // Inside-Building：建筑物名称的内部标签
-      "B-AREA",      // Begin-Area：区域名称的开始标签
-      "I-AREA",      // Inside-Area：区域名称的内部标签
-      "B-CITY",      // Begin-City：城市名称的开始标签
-      "I-CITY"       // Inside-City：城市名称的内部标签
-    ],
-    "label_mapping": {  // 标签到数字ID的映射，用于模型训练
-      "O": 0,
-      "B-STREET": 1,
-      "I-STREET": 2,
-      "B-BUILDING": 3,
-      "I-BUILDING": 4,
-      "B-AREA": 5,
-      "I-AREA": 6,
-      "B-CITY": 7,
-      "I-CITY": 8
-    }
-  },
   // 评估配置 - 定义模型性能评估的指标和策略
   "evaluation": {
     "metrics": [                          // 评估指标列表
