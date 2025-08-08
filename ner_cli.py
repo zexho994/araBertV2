@@ -137,8 +137,8 @@ For more information on each command, use:
     train_parser.add_argument(
         '--data-path', '-d',
         type=str,
-        required=True,
-        help='Path to training data file'
+        required=False,
+        help='Path to training data file (optional; defaults to config data.train_file)'
     )
     train_parser.add_argument(
         '--val-data-path',

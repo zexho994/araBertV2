@@ -5,8 +5,7 @@ Handles BERT-based NER models, model loading, and saving.
 """
 
 from .manager import NERModelManager
-from .ner_model import NERModel
-from .bert_ner import BertNERModel
+from .model import NERModel, BertNERModel
 
 __all__ = [
     'NERModelManager',

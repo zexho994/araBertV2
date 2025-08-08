@@ -104,24 +104,33 @@ class TrainCommand(BaseCommand):
         try:
             # Load configuration
             config_manager = ConfigManager(self.global_config.get('config_dir'))
-            
-            if args.config:
+
+            config_arg = getattr(args, 'config', None)
+            if config_arg:
                 # Load custom configuration
-                with open(args.config, 'r', encoding='utf-8') as f:
+                with open(config_arg, 'r', encoding='utf-8') as f:
                     config = json.load(f)
             else:
                 # Load country configuration
                 config = config_manager.load_country_config(args.country)
             
             # Override configuration with command line arguments
-            if args.epochs:
+            if getattr(args, 'epochs', None):
                 config['training']['epochs'] = args.epochs
-            if args.batch_size:
+            if getattr(args, 'batch_size', None):
                 config['training']['batch_size'] = args.batch_size
-            if args.learning_rate:
+            if getattr(args, 'learning_rate', None):
                 config['training']['learning_rate'] = args.learning_rate
-            if args.output_dir:
+            if getattr(args, 'output_dir', None):
                 config['output']['model_dir'] = args.output_dir
+                
+                # Optional data path overrides (when provided by outer CLI)
+            if getattr(args, 'data_path', None):
+                    config.setdefault('data', {})
+                    config['data']['train_file'] = args.data_path
+            if getattr(args, 'val_data_path', None):
+                    config.setdefault('data', {})
+                    config['data']['val_file'] = args.val_data_path
             
             # Validate configuration
             validator = ConfigValidator()
@@ -133,7 +142,7 @@ class TrainCommand(BaseCommand):
                     print(f"  WARNING: {warning}")
                 return False
             
-            if args.dry_run:
+            if getattr(args, 'dry_run', False):
                 print("Configuration validation passed. Dry run completed.")
                 return True
             

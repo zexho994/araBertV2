@@ -78,8 +78,9 @@ class ConfigValidator:
         
         if 'code' in country_config:
             code = country_config['code']
-            if not isinstance(code, str) or not re.match(r'^[a-z]{2,5}$', code):
-                self.errors.append("Country code must be 2-5 lowercase letters")
+            # Allow lowercase letters, digits, underscore, hyphen; length 2-20
+            if not isinstance(code, str) or not re.match(r'^[a-z0-9_-]{2,20}$', code):
+                self.errors.append("Country code must be 2-20 characters: lowercase letters, digits, '_' or '-'")
             
             if country and code != country:
                 self.warnings.append(f"Country code '{code}' doesn't match expected '{country}'")

@@ -6,7 +6,6 @@ Handles performance evaluation, report generation, and metrics analysis.
 
 from .evaluator import NEREvaluator
 from .metrics import NERMetrics
-from .reporter import EvaluationReporter
 
 __all__ = [
     'NEREvaluator',

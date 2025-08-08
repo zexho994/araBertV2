@@ -37,14 +37,14 @@ class NERTrainer:
         self.config = config
         self.global_config = global_config
         
-        # Setup device
-        self.device = self._setup_device()
-        
-        # Initialize logger
+        # Initialize logger (ensure exists before any method uses it)
         self.logger = NERLogger(
-            name=f"{config['country']}_training",
+            name=f"{config.get('country', {}).get('code', 'unknown')}_training",
             log_dir=global_config.get('log_dir', 'data/ner/logs')
         )
+        
+        # Setup device
+        self.device = self._setup_device()
         
         # Training state
         self.model = None
@@ -72,18 +72,43 @@ class NERTrainer:
         self.checkpoint_dir = self.output_dir / 'checkpoints'
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         
-        self.logger.info(f"Initialized trainer for {config['country']} on device: {self.device}")
+        country_display = config.get('country', {}).get('code') or config.get('country') or 'unknown'
+        self.logger.info(f"Initialized trainer for {country_display} on device: {self.device}")
     
     def _setup_device(self) -> torch.device:
         """Setup training device"""
         hardware_config = self.config.get('hardware', {})
+        device_config = hardware_config.get('device', 'auto')
         
-        if hardware_config.get('use_gpu', True) and torch.cuda.is_available():
-            device = torch.device('cuda')
-            self.logger.info(f"Using GPU: {torch.cuda.get_device_name()}")
-        else:
+        if device_config == 'auto':
+            # Auto-select: use GPU if available, otherwise CPU
+            if torch.cuda.is_available():
+                device = torch.device('cuda')
+                self.logger.info(f"Using GPU (auto-selected): {torch.cuda.get_device_name()}")
+            else:
+                device = torch.device('cpu')
+                self.logger.info("Using CPU (auto-selected, no GPU available)")
+        elif device_config == 'cuda':
+            # Force GPU usage
+            if torch.cuda.is_available():
+                device = torch.device('cuda')
+                self.logger.info(f"Using GPU (forced): {torch.cuda.get_device_name()}")
+            else:
+                self.logger.warning("CUDA requested but not available, falling back to CPU")
+                device = torch.device('cpu')
+        elif device_config == 'cpu':
+            # Force CPU usage
             device = torch.device('cpu')
-            self.logger.info("Using CPU")
+            self.logger.info("Using CPU (forced)")
+        else:
+            # Handle specific device like 'cuda:0'
+            if device_config.startswith('cuda:') and torch.cuda.is_available():
+                device = torch.device(device_config)
+                self.logger.info(f"Using specific GPU device: {device_config}")
+            else:
+                self.logger.warning(f"Invalid device config '{device_config}', falling back to auto")
+                device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+                self.logger.info(f"Using {'GPU' if device.type == 'cuda' else 'CPU'} (fallback)")
         
         return device
     
@@ -107,8 +132,26 @@ class NERTrainer:
             self.logger.info(f"Loaded {len(val_examples)} validation examples")
         
         # Create label mappings
-        labels = self.config['labels']['entities']
-        bio_labels = ['O'] + [f'B-{entity}' for entity in labels] + [f'I-{entity}' for entity in labels]
+        labels_config = self.config['labels']
+        
+        # Handle both 'entities' and 'label_names' formats
+        if 'entities' in labels_config:
+            # Direct entities list format
+            entities = labels_config['entities']
+            bio_labels = ['O'] + [f'B-{entity}' for entity in entities] + [f'I-{entity}' for entity in entities]
+        elif 'label_names' in labels_config:
+            # BIO label names format - extract entities from BIO tags
+            label_names = labels_config['label_names']
+            entities = set()
+            for label in label_names:
+                if label.startswith('B-') or label.startswith('I-'):
+                    entity = label[2:]  # Remove 'B-' or 'I-' prefix
+                    entities.add(entity)
+            entities = sorted(list(entities))  # Convert to sorted list for consistency
+            bio_labels = label_names  # Use existing label names
+        else:
+            raise ValueError("Configuration must contain either 'entities' or 'label_names' in labels section")
+        
         label2id = {label: idx for idx, label in enumerate(bio_labels)}
         id2label = {idx: label for label, idx in label2id.items()}
         
@@ -143,8 +186,8 @@ class NERTrainer:
         
         # Initialize model
         if model_config['type'] == 'bert':
-            self.model = BertNERModel(
-                model_name=model_config['pretrained_model'],
+            self.model = BertNERModel.from_pretrained(
+                pretrained_model_name_or_path=model_config['pretrained_model'],
                 num_labels=self.num_labels,
                 dropout=model_config.get('dropout', 0.1)
             )
@@ -221,7 +264,7 @@ class NERTrainer:
             
             # Forward pass
             outputs = self.model(**batch)
-            loss = outputs.loss
+            loss = outputs['loss'] if isinstance(outputs, dict) else outputs.loss
             
             # Backward pass
             self.optimizer.zero_grad()
@@ -277,8 +320,8 @@ class NERTrainer:
                 
                 # Forward pass
                 outputs = self.model(**batch)
-                loss = outputs.loss
-                logits = outputs.logits
+                loss = outputs['loss'] if isinstance(outputs, dict) else outputs.loss
+                logits = outputs['logits'] if isinstance(outputs, dict) else outputs.logits
                 
                 # Get predictions
                 predictions = torch.argmax(logits, dim=-1)

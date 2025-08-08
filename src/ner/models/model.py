@@ -216,6 +216,9 @@ class BertNERModel(NERModel):
     def __init__(self, config):
         super().__init__(config)
         
+        # Ensure num_labels is set
+        self.num_labels = config.num_labels
+        
         # Load BERT model
         if hasattr(config, 'model_name'):
             self.bert = AutoModel.from_pretrained(config.model_name)
@@ -279,6 +282,9 @@ class BertNERModel(NERModel):
             model_name=pretrained_model_name_or_path,
             **kwargs
         )
+        
+        # Ensure num_labels is properly set
+        config.num_labels = num_labels
         
         # Create model
         model = cls(config)

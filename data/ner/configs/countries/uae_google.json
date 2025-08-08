@@ -34,9 +34,9 @@
         "logging_steps": 100
     },
     "data": {
-        "train_file": "uae_train.jsonl",
-        "val_file": "uae_val.jsonl",
-        "test_file": "uae_test.jsonl",
+        "train_file": "data/ner/data/uae_google/generated.jsonl",
+        "val_file": "data/ner/data/uae_google/validation.jsonl",
+        "test_file": "data/ner/data/uae_google/test.jsonl",
         "data_format": "jsonl",
         "text_column": "text",
         "labels_column": "labels",
@@ -111,7 +111,7 @@
         "confusion_matrix": true
     },
     "output": {
-        "model_dir": "ner_data/models/uae",
+        "model_dir": "data/ner/models/uae_google",
         "save_steps": 1000,
         "save_total_limit": 3,
         "overwrite_output_dir": true,
@@ -137,7 +137,7 @@
         },
         "tensorboard": {
             "enabled": true,
-            "log_dir": "ner_data/logs/tensorboard/uae_google"
+            "log_dir": "data/ner/logs/tensorboard/uae_google"
         }
     }
 }

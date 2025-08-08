@@ -206,6 +206,9 @@ class ConfigManager:
         # Save the new configuration
         self.save_country_config(country, config)
         
+        # Create directories and files based on configuration
+        self._create_project_structure(config, country)
+        
         return config
     
     def list_countries(self) -> List[str]:
@@ -339,6 +342,153 @@ class ConfigManager:
             'label_names' in config['labels']):
             
             config['labels']['num_labels'] = len(config['labels']['label_names'])
+    
+    def _create_project_structure(self, config: Dict[str, Any], country: str) -> None:
+        """Create project directories and sample data files based on configuration
+        
+        Args:
+            config: Configuration dictionary
+            country: Country code
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        created_dirs = []
+        created_files = []
+        
+        try:
+            # Create directories from configuration paths
+            dirs_to_create = []
+            
+            # Extract directory paths from configuration
+            if 'output' in config:
+                output_config = config['output']
+                if 'model_dir' in output_config:
+                    dirs_to_create.append(Path(output_config['model_dir']))
+                if 'results_dir' in output_config:
+                    dirs_to_create.append(Path(output_config['results_dir']))
+                if 'logs_dir' in output_config:
+                    dirs_to_create.append(Path(output_config['logs_dir']))
+            
+            if 'logging' in config and 'log_file' in config['logging']:
+                log_file_path = Path(config['logging']['log_file'])
+                dirs_to_create.append(log_file_path.parent)
+            
+            # Extract data file paths and their directories
+            data_files = []
+            if 'data' in config:
+                data_config = config['data']
+                for file_key in ['train_file', 'val_file', 'test_file']:
+                    if file_key in data_config:
+                        file_path = Path(data_config[file_key])
+                        dirs_to_create.append(file_path.parent)
+                        data_files.append((file_key, file_path))
+            
+            # Create directories
+            for dir_path in dirs_to_create:
+                if not dir_path.exists():
+                    dir_path.mkdir(parents=True, exist_ok=True)
+                    created_dirs.append(str(dir_path))
+                    logger.info(f"Created directory: {dir_path}")
+            
+            # Create sample data files
+            for file_key, file_path in data_files:
+                if not file_path.exists():
+                    self._create_sample_data_file(file_path, file_key, config)
+                    created_files.append(str(file_path))
+                    logger.info(f"Created sample data file: {file_path}")
+            
+            # Log summary
+            if created_dirs or created_files:
+                logger.info(f"Project structure created for country '{country}':")
+                if created_dirs:
+                    logger.info(f"  Directories: {len(created_dirs)} created")
+                if created_files:
+                    logger.info(f"  Data files: {len(created_files)} created")
+            else:
+                logger.info(f"Project structure already exists for country '{country}'")
+                
+        except Exception as e:
+            logger.error(f"Error creating project structure for {country}: {e}")
+            raise
+    
+    def _create_sample_data_file(self, file_path: Path, file_type: str, config: Dict[str, Any]) -> None:
+        """Create a sample data file with NER annotations
+        
+        Args:
+            file_path: Path where to create the file
+            file_type: Type of file (train_file, val_file, test_file)
+            config: Configuration dictionary for context
+        """
+        # Sample NER data in JSONL format
+        sample_data = []
+        
+        # Get label names from config, or use default labels
+        label_names = []
+        if 'labels' in config and 'label_names' in config['labels']:
+            label_names = config['labels']['label_names']
+        
+        # Default NER labels if not specified
+        if not label_names:
+            label_names = [
+                "O", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC",
+                "B-MISC", "I-MISC", "B-ADDR", "I-ADDR", "B-STREET", "I-STREET",
+                "B-CITY", "I-CITY", "B-STATE", "I-STATE"
+            ]
+        
+        # Sample sentences with NER annotations
+        if file_type == 'train_file':
+            sample_data = [
+                {
+                    "id": "train_001",
+                    "tokens": ["John", "Smith", "lives", "in", "New", "York", "City", "."],
+                    "labels": ["B-PER", "I-PER", "O", "O", "B-LOC", "I-LOC", "I-LOC", "O"]
+                },
+                {
+                    "id": "train_002",
+                    "tokens": ["Apple", "Inc", "is", "located", "at", "123", "Main", "Street", "."],
+                    "labels": ["B-ORG", "I-ORG", "O", "O", "O", "B-ADDR", "I-ADDR", "I-ADDR", "O"]
+                },
+                {
+                    "id": "train_003",
+                    "tokens": ["Visit", "the", "Emirates", "Palace", "in", "Abu", "Dhabi", "."],
+                    "labels": ["O", "O", "B-LOC", "I-LOC", "O", "B-CITY", "I-CITY", "O"]
+                }
+            ]
+        elif file_type == 'val_file':
+            sample_data = [
+                {
+                    "id": "val_001",
+                    "tokens": ["Microsoft", "Corporation", "headquarters", "in", "Seattle", "."],
+                    "labels": ["B-ORG", "I-ORG", "O", "O", "B-CITY", "O"]
+                },
+                {
+                    "id": "val_002",
+                    "tokens": ["Dr", ".", "Ahmed", "works", "at", "Dubai", "Hospital", "."],
+                    "labels": ["B-PER", "I-PER", "I-PER", "O", "O", "B-ORG", "I-ORG", "O"]
+                }
+            ]
+        else:  # test_file
+            sample_data = [
+                {
+                    "id": "test_001",
+                    "tokens": ["The", "meeting", "is", "at", "456", "Oak", "Avenue", "."],
+                    "labels": ["O", "O", "O", "O", "B-ADDR", "I-ADDR", "I-ADDR", "O"]
+                },
+                {
+                    "id": "test_002",
+                    "tokens": ["Google", "LLC", "in", "Mountain", "View", "California", "."],
+                    "labels": ["B-ORG", "I-ORG", "O", "B-CITY", "I-CITY", "B-STATE", "O"]
+                }
+            ]
+        
+        # Write JSONL file
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                for item in sample_data:
+                    f.write(json.dumps(item, ensure_ascii=False) + '\n')
+        except Exception as e:
+            raise ValueError(f"Error creating sample data file {file_path}: {e}")
     
     def _validate_config(self, config: Dict[str, Any], country: str) -> None:
         """Validate configuration structure and required fields

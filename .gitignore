@@ -72,3 +72,5 @@ data/ner/evaluation/
 data/ner/exports/
 data/ner/logs/
 data/ner/training_data/
+data/ner/data/*
+*.csv
