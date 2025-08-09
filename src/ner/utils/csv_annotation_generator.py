@@ -51,6 +51,36 @@ class CSVAnnotationGenerator:
 
     def __init__(self, config_dir: str = "data/ner/configs") -> None:
         self.config_manager = ConfigManager(config_dir=config_dir)
+        # Abbreviation/synonym mapping for fuzzy matching on last tokens like Street/St, Road/Rd, etc.
+        # Keys should be lowercase canonical forms.
+        self._abbrev_synonyms: Dict[str, List[str]] = {
+            "street": ["street", "st", "st."],
+            "road": ["road", "rd", "rd."],
+            "avenue": ["avenue", "ave", "ave."],
+            "boulevard": ["boulevard", "blvd", "blvd."],
+            "drive": ["drive", "dr", "dr."],
+            "lane": ["lane", "ln", "ln."],
+            "court": ["court", "ct", "ct."],
+            "place": ["place", "pl", "pl."],
+            "square": ["square", "sq", "sq."],
+            "terrace": ["terrace", "ter", "ter."],
+            "highway": ["highway", "hwy", "hwy."],
+            "parkway": ["parkway", "pkwy", "pkwy."],
+            "building": ["building", "bldg", "bldg."],
+        }
+
+        # Entity priority (higher number = higher priority). Used to resolve overlaps.
+        # Tune as needed. Here EMIRATE outranks CITY to avoid city masking emirate in overlaps.
+        self._entity_priority: Dict[str, int] = {
+            "HOUSE_NUMBER": 100,
+            "BUILDING": 90,
+            "STREET": 80,
+            "SUB_AREA": 70,
+            "COMPOUND": 60,
+            "EMIRATE": 55,
+            "CITY": 50,
+            "COUNTRY": 40,
+        }
 
     def generate(self, cfg: CSVAnnotationGeneratorConfig) -> Path:
         # Load country config and derive entity set
@@ -103,7 +133,7 @@ class CSVAnnotationGenerator:
                 original_text=text,
             )
 
-            labels = TextUtils.convert_entities_to_bio(tokens, entities)
+            labels = self._convert_entities_to_bio_with_priority(tokens, entities)
             examples.append({
                 "text": text,
                 "tokens": tokens,
@@ -187,15 +217,28 @@ class CSVAnnotationGenerator:
             spans.append((m.start(), m.end()))
         return tokens, spans
 
-    @staticmethod
-    def _find_char_span(text: str, value: str) -> Optional[Tuple[int, int]]:
-        """Return the first (start,end) char span of value in text, or None if not found."""
+    def _find_char_span(self, text: str, value: str) -> Optional[Tuple[int, int]]:
+        """Return the first (start,end) char span of value in text using fuzzy matching.
+
+        Strategy:
+        - Build a case-insensitive regex from the provided value where known tokens
+          (e.g., "Street") expand to alternatives (e.g., "Street|St|St.").
+        - Allow flexible separators between tokens (spaces/hyphens).
+        - Fallback to exact substring search if regex fails.
+        """
         if not isinstance(value, str):
             return None
         s = value.strip()
         if not s:
             return None
-        idx = text.find(s)
+
+        pattern = self._build_value_regex(s)
+        m = pattern.search(text)
+        if m:
+            return m.start(), m.end()
+
+        # Fallback to exact find (case-insensitive)
+        idx = text.lower().find(s.lower())
         if idx == -1:
             return None
         return idx, idx + len(s)
@@ -275,12 +318,89 @@ class CSVAnnotationGenerator:
 
         return entities
 
+    # --- Helper methods for fuzzy matching and BIO conversion with priority ---
+
+    def _build_value_regex(self, value: str) -> re.Pattern:
+        """Build a fuzzy, case-insensitive regex that matches the given value in text.
+
+        - Escapes literal tokens except where a token has known abbreviations/synonyms
+          which are expanded into a non-capturing group.
+        - Joins tokens with a flexible separator pattern to tolerate spaces/hyphens.
+        """
+        # Split by whitespace to tokens
+        raw_tokens = [t for t in re.split(r"\s+", value.strip()) if t]
+        regex_tokens: List[str] = []
+        for tok in raw_tokens:
+            base = tok.strip().strip(',')
+            key = base.lower().rstrip('.')
+            if key in self._abbrev_synonyms:
+                alts = self._abbrev_synonyms[key]
+                # Escape each alt for regex; allow optional trailing dot variants
+                escaped_alts = [re.escape(a) for a in alts]
+                regex_tokens.append(f"(?:{'|'.join(escaped_alts)})")
+            else:
+                regex_tokens.append(re.escape(base))
+
+        # Allow spaces and hyphens between tokens
+        sep = r"[\s\-]+"
+        pattern_str = sep.join(regex_tokens)
+        # Use word boundary on ends to avoid partial matches when possible
+        pattern_str = rf"\b{pattern_str}\b"
+        try:
+            return re.compile(pattern_str, flags=re.IGNORECASE)
+        except re.error:
+            # Extremely defensive: fall back to escaped literal
+            return re.compile(re.escape(value), flags=re.IGNORECASE)
+
+    def _convert_entities_to_bio_with_priority(
+        self,
+        tokens: List[str],
+        entities: List[Dict[str, Any]],
+    ) -> List[str]:
+        """Convert entities to BIO labels without overlaps, honoring entity priority.
+
+        - Sort entities by (priority desc, span_length desc) to place higher priority
+          and longer entities first.
+        - Only place an entity if its entire span is currently unlabeled (all 'O').
+        """
+        labels: List[str] = ["O"] * len(tokens)
+
+        def priority_for(entity_type: str) -> int:
+            return self._entity_priority.get(entity_type.upper(), 0)
+
+        def span_len(ent: Dict[str, Any]) -> int:
+            return int(ent.get("end", 0)) - int(ent.get("start", 0))
+
+        sorted_entities = sorted(
+            entities,
+            key=lambda e: (priority_for(e.get("type", "")), span_len(e)),
+            reverse=True,
+        )
+
+        for ent in sorted_entities:
+            start = int(ent.get("start", 0))
+            end = int(ent.get("end", 0))
+            etype = str(ent.get("type", "")).upper()
+            if not (0 <= start < end <= len(tokens)):
+                continue
+
+            # Check if span is free (all 'O')
+            if any(label != "O" for label in labels[start:end]):
+                continue
+
+            labels[start] = f"B-{etype}"
+            for i in range(start + 1, end):
+                labels[i] = f"I-{etype}"
+
+        return labels
+
 
 def main():
     gen = CSVAnnotationGenerator(config_dir="data/ner/configs")
     out_path = gen.generate_from_csv(
         # csv_path="src/ner/utils/uae_address.csv",
         csv_path="src/ner/utils/validation.csv",
+        # csv_path="src/ner/utils/test_uae_train.csv",
         country_code="uae_xml_roberta_base",
         output_file="data/ner/data/uae_xml_roberta_base/val.jsonl",  # 可省略→默认 data/ner/training_data/uae/generated.json
         # text_column="formatted_address",  # 如不同可自定义
