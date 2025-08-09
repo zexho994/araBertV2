@@ -359,7 +359,7 @@ class PredictCommand(BaseCommand):
     
     def setup_parser(self, parser):
         parser.add_argument(
-            "--model",
+            "--model-path",
             required=True,
             help="Model name or path for prediction"
         )
@@ -368,7 +368,7 @@ class PredictCommand(BaseCommand):
             help="Text to predict (single prediction)"
         )
         parser.add_argument(
-            "--input-file",
+            "--file",
             help="File containing texts to predict"
         )
         parser.add_argument(
@@ -380,7 +380,7 @@ class PredictCommand(BaseCommand):
             help="Country code for configuration"
         )
         parser.add_argument(
-            "--format",
+            "--output-format",
             choices=["json", "text", "conll"],
             default="json",
             help="Output format"
@@ -399,52 +399,56 @@ class PredictCommand(BaseCommand):
             
             # Load model
             model_manager = NERModelManager(self.global_config.get('model_dir'))
-            model = model_manager.load_model(args.model)
+            model = model_manager.load_model(args.model_path)
+            
+            # Load tokenizer
+            from transformers import AutoTokenizer
+            tokenizer = AutoTokenizer.from_pretrained(args.model_path)
             
             # Load configuration if country specified
             config = None
-            if args.country:
+            if hasattr(args, 'country') and args.country:
                 config_manager = ConfigManager(self.global_config.get('config_dir'))
                 config = config_manager.load_country_config(args.country)
             
             # Single text prediction
             if args.text:
-                prediction = model.predict(args.text, confidence_threshold=args.confidence_threshold)
+                prediction = model.predict(args.text, tokenizer=tokenizer, confidence_threshold=args.confidence_threshold)
                 
-                if args.format == "json":
+                if args.output_format == "json":
                     print(json.dumps(prediction, indent=2, ensure_ascii=False))
-                elif args.format == "text":
+                elif args.output_format == "text":
                     for token, label in zip(prediction['tokens'], prediction['labels']):
                         print(f"{token}\t{label}")
-                elif args.format == "conll":
+                elif args.output_format == "conll":
                     for token, label in zip(prediction['tokens'], prediction['labels']):
                         print(f"{token} {label}")
                 
                 return True
             
             # Batch prediction from file
-            if args.input_file:
+            if args.file:
                 predictions = []
                 
-                with open(args.input_file, 'r', encoding='utf-8') as f:
+                with open(args.file, 'r', encoding='utf-8') as f:
                     for line in f:
                         text = line.strip()
                         if text:
-                            prediction = model.predict(text, confidence_threshold=args.confidence_threshold)
+                            prediction = model.predict(text, tokenizer=tokenizer, confidence_threshold=args.confidence_threshold)
                             predictions.append(prediction)
                 
                 # Save or print predictions
                 if args.output_file:
                     with open(args.output_file, 'w', encoding='utf-8') as f:
-                        if args.format == "json":
+                        if args.output_format == "json":
                             json.dump(predictions, f, indent=2, ensure_ascii=False)
                         else:
                             for pred in predictions:
-                                if args.format == "text":
+                                if args.output_format == "text":
                                     for token, label in zip(pred['tokens'], pred['labels']):
                                         f.write(f"{token}\t{label}\n")
                                     f.write("\n")
-                                elif args.format == "conll":
+                                elif args.output_format == "conll":
                                     for token, label in zip(pred['tokens'], pred['labels']):
                                         f.write(f"{token} {label}\n")
                                     f.write("\n")
@@ -455,7 +459,7 @@ class PredictCommand(BaseCommand):
                 
                 return True
             
-            print("Please provide either --text or --input-file")
+            print("Please provide either --text or --file")
             return False
             
         except Exception as e:
