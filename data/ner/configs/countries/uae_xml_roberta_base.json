@@ -1,0 +1,163 @@
+{
+  "country": {
+    "code": "uae_xml_roberta_base",
+    "name": "UAE_XML_ROBERTA_BASE",
+    "language": "",
+    "description": "desc for Uae Xml Roberta Base"
+  },
+  "model": {
+    "name": "XLM-RoBERTa",
+    "type": "bert",
+    "pretrained_model": "xlm-roberta-base",
+    "dropout": 0.1,
+    "config": {
+      "hidden_dropout_prob": 0.1,
+      "attention_probs_dropout_prob": 0.1
+    }
+  },
+  "training": {
+    "epochs": 6,
+    "batch_size": 16,
+    "learning_rate": 2e-05,
+    "weight_decay": 0.01,
+    "warmup_steps": 500,
+    "warmup_ratio": 0.1,
+    "optimizer": "adamw",
+    "scheduler": "linear",
+    "early_stopping_patience": 3,
+    "max_grad_norm": 1.0,
+    "save_steps": 1000,
+    "eval_steps": 500,
+    "logging_steps": 100
+  },
+  "data": {
+    "train_file": "data/ner/data/uae_xml_roberta_base/train.jsonl",
+    "val_file": "data/ner/data/uae_xml_roberta_base/val.jsonl",
+    "test_file": "data/ner/data/uae_xml_roberta_base/test.jsonl",
+    "max_length": 256,
+    "doc_stride": 128,
+    "preprocessing": {
+      "lowercase": false,
+      "remove_accents": false,
+      "tokenize_chinese_chars": true
+    }
+  },
+  "transformers_config": {
+    "architectures": [
+      "BertForTokenClassification"
+    ],
+    "attention_probs_dropout_prob": 0.1,
+    "hidden_act": "gelu",
+    "hidden_dropout_prob": 0.1,
+    "initializer_range": 0.02,
+    "intermediate_size": 3072,
+    "layer_norm_eps": 1e-12,
+    "max_position_embeddings": 512,
+    "model_type": "bert",
+    "pad_token_id": 0,
+    "position_embedding_type": "absolute",
+    "transformers_version": "4.21.0",
+    "type_vocab_size": 2,
+    "use_cache": true,
+    "vocab_size": 30522
+  },
+  "labels": {
+    "num_labels": 17,
+    "label_names": [
+      "O",
+      "B-COUNTRY", "I-COUNTRY",
+      "B-EMIRATE", "I-EMIRATE",
+      "B-CITY", "I-CITY",
+      "B-SUB_AREA", "I-SUB_AREA",
+      "B-COMPOUND", "I-COMPOUND",
+      "B-STREET", "I-STREET",
+      "B-BUILDING", "I-BUILDING",
+      "B-HOUSE_NUMBER", "I-HOUSE_NUMBER"
+    ],
+    "label_mapping": {
+      "O": 0,
+      "B-COUNTRY": 1,
+      "I-COUNTRY": 2,
+      "B-EMIRATE": 3,
+      "I-EMIRATE": 4,
+      "B-CITY": 5,
+      "I-CITY": 6,
+      "B-SUB_AREA": 7,
+      "I-SUB_AREA": 8,
+      "B-COMPOUND": 9,
+      "I-COMPOUND": 10,
+      "B-STREET": 11,
+      "I-STREET": 12,
+      "B-BUILDING": 13,
+      "I-BUILDING": 14,
+      "B-HOUSE_NUMBER": 15,
+      "I-HOUSE_NUMBER": 16
+    },
+    "ignore_index": -100
+  },
+  "evaluation": {
+    "metrics": [
+      "precision",
+      "recall",
+      "f1",
+      "accuracy"
+    ],
+    "average": "weighted",
+    "return_entity_level_metrics": true,
+    "classification_report": true
+  },
+  "output": {
+    "model_dir": "data/ner/models/uae_xml_roberta_base",
+    "results_dir": "data/ner/result/uae_xml_roberta_base",
+    "logs_dir": "data/ner/logs/uae_xml_roberta_base",
+    "predictions_file": "predictions.json",
+    "save_total_limit": 3,
+    "overwrite_output_dir": true
+  },
+  "hardware": {
+    "device": "auto",
+    "num_workers": 0,
+    "pin_memory": true,
+    "fp16": true,
+    "dataloader_drop_last": false
+  },
+  "logging": {
+    "level": "INFO",
+    "log_file": "data/ner/logs/uae_xml_roberta_base/example.log",
+    "console_output": true,
+    "wandb": {
+      "enabled": false,
+      "project": "ner-example",
+      "entity": null,
+      "tags": [
+        "ner",
+        "bert",
+        "example"
+      ]
+    },
+    "tensorboard": {
+      "enabled": true,
+      "log_dir": "runs/example"
+    }
+  },
+  "optimizer": {
+    "type": "AdamW",
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "amsgrad": false
+  },
+  "scheduler": {
+    "type": "linear",
+    "num_warmup_steps": 500,
+    "num_training_steps": null
+  },
+  "early_stopping": {
+    "enabled": true,
+    "patience": 3,
+    "min_delta": 0.001,
+    "monitor": "eval_f1"
+  }
+}

@@ -9,18 +9,17 @@ import json
 import torch
 import torch.nn as nn
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import LinearLR, CosineAnnealingLR
-from transformers import get_linear_schedule_with_warmup
-from typing import Dict, Any, Optional, List, Tuple
+from torch.optim.lr_scheduler import CosineAnnealingLR
+from transformers import get_linear_schedule_with_warmup, AutoConfig
+from typing import Dict, Any, Optional, List
 from pathlib import Path
-import numpy as np
 from tqdm import tqdm
 import time
 from datetime import datetime
 
 from ..data import NERDataProcessor, NERDataLoader
-from ..models import NERModel, BertNERModel
-from ..evaluation import NEREvaluator, NERMetrics
+from ..models import  BertNERModel
+from ..evaluation.evaluator import NERMetrics as SeqevalNERMetrics
 from ..utils import NERLogger
 
 class NERTrainer:
@@ -37,10 +36,9 @@ class NERTrainer:
         self.config = config
         self.global_config = global_config
         
-        # Initialize logger (ensure exists before any method uses it)
         self.logger = NERLogger(
             name=f"{config.get('country', {}).get('code', 'unknown')}_training",
-            log_dir=global_config.get('log_dir', 'data/ner/logs')
+            log_dir=config.get('logs_dir', 'data/ner/logs')
         )
         
         # Setup device
@@ -310,8 +308,9 @@ class NERTrainer:
         
         self.model.eval()
         total_loss = 0.0
-        all_predictions = []
-        all_labels = []
+        # Accumulate per-sequence labels for entity-level evaluation
+        y_true_sequences = []
+        y_pred_sequences = []
         
         with torch.no_grad():
             for batch in tqdm(self.data_loaders['val'], desc="Validating", leave=False):
@@ -322,24 +321,56 @@ class NERTrainer:
                 outputs = self.model(**batch)
                 loss = outputs['loss'] if isinstance(outputs, dict) else outputs.loss
                 logits = outputs['logits'] if isinstance(outputs, dict) else outputs.logits
-                
+
                 # Get predictions
                 predictions = torch.argmax(logits, dim=-1)
-                
-                # Collect predictions and labels
-                mask = batch['labels'] != -100
-                all_predictions.extend(predictions[mask].cpu().numpy())
-                all_labels.extend(batch['labels'][mask].cpu().numpy())
-                
+
+                # Build per-sample sequences (strip padding = -100) and convert to label strings
+                batch_labels = batch['labels']
+                for i in range(batch_labels.size(0)):
+                    mask_i = batch_labels[i] != -100
+                    true_ids = batch_labels[i][mask_i].tolist()
+                    pred_ids = predictions[i][mask_i].tolist()
+                    true_seq = [self.id2label.get(int(tid), 'O') for tid in true_ids]
+                    pred_seq = [self.id2label.get(int(pid), 'O') for pid in pred_ids]
+                    y_true_sequences.append(true_seq)
+                    y_pred_sequences.append(pred_seq)
+
                 total_loss += loss.item()
         
-        # Calculate metrics
-        metrics_calculator = NERMetrics(self.id2label)
-        metrics = metrics_calculator.compute_metrics(all_predictions, all_labels)
-        
+        # Calculate entity-level and token-level metrics using seqeval-based metrics
+        label_list = [self.id2label[i] for i in range(len(self.id2label))]
+        seq_metrics = SeqevalNERMetrics(label_list)
+
+        token_metrics = seq_metrics.compute_token_metrics(y_true_sequences, y_pred_sequences)
+        entity_metrics = seq_metrics.compute_entity_metrics(y_true_sequences, y_pred_sequences)
+
+        # Aggregate metrics for trainer consumption (use entity-level by default)
         avg_loss = total_loss / len(self.data_loaders['val'])
-        metrics['val_loss'] = avg_loss
-        
+        metrics: Dict[str, float] = {
+            'precision': entity_metrics.get('entity_precision', 0.0),
+            'recall': entity_metrics.get('entity_recall', 0.0),
+            'f1': entity_metrics.get('entity_f1', 0.0),
+            'val_loss': avg_loss,
+            'token_precision': token_metrics.get('token_precision', 0.0),
+            'token_recall': token_metrics.get('token_recall', 0.0),
+            'token_f1': token_metrics.get('token_f1', 0.0),
+            'token_accuracy': token_metrics.get('token_accuracy', 0.0),
+        }
+
+        # Optional: include per-entity breakdown if requested in config
+        eval_cfg = self.config.get('evaluation', {})
+        if eval_cfg.get('return_entity_level_metrics', True) or eval_cfg.get('classification_report', False):
+            try:
+                per_entity = seq_metrics.compute_per_entity_metrics(y_true_sequences, y_pred_sequences)
+                # Flatten selected stats with prefix for easy logging/consumption
+                for ent, stats in per_entity.items():
+                    metrics[f'entity_{ent}_f1'] = stats.get('f1', 0.0)
+                    metrics[f'entity_{ent}_precision'] = stats.get('precision', 0.0)
+                    metrics[f'entity_{ent}_recall'] = stats.get('recall', 0.0)
+            except Exception:
+                pass
+
         return metrics
     
     def save_checkpoint(self, epoch: int, metrics: Dict[str, float], is_best: bool = False):
@@ -385,40 +416,21 @@ class NERTrainer:
         self.model.save_pretrained(model_dir)
         self.tokenizer.save_pretrained(model_dir)
         
-        # Create standard Transformers config.json
-        # Get transformers config from country configuration with defaults
-        transformers_defaults = self.config.get('transformers_config', {})
-        
-        transformers_config = {
-            "_name_or_path": self.config['model']['pretrained_model'],
-            "architectures": transformers_defaults.get('architectures', ["BertForTokenClassification"]),
-            "attention_probs_dropout_prob": transformers_defaults.get('attention_probs_dropout_prob', 0.1),
-            "classifier_dropout": self.config['model'].get('dropout', 0.1),
-            "hidden_act": transformers_defaults.get('hidden_act', "gelu"),
-            "hidden_dropout_prob": transformers_defaults.get('hidden_dropout_prob', 0.1),
-            "hidden_size": self.config['model'].get('hidden_size', 768),
-            "initializer_range": transformers_defaults.get('initializer_range', 0.02),
-            "intermediate_size": transformers_defaults.get('intermediate_size', 3072),
-            "layer_norm_eps": transformers_defaults.get('layer_norm_eps', 1e-12),
-            "max_position_embeddings": transformers_defaults.get('max_position_embeddings', 512),
-            "model_type": transformers_defaults.get('model_type', "bert"),
-            "num_attention_heads": self.config['model'].get('num_attention_heads', 12),
-            "num_hidden_layers": self.config['model'].get('num_hidden_layers', 12),
-            "pad_token_id": transformers_defaults.get('pad_token_id', 0),
-            "position_embedding_type": transformers_defaults.get('position_embedding_type', "absolute"),
-            "transformers_version": transformers_defaults.get('transformers_version', "4.21.0"),
-            "type_vocab_size": transformers_defaults.get('type_vocab_size', 2),
-            "use_cache": transformers_defaults.get('use_cache', True),
-            "vocab_size": transformers_defaults.get('vocab_size', 64000),
-            "num_labels": self.config['labels']['num_labels'],
-            "id2label": self.id2label,
-            "label2id": self.label2id
-        }
-        
-        # Save standard config.json
+        # Create a Transformers config based on the actual pretrained base to
+        # avoid shape mismatches (e.g., vocab_size/model_type must match xlm-roberta-base)
+        base_model_name = self.config['model']['pretrained_model']
+        base_cfg = AutoConfig.from_pretrained(base_model_name)
+        # Inject NER-specific fields
+        base_cfg.id2label = self.id2label
+        base_cfg.label2id = self.label2id
+        base_cfg.num_labels = self.config['labels']['num_labels']
+        # Optional classifier dropout if present in our config
+        dropout_val = self.config['model'].get('dropout', None)
+        if dropout_val is not None:
+            setattr(base_cfg, 'classifier_dropout', dropout_val)
+        # Persist config.json
         config_path = model_dir / "config.json"
-        with open(config_path, 'w', encoding='utf-8') as f:
-            json.dump(transformers_config, f, indent=2, ensure_ascii=False)
+        base_cfg.to_json_file(config_path)
         
         # Save training metadata separately
         metadata_path = model_dir / "training_metadata.json"

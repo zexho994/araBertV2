@@ -10,9 +10,10 @@
     // 模型配置
     "model": {
         "name": "",
-        "type": "bert",
-        "pretrained_model": "",
-        "config": {
+        "type": "bert",                 // 目前训练器仅在 type=="bert" 分支初始化（底座通过 AutoModel 兼容 XLM-R 等）
+        "pretrained_model": "",         // 例如："xlm-roberta-base"
+        "dropout": 0.1,                  // 分类头 dropout（训练器会使用）
+        "config": {                      // 未使用：训练器不会读取此块
             "hidden_dropout_prob": 0.1,
             "attention_probs_dropout_prob": 0.1
         }
@@ -24,11 +25,15 @@
         "batch_size": 16,         // 批次大小
         "learning_rate": 2e-5,    // 学习率
         "weight_decay": 0.01,     // 权重衰减
-        "warmup_steps": 500,      // 预热步数
+        "optimizer": "adamw",     // 优化器（训练器使用此字段）
+        "scheduler": "linear",    // 学习率调度器（训练器使用此字段）
+        "warmup_ratio": 0.1,      // 预热比例（训练器使用此字段）
+        "early_stopping_patience": 3, // 早停耐心（训练器使用此字段）
+        "warmup_steps": 500,      // 未使用：训练器按 warmup_ratio 计算
         "max_grad_norm": 1.0,     // 梯度裁剪
-        "save_steps": 1000,       // 保存间隔
-        "eval_steps": 500,        // 评估间隔
-        "logging_steps": 100      // 日志间隔
+        "save_steps": 1000,       // 未使用
+        "eval_steps": 500,        // 未使用
+        "logging_steps": 100      // 未使用
     },
     
     // 数据配置
@@ -36,8 +41,8 @@
         "train_file": "data/ner/data/{country_code}/train.jsonl",
         "val_file": "data/ner/data/{country_code}/val.jsonl",
         "test_file": "data/ner/data/{country_code}/test.jsonl",
-        "max_seq_length": 512,    // 最大序列长度
-        "doc_stride": 128,        // 文档滑动窗口
+        "max_length": 512,        // 最大序列长度（训练器使用此字段）
+        "doc_stride": 128,        // 未使用
         "preprocessing": {
             "lowercase": false,    // 是否转小写
             "remove_accents": false,
@@ -46,7 +51,7 @@
     },
     
     // Transformers模型配置
-    "transformers_config": {
+    "transformers_config": {      // 未使用：保存模型时将直接基于底座 AutoConfig 写入 config.json
         "architectures": ["BertForTokenClassification"],
         "attention_probs_dropout_prob": 0.1,
         "hidden_act": "gelu",
@@ -118,7 +123,7 @@
     // 硬件配置
     "hardware": {
         "device": "auto",         // auto, cpu, cuda, mps
-        "num_workers": 4,         // 数据加载器工作进程数
+        "num_workers": 4,         // 数据加载器工作进程数（Windows 建议 0）
         "pin_memory": true,       // 是否固定内存
         "fp16": false,            // 是否使用半精度
         "dataloader_drop_last": false
@@ -142,7 +147,7 @@
     },
     
     // 优化器配置
-    "optimizer": {
+    "optimizer": {               // 未使用
         "type": "AdamW",          // 优化器类型
         "betas": [0.9, 0.999],
         "eps": 1e-8,
@@ -150,14 +155,14 @@
     },
     
     // 学习率调度器配置
-    "scheduler": {
+    "scheduler": {               // 未使用
         "type": "linear",        // linear, cosine, polynomial
         "num_warmup_steps": 500,
         "num_training_steps": null  // 自动计算
     },
     
     // 早停配置
-    "early_stopping": {
+    "early_stopping": {          // 未使用
         "enabled": true,
         "patience": 3,            // 容忍轮数
         "min_delta": 0.001,      // 最小改进阈值

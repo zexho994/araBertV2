@@ -42,6 +42,11 @@ class CSVAnnotationGenerator:
     - Must contain one or more entity columns whose names are the lowercase
       forms of the entity labels configured for the country (without BIO prefixes)
       e.g., for entity CITY -> column name "city".
+
+    Output format:
+    - Defaults to JSON Lines (JSONL), one example per line, saved under
+      data/ner/data/<country_code>/generated.jsonl
+    - If output_file ends with .json, a JSON array will be written instead.
     """
 
     def __init__(self, config_dir: str = "data/ner/configs") -> None:
@@ -105,12 +110,27 @@ class CSVAnnotationGenerator:
                 "labels": labels,
             })
 
-        # Determine output path
+        # Determine output path (default to JSONL)
         default_dir = Path("data/ner/data") / cfg.country_code
-        output_path = Path(cfg.output_file) if cfg.output_file else default_dir / "generated.json"
+        output_path = Path(cfg.output_file) if cfg.output_file else default_dir / "generated.jsonl"
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with output_path.open("w", encoding="utf-8") as f:
-            json.dump(examples, f, ensure_ascii=False, indent=2)
+
+        # Write according to extension
+        suffix = output_path.suffix.lower()
+        if suffix == ".jsonl":
+            with output_path.open("w", encoding="utf-8") as f:
+                for ex in examples:
+                    f.write(json.dumps(ex, ensure_ascii=False))
+                    f.write("\n")
+        elif suffix == ".json":
+            with output_path.open("w", encoding="utf-8") as f:
+                json.dump(examples, f, ensure_ascii=False, indent=2)
+        else:
+            # Fallback to JSONL if unknown extension
+            with (output_path.with_suffix(".jsonl")).open("w", encoding="utf-8") as f:
+                for ex in examples:
+                    f.write(json.dumps(ex, ensure_ascii=False))
+                    f.write("\n")
 
         return output_path
 
@@ -261,9 +281,9 @@ def main():
     out_path = gen.generate_from_csv(
         # csv_path="src/ner/utils/uae_address.csv",
         csv_path="src/ner/utils/validation.csv",
-        country_code="uae_google",
-        output_file="data/ner/data/uae_google/validation.jsonl",               # 可省略→默认 data/ner/training_data/uae/generated.json
-        text_column="formatted_address",  # 如不同可自定义
+        country_code="uae_xml_roberta_base",
+        output_file="data/ner/data/uae_xml_roberta_base/val.jsonl",  # 可省略→默认 data/ner/training_data/uae/generated.json
+        # text_column="formatted_address",  # 如不同可自定义
     )
     print(out_path)
 

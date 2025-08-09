@@ -101,6 +101,28 @@ class NERDataProcessor:
             return data['examples']
         else:
             raise ValueError(f"Unsupported JSON format in {file_path}")
+
+    def load_jsonl_file(self, file_path: str) -> List[Dict[str, Any]]:
+        """Load data from JSON Lines (JSONL) format file
+
+        Args:
+            file_path: Path to JSONL format file
+
+        Returns:
+            List of examples (each line is a JSON object)
+        """
+        examples: List[Dict[str, Any]] = []
+        with open(file_path, 'r', encoding=self.encoding) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                    examples.append(obj)
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Invalid JSONL line in {file_path}: {e}")
+        return examples
     
     def load_csv_file(self, file_path: str) -> List[Dict[str, Any]]:
         """Load data from CSV format file
@@ -152,6 +174,8 @@ class NERDataProcessor:
             return self.load_conll_file(str(file_path))
         elif suffix == '.json':
             return self.load_json_file(str(file_path))
+        elif suffix == '.jsonl':
+            return self.load_jsonl_file(str(file_path))
         elif suffix == '.csv':
             return self.load_csv_file(str(file_path))
         else:
@@ -160,7 +184,11 @@ class NERDataProcessor:
                 first_line = f.readline().strip()
                 
             if first_line.startswith('{') or first_line.startswith('['):
-                return self.load_json_file(str(file_path))
+                # Try JSON first, then fallback to JSONL
+                try:
+                    return self.load_json_file(str(file_path))
+                except Exception:
+                    return self.load_jsonl_file(str(file_path))
             elif '\t' in first_line or len(first_line.split()) == 2:
                 return self.load_conll_file(str(file_path))
             else:
