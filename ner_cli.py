@@ -190,6 +190,11 @@ For more information on each command, use:
         help='Path to evaluation data file'
     )
     eval_parser.add_argument(
+        '--country',
+        type=str,
+        help='Country configuration to use (used to load results_dir from config)'
+    )
+    eval_parser.add_argument(
         '--output-dir', '-o',
         type=str,
         help='Output directory for evaluation results'

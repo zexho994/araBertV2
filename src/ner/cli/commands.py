@@ -224,6 +224,7 @@ class EvaluateCommand(BaseCommand):
             from ..evaluation import NEREvaluator
             from ..models import NERModelManager
             from ..models.wrapper import TransformersNERModelWrapper
+            from pathlib import Path
             
             # Load model
             model_manager = NERModelManager(self.global_config.get('model_dir'))
@@ -255,7 +256,7 @@ class EvaluateCommand(BaseCommand):
                 model = TransformersNERModelWrapper(model, tokenizer, id2label, label2id)
                 print("Model successfully wrapped.")
             
-            # Load configuration if country specified
+            # Load configuration if country specified; otherwise try from model's training metadata
             config = None
             if hasattr(args, 'country') and args.country:
                 config_manager = ConfigManager(self.global_config.get('config_dir'))
@@ -324,6 +325,20 @@ class EvaluateCommand(BaseCommand):
                         print(f"    {metric}: {value:.4f}")
             
             print(f"\nTotal samples evaluated: {results.get('num_samples', 0)}")
+
+            # Persist results if output directory is provided or available via config
+            out_dir = None
+            if getattr(args, 'output_dir', None):
+                out_dir = Path(args.output_dir)
+            elif config and 'output' in config and 'results_dir' in config['output']:
+                out_dir = Path(config['output']['results_dir'])
+            
+            if out_dir is not None:
+                out_dir.mkdir(parents=True, exist_ok=True)
+                metrics_path = out_dir / 'metrics.json'
+                with open(metrics_path, 'w', encoding='utf-8') as f:
+                    json.dump(results, f, ensure_ascii=False, indent=2)
+                print(f"\nSaved evaluation metrics to: {metrics_path}")
             
             # Compare with another model if specified
             if hasattr(args, 'compare_with') and args.compare_with:

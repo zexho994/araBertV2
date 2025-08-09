@@ -74,3 +74,4 @@ data/ner/logs/
 data/ner/training_data/
 data/ner/data/*
 *.csv
+data/ner/result/*
