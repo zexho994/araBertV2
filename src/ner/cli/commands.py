@@ -11,7 +11,6 @@ from typing import Dict, Any
 from pathlib import Path
 
 from ..config import ConfigManager, ConfigValidator
-from ..utils import NERLogger
 
 class BaseCommand(ABC):
     """Abstract base class for all NER CLI commands"""
@@ -656,21 +655,22 @@ class DataCommand(BaseCommand):
                 print(f"Processed data saved to '{args.output_file}'")
                 
             elif args.data_action == "split":
-                # Validate ratios
-                total_ratio = args.train_ratio + args.val_ratio + args.test_ratio
-                if abs(total_ratio - 1.0) > 0.001:
-                    print(f"Ratios must sum to 1.0, got {total_ratio}")
-                    return False
+                raise NotImplementedError("Data split not implemented")
+                # # Validate ratios
+                # total_ratio = args.train_ratio + args.val_ratio + args.test_ratio
+                # if abs(total_ratio - 1.0) > 0.001:
+                #     print(f"Ratios must sum to 1.0, got {total_ratio}")
+                #     return False
                 
-                processor = NERDataProcessor()
-                processor.split_data(
-                    args.input_file,
-                    args.output_dir,
-                    train_ratio=args.train_ratio,
-                    val_ratio=args.val_ratio,
-                    test_ratio=args.test_ratio
-                )
-                print(f"Data split completed. Files saved to '{args.output_dir}'")
+                # processor = NERDataProcessor()
+                # processor.split_data(
+                #     args.input_file,
+                #     args.output_dir,
+                #     train_ratio=args.train_ratio,
+                #     val_ratio=args.val_ratio,
+                #     test_ratio=args.test_ratio
+                # )
+                # print(f"Data split completed. Files saved to '{args.output_dir}'")
             
             else:
                 print("Please specify a data action")

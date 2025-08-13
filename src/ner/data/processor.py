@@ -4,10 +4,8 @@ Handles data loading, validation, preprocessing, and format conversion
 for NER training and evaluation.
 """
 
-import os
 import json
-import re
-from typing import List, Dict, Any, Tuple, Optional, Union
+from typing import List, Dict, Any, Optional
 from pathlib import Path
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -17,8 +15,7 @@ class NERDataProcessor:
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or {}
-        self.labels = self.config.get('labels', {}).get('entities', [])
-        self.label_scheme = self.config.get('labels', {}).get('scheme', 'BIO')
+        self.labels = self.config.get('labels', {}).get('label_mapping', [])
         self.max_length = self.config.get('data', {}).get('max_length', 512)
         self.encoding = self.config.get('data', {}).get('encoding', 'utf-8')
         
@@ -39,7 +36,7 @@ class NERDataProcessor:
             self.label2id = {}
             self.id2label = {}
     
-    def load_conll_file(self, file_path: str) -> List[Dict[str, Any]]:
+    def _load_conll_file(self, file_path: str) -> List[Dict[str, Any]]:
         """Load data from CoNLL format file
         
         Args:
@@ -83,7 +80,7 @@ class NERDataProcessor:
         
         return examples
     
-    def load_json_file(self, file_path: str) -> List[Dict[str, Any]]:
+    def _load_json_file(self, file_path: str) -> List[Dict[str, Any]]:
         """Load data from JSON format file
         
         Args:
@@ -102,7 +99,7 @@ class NERDataProcessor:
         else:
             raise ValueError(f"Unsupported JSON format in {file_path}")
 
-    def load_jsonl_file(self, file_path: str) -> List[Dict[str, Any]]:
+    def _load_jsonl_file(self, file_path: str) -> List[Dict[str, Any]]:
         """Load data from JSON Lines (JSONL) format file
 
         Args:
@@ -124,7 +121,7 @@ class NERDataProcessor:
                     raise ValueError(f"Invalid JSONL line in {file_path}: {e}")
         return examples
     
-    def load_csv_file(self, file_path: str) -> List[Dict[str, Any]]:
+    def _load_csv_file(self, file_path: str) -> List[Dict[str, Any]]:
         """Load data from CSV format file
         
         Args:
@@ -171,13 +168,13 @@ class NERDataProcessor:
         suffix = file_path.suffix.lower()
         
         if suffix in ['.conll', '.conllu', '.txt']:
-            return self.load_conll_file(str(file_path))
+            return self._load_conll_file(str(file_path))
         elif suffix == '.json':
-            return self.load_json_file(str(file_path))
+            return self._load_json_file(str(file_path))
         elif suffix == '.jsonl':
-            return self.load_jsonl_file(str(file_path))
+            return self._load_jsonl_file(str(file_path))
         elif suffix == '.csv':
-            return self.load_csv_file(str(file_path))
+            return self._load_csv_file(str(file_path))
         else:
             # Try to auto-detect format
             with open(file_path, 'r', encoding=self.encoding) as f:
@@ -186,11 +183,11 @@ class NERDataProcessor:
             if first_line.startswith('{') or first_line.startswith('['):
                 # Try JSON first, then fallback to JSONL
                 try:
-                    return self.load_json_file(str(file_path))
+                    return self._load_json_file(str(file_path))
                 except Exception:
-                    return self.load_jsonl_file(str(file_path))
+                    return self._load_jsonl_file(str(file_path))
             elif '\t' in first_line or len(first_line.split()) == 2:
-                return self.load_conll_file(str(file_path))
+                return self._load_conll_file(str(file_path))
             else:
                 raise ValueError(f"Cannot determine format for file: {file_path}")
     
@@ -205,12 +202,12 @@ class NERDataProcessor:
         """
         try:
             examples = self.load_data_file(file_path)
-            return self.validate_examples(examples)
+            return self._validate_examples(examples)
         except Exception as e:
             print(f"Validation error: {e}")
             return False
     
-    def validate_examples(self, examples: List[Dict[str, Any]]) -> bool:
+    def _validate_examples(self, examples: List[Dict[str, Any]]) -> bool:
         """Validate list of examples
         
         Args:
@@ -286,14 +283,14 @@ class NERDataProcessor:
         # Apply preprocessing
         processed_examples = []
         for example in examples:
-            processed_example = self.preprocess_example(example)
+            processed_example = self._preprocess_example(example)
             if processed_example:
                 processed_examples.append(processed_example)
         
         # Save in specified format
-        self.save_examples(processed_examples, output_file, format)
+        self._save_examples(processed_examples, output_file, format)
     
-    def preprocess_example(self, example: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _preprocess_example(self, example: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Preprocess a single example
         
         Args:
@@ -334,7 +331,7 @@ class NERDataProcessor:
             'text': ' '.join(cleaned_tokens)
         }
     
-    def save_examples(self, examples: List[Dict[str, Any]], output_file: str, format: str = 'json'):
+    def _save_examples(self, examples: List[Dict[str, Any]], output_file: str, format: str = 'json'):
         """Save examples to file
         
         Args:
@@ -374,165 +371,45 @@ class NERDataProcessor:
         else:
             raise ValueError(f"Unsupported output format: {format}")
     
-    def split_data(self, input_file: str, output_dir: str, 
-                   train_ratio: float = 0.8, val_ratio: float = 0.1, test_ratio: float = 0.1,
-                   random_state: int = 42):
-        """Split data into train/validation/test sets
+    # def split_data(self, input_file: str, output_dir: str, 
+    #                train_ratio: float = 0.8, val_ratio: float = 0.1, test_ratio: float = 0.1,
+    #                random_state: int = 42):
+    #     """Split data into train/validation/test sets
         
-        Args:
-            input_file: Input data file
-            output_dir: Output directory
-            train_ratio: Training data ratio
-            val_ratio: Validation data ratio
-            test_ratio: Test data ratio
-            random_state: Random seed
-        """
-        examples = self.load_data_file(input_file)
+    #     Args:
+    #         input_file: Input data file
+    #         output_dir: Output directory
+    #         train_ratio: Training data ratio
+    #         val_ratio: Validation data ratio
+    #         test_ratio: Test data ratio
+    #         random_state: Random seed
+    #     """
+    #     examples = self.load_data_file(input_file)
         
-        # First split: train + val vs test
-        train_val, test = train_test_split(
-            examples, 
-            test_size=test_ratio, 
-            random_state=random_state
-        )
+    #     # First split: train + val vs test
+    #     train_val, test = train_test_split(
+    #         examples, 
+    #         test_size=test_ratio, 
+    #         random_state=random_state
+    #     )
         
-        # Second split: train vs val
-        val_size = val_ratio / (train_ratio + val_ratio)
-        train, val = train_test_split(
-            train_val, 
-            test_size=val_size, 
-            random_state=random_state
-        )
+    #     # Second split: train vs val
+    #     val_size = val_ratio / (train_ratio + val_ratio)
+    #     train, val = train_test_split(
+    #         train_val, 
+    #         test_size=val_size, 
+    #         random_state=random_state
+    #     )
         
-        # Save splits
-        output_path = Path(output_dir)
-        output_path.mkdir(parents=True, exist_ok=True)
+    #     # Save splits
+    #     output_path = Path(output_dir)
+    #     output_path.mkdir(parents=True, exist_ok=True)
         
-        self.save_examples(train, output_path / 'train.json')
-        self.save_examples(val, output_path / 'val.json')
-        self.save_examples(test, output_path / 'test.json')
+    #     self._save_examples(train, output_path / 'train.json')
+    #     self._save_examples(val, output_path / 'val.json')
+    #     self._save_examples(test, output_path / 'test.json')
         
-        print(f"Data split completed:")
-        print(f"  Train: {len(train)} examples")
-        print(f"  Validation: {len(val)} examples")
-        print(f"  Test: {len(test)} examples")
-    
-    def get_label_statistics(self, examples: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Get label statistics from examples
-        
-        Args:
-            examples: List of examples
-            
-        Returns:
-            Dictionary with label statistics
-        """
-        label_counts = {}
-        entity_counts = {}
-        total_tokens = 0
-        
-        for example in examples:
-            labels = example['labels']
-            total_tokens += len(labels)
-            
-            for label in labels:
-                label_counts[label] = label_counts.get(label, 0) + 1
-                
-                if label.startswith('B-'):
-                    entity = label[2:]
-                    entity_counts[entity] = entity_counts.get(entity, 0) + 1
-        
-        return {
-            'total_examples': len(examples),
-            'total_tokens': total_tokens,
-            'label_counts': label_counts,
-            'entity_counts': entity_counts,
-            'avg_tokens_per_example': total_tokens / len(examples) if examples else 0
-        }
-    
-    def convert_to_model_format(self, examples: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Convert examples to model input format
-        
-        Args:
-            examples: List of examples
-            
-        Returns:
-            List of examples in model format
-        """
-        model_examples = []
-        
-        for example in examples:
-            tokens = example['tokens']
-            labels = example['labels']
-            
-            # Convert labels to IDs if mapping available
-            if self.label2id:
-                label_ids = [self.label2id.get(label, 0) for label in labels]
-            else:
-                label_ids = labels
-            
-            model_examples.append({
-                'tokens': tokens,
-                'labels': labels,
-                'label_ids': label_ids,
-                'text': example.get('text', ' '.join(tokens))
-            })
-        
-        return model_examples
-    
-    def extract_entities(self, tokens: List[str], labels: List[str]) -> List[Dict[str, Any]]:
-        """Extract entities from BIO-tagged sequence
-        
-        Args:
-            tokens: List of tokens
-            labels: List of BIO labels
-            
-        Returns:
-            List of extracted entities
-        """
-        entities = []
-        current_entity = None
-        
-        for i, (token, label) in enumerate(zip(tokens, labels)):
-            if label.startswith('B-'):
-                # Start of new entity
-                if current_entity:
-                    entities.append(current_entity)
-                
-                entity_type = label[2:]
-                current_entity = {
-                    'type': entity_type,
-                    'tokens': [token],
-                    'start': i,
-                    'end': i + 1,
-                    'text': token
-                }
-            
-            elif label.startswith('I-') and current_entity:
-                # Continuation of current entity
-                entity_type = label[2:]
-                if current_entity['type'] == entity_type:
-                    current_entity['tokens'].append(token)
-                    current_entity['end'] = i + 1
-                    current_entity['text'] += ' ' + token
-                else:
-                    # Entity type mismatch, start new entity
-                    entities.append(current_entity)
-                    current_entity = {
-                        'type': entity_type,
-                        'tokens': [token],
-                        'start': i,
-                        'end': i + 1,
-                        'text': token
-                    }
-            
-            else:
-                # Outside or end of entity
-                if current_entity:
-                    entities.append(current_entity)
-                    current_entity = None
-        
-        # Add last entity if exists
-        if current_entity:
-            entities.append(current_entity)
-        
-        return entities
+    #     print(f"Data split completed:")
+    #     print(f"  Train: {len(train)} examples")
+    #     print(f"  Validation: {len(val)} examples")
+    #     print(f"  Test: {len(test)} examples")

@@ -6,8 +6,8 @@ Implements PyTorch Dataset and DataLoader for NER training and evaluation.
 import torch
 from torch.utils.data import Dataset, DataLoader
 from typing import List, Dict, Any, Optional, Tuple
-import numpy as np
 from transformers import AutoTokenizer
+import os
 
 class NERDataset(Dataset):
     """PyTorch Dataset for NER data"""
@@ -51,7 +51,12 @@ class NERDataset(Dataset):
         return processed
     
     def _tokenize_and_align_labels(self, tokens: List[str], labels: List[str]) -> Optional[Dict[str, Any]]:
-        """Tokenize tokens and align labels with subword tokens"""
+        """Tokenize tokens and align labels with subword tokens.
+        Strategy:
+          - Only the first subword of each word receives the word-level label
+          - All subsequent subwords are set to pad_token_label_id (e.g., -100) and ignored by loss/metrics
+          - Special tokens (pad/cls/sep) also receive pad_token_label_id
+        """
         # Tokenize each word and keep track of word boundaries
         tokenized_inputs = self.tokenizer(
             tokens,
@@ -61,40 +66,39 @@ class NERDataset(Dataset):
             truncation=True,
             return_tensors='pt'
         )
-        
-        # Get word IDs to align labels
+
+        # Get word IDs to align labels (single example → no batch_index needed)
         word_ids = tokenized_inputs.word_ids()
-        
+
         # Align labels with tokenized inputs
-        aligned_labels = []
-        previous_word_idx = None
-        
+        aligned_labels: List[int] = []
+        previous_word_idx: Optional[int] = None
+
         for word_idx in word_ids:
             if word_idx is None:
                 # Special tokens (CLS, SEP, PAD)
                 aligned_labels.append(self.pad_token_label_id)
             elif word_idx != previous_word_idx:
-                # First subword of a word
+                # First subword of a word → assign the word label
                 if word_idx < len(labels):
                     label = labels[word_idx]
-                    aligned_labels.append(self.label2id.get(label, 0))
+                    aligned_labels.append(self.label2id.get(label, self.pad_token_label_id))
                 else:
                     aligned_labels.append(self.pad_token_label_id)
             else:
-                # Subsequent subwords of the same word
-                if word_idx < len(labels):
-                    label = labels[word_idx]
-                    if label.startswith('B-'):
-                        # Convert B- to I- for subwords
-                        i_label = 'I-' + label[2:]
-                        aligned_labels.append(self.label2id.get(i_label, 0))
-                    else:
-                        aligned_labels.append(self.label2id.get(label, 0))
-                else:
-                    aligned_labels.append(self.pad_token_label_id)
-            
+                # Subsequent subwords of the same word → ignore
+                aligned_labels.append(self.pad_token_label_id)
+
             previous_word_idx = word_idx
-        
+
+        # Optional one-time debug print for alignment
+        if os.environ.get("DEBUG_ALIGNMENT", "0") == "1" and not getattr(self, "_alignment_debug_printed", False):
+            try:
+                self._print_alignment_debug(tokenized_inputs, tokens, labels, aligned_labels)
+            except Exception:
+                pass
+            self._alignment_debug_printed = True
+
         return {
             'input_ids': tokenized_inputs['input_ids'].squeeze(),
             'attention_mask': tokenized_inputs['attention_mask'].squeeze(),
@@ -102,6 +106,29 @@ class NERDataset(Dataset):
             'original_tokens': tokens,
             'original_labels': labels
         }
+
+    def _print_alignment_debug(
+        self,
+        tokenized_inputs: Any,
+        tokens: List[str],
+        labels: List[str],
+        aligned_labels: List[int]
+    ) -> None:
+        """Print a one-time alignment table for quick verification when DEBUG_ALIGNMENT=1."""
+        word_ids = tokenized_inputs.word_ids()
+        input_ids = tokenized_inputs['input_ids'][0]
+        sub_tokens = self.tokenizer.convert_ids_to_tokens(input_ids.tolist())
+
+        id2label = {v: k for k, v in self.label2id.items()}
+        rows = []
+        rows.append("==== DEBUG ALIGNMENT (train-time) ====")
+        rows.append("Words and labels:")
+        rows.append(" ".join([f"{w}({y})" for w, y in zip(tokens, labels)]))
+        rows.append("Sub-tokens / word_id / aligned_label:")
+        for idx, (tok, wid, lab_id) in enumerate(zip(sub_tokens, word_ids, aligned_labels)):
+            lab = id2label.get(int(lab_id), "IGN") if lab_id != self.pad_token_label_id else "IGN"
+            rows.append(f"{idx:>3}: {tok:>20} | word_id={str(wid):>3} | label={lab}")
+        print("\n".join(rows))
     
     def __len__(self) -> int:
         return len(self.processed_examples)
@@ -123,7 +150,8 @@ class NERDataLoader:
             max_length: Maximum sequence length
             pad_token_label_id: Label ID for padding tokens
         """
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+        # Always use fast tokenizer to enable word_ids alignment
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
         self.label2id = label2id
         self.max_length = max_length
         self.pad_token_label_id = pad_token_label_id
@@ -239,7 +267,8 @@ class NERTokenizer:
             tokenizer_name: Name or path of tokenizer
             max_length: Maximum sequence length
         """
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+        # Use fast tokenizer to enable word_ids alignment in interactive/predict flows
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
         self.max_length = max_length
         
         # Add special tokens if needed

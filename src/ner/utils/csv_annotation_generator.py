@@ -67,6 +67,7 @@ class CSVAnnotationGenerator:
             "highway": ["highway", "hwy", "hwy."],
             "parkway": ["parkway", "pkwy", "pkwy."],
             "building": ["building", "bldg", "bldg."],
+            "United Arab Emirates": ["UAE"]
         }
 
         # Entity priority (higher number = higher priority). Used to resolve overlaps.
@@ -117,6 +118,19 @@ class CSVAnnotationGenerator:
                 f"Expected any of: {sorted(entity_to_column.values())}. Columns: {list(df.columns)}"
             )
 
+        # Create dynamic priority based on CSV column order
+        # Higher column index = higher priority (rightmost columns have highest priority)
+        dynamic_priority: Dict[str, int] = {}
+        for entity, actual_col in entity_to_actual_col.items():
+            try:
+                col_index = list(df.columns).index(actual_col)
+                # Base priority starts from 100, with column index as priority
+                # Later columns (higher index) get higher priority
+                dynamic_priority[entity.upper()] = 100 + col_index
+            except ValueError:
+                # Fallback to default priority if column not found
+                dynamic_priority[entity.upper()] = self._entity_priority.get(entity.upper(), 0)
+
         # Build annotations
         examples: List[Dict[str, Any]] = []
         for _, row in df.iterrows():
@@ -133,7 +147,7 @@ class CSVAnnotationGenerator:
                 original_text=text,
             )
 
-            labels = self._convert_entities_to_bio_with_priority(tokens, entities)
+            labels = self._convert_entities_to_bio_with_priority(tokens, entities, dynamic_priority)
             examples.append({
                 "text": text,
                 "tokens": tokens,
@@ -242,6 +256,42 @@ class CSVAnnotationGenerator:
         if idx == -1:
             return None
         return idx, idx + len(s)
+    
+    def _find_all_char_spans(self, text: str, value: str) -> List[Tuple[int, int]]:
+        """Return all (start,end) char spans of value in text using fuzzy matching.
+
+        Strategy:
+        - Build a case-insensitive regex from the provided value where known tokens
+          (e.g., "Street") expand to alternatives (e.g., "Street|St|St.").
+        - Allow flexible separators between tokens (spaces/hyphens).
+        - Fallback to exact substring search if regex fails.
+        """
+        if not isinstance(value, str):
+            return []
+        s = value.strip()
+        if not s:
+            return []
+
+        spans = []
+        pattern = self._build_value_regex(s)
+        
+        # Find all regex matches
+        for m in pattern.finditer(text):
+            spans.append((m.start(), m.end()))
+        
+        # If no regex matches, fallback to exact substring search
+        if not spans:
+            text_lower = text.lower()
+            s_lower = s.lower()
+            start = 0
+            while True:
+                idx = text_lower.find(s_lower, start)
+                if idx == -1:
+                    break
+                spans.append((idx, idx + len(s)))
+                start = idx + 1
+        
+        return spans
 
     @staticmethod
     def _normalize_colname(name: str) -> str:
@@ -277,44 +327,42 @@ class CSVAnnotationGenerator:
             # Support multiple values separated by |
             parts = [p.strip() for p in re.split(r"\s*\|\s*", value) if p.strip()]
             for part in parts:
-                char_span = self._find_char_span(original_text, part)
-                if not char_span:
-                    continue
-                start_c, end_c = char_span
-
-                # Map char span to token indices
-                start_tok = None
-                end_tok = None
-                for i, (s, e) in enumerate(token_spans):
-                    if start_tok is None and s <= start_c < e:
-                        start_tok = i
-                    if start_tok is not None and s < end_c <= e:
-                        end_tok = i + 1  # exclusive
-                        break
-
-                if start_tok is None:
-                    # If entity starts between tokens (e.g., punctuation), approximate to nearest token
+                # Find all occurrences of this part in the text
+                char_spans = self._find_all_char_spans(original_text, part)
+                for start_c, end_c in char_spans:
+                    # Map char span to token indices
+                    start_tok = None
+                    end_tok = None
                     for i, (s, e) in enumerate(token_spans):
-                        if s >= start_c:
+                        if start_tok is None and s <= start_c < e:
                             start_tok = i
+                        if start_tok is not None and s < end_c <= e:
+                            end_tok = i + 1  # exclusive
                             break
+
                     if start_tok is None:
-                        start_tok = 0
+                        # If entity starts between tokens (e.g., punctuation), approximate to nearest token
+                        for i, (s, e) in enumerate(token_spans):
+                            if s >= start_c:
+                                start_tok = i
+                                break
+                        if start_tok is None:
+                            start_tok = 0
 
-                if end_tok is None:
-                    for i, (s, e) in enumerate(token_spans[start_tok:], start_tok):
-                        if e >= end_c:
-                            end_tok = i + 1
-                            break
                     if end_tok is None:
-                        end_tok = len(tokens)
+                        for i, (s, e) in enumerate(token_spans[start_tok:], start_tok):
+                            if e >= end_c:
+                                end_tok = i + 1
+                                break
+                        if end_tok is None:
+                            end_tok = len(tokens)
 
-                if 0 <= start_tok < end_tok <= len(tokens):
-                    entities.append({
-                        "type": entity,
-                        "start": start_tok,
-                        "end": end_tok,
-                    })
+                    if 0 <= start_tok < end_tok <= len(tokens):
+                        entities.append({
+                            "type": entity,
+                            "start": start_tok,
+                            "end": end_tok,
+                        })
 
         return entities
 
@@ -356,16 +404,20 @@ class CSVAnnotationGenerator:
         self,
         tokens: List[str],
         entities: List[Dict[str, Any]],
+        dynamic_priority: Optional[Dict[str, int]] = None,
     ) -> List[str]:
         """Convert entities to BIO labels without overlaps, honoring entity priority.
 
         - Sort entities by (priority desc, span_length desc) to place higher priority
           and longer entities first.
         - Only place an entity if its entire span is currently unlabeled (all 'O').
+        - Uses dynamic_priority if provided, otherwise falls back to self._entity_priority.
         """
         labels: List[str] = ["O"] * len(tokens)
 
         def priority_for(entity_type: str) -> int:
+            if dynamic_priority:
+                return dynamic_priority.get(entity_type.upper(), 0)
             return self._entity_priority.get(entity_type.upper(), 0)
 
         def span_len(ent: Dict[str, Any]) -> int:
@@ -402,7 +454,7 @@ def main():
         csv_path="src/ner/utils/validation.csv",
         # csv_path="src/ner/utils/test_uae_train.csv",
         country_code="uae_xml_roberta_base",
-        output_file="data/ner/data/uae_xml_roberta_base/val.jsonl",  # 可省略→默认 data/ner/training_data/uae/generated.json
+        output_file="data/ner/data/uae_xml_roberta_base/val2.jsonl",  # 可省略→默认 data/ner/training_data/uae/generated.json
         # text_column="formatted_address",  # 如不同可自定义
     )
     print(out_path)
