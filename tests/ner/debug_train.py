@@ -58,11 +58,47 @@ def debug_train_command():
         traceback.print_exc()
         return 1
 
+def debug_evaluate_command():
+    """调试评估命令"""
+    sys.argv = [
+        'ner_cli.py',
+        'evaluate',
+        '--country',
+        'uae_xml_roberta_base',
+        '--model-path',
+        'data/ner/models/uae_xml_roberta_base/uae_xml_roberta_base_model',
+        '--data-path',
+        'data/ner/data/uae_xml_roberta_base/val.jsonl'
+    ]
+    print(f"模拟命令行参数: {' '.join(sys.argv)}")
+    print(f"当前工作目录: {os.getcwd()}")
+    print(f"项目根目录: {project_root}")
+    
+    os.chdir(project_root)
+
+    try:
+        import ner_cli
+        print("开始执行评估命令...")
+        print("=" * 50)
+
+        result = ner_cli.main()
+        print("=" * 50)
+        print(f"命令执行完成，返回码: {result}")
+        
+        return result
+        
+    except Exception as e:
+        print(f"执行过程中出现错误: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
 if __name__ == '__main__':
     print("NER CLI 训练命令调试脚本")
     print("=" * 30)
     
     # 执行调试
-    exit_code = debug_train_command()
+    # exit_code = debug_train_command()
+    exit_code = debug_evaluate_command()
     
     print(f"\n脚本执行完成，退出码: {exit_code}")
