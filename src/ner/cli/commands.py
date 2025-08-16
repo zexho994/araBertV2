@@ -238,9 +238,7 @@ class EvaluateCommand(BaseCommand):
                 id2label = model.config.id2label
                 label_list = list(id2label.values())
             else:
-                # Fallback to default labels if not available
-                label_list = ['O', 'B-PER', 'I-PER', 'B-LOC', 'I-LOC', 'B-ORG', 'I-ORG']
-                id2label = {i: label for i, label in enumerate(label_list)}
+                raise ValueError("Model configuration does not contain label mappings.")
             
             # Check if model has predict method, if not, wrap it
             if not hasattr(model, 'predict'):
@@ -266,13 +264,11 @@ class EvaluateCommand(BaseCommand):
             model = model.to(device)  # Move model to device
             evaluator = NEREvaluator(model, tokenizer, label_list, device)
             
-            # Load evaluation data
             import json
             texts = []
             true_labels = []
             
             with open(args.data_path, 'r', encoding='utf-8') as f:
-                # Try to load as JSON array first
                 try:
                     data_list = json.load(f)
                     for data in data_list:

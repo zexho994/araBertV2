@@ -259,7 +259,7 @@ class NEREvaluator:
         self.model = model
         self.tokenizer = tokenizer
         self.label_list = label_list
-        self.device = device or torch.device('cpu')
+        self.device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.metrics_calculator = NERMetrics(label_list)
         
         # Create label mappings
@@ -412,15 +412,12 @@ class NEREvaluator:
         predictions = []
         
         for text in texts:
-            # Check if model is wrapped (TransformersNERModelWrapper)
             if hasattr(self.model, 'tokenizer') and hasattr(self.model, 'id2label'):
-                # Use wrapped model's predict method (doesn't need tokenizer parameter)
                 result = self.model.predict(
                     text, 
                     confidence_threshold=confidence_threshold
                 )
             else:
-                # Use standard model predict method (BertNERModel)
                 result = self.model.predict(
                     text, 
                     self.tokenizer, 

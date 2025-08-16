@@ -4,7 +4,7 @@
 """
 
 import json
-from typing import List, Dict, Tuple
+from typing import List, Dict
 
 class DataQualityChecker:
     def __init__(self):
