@@ -1,6 +1,9 @@
-"""NER Data Loader
+"""NER 数据加载器
 
-Implements PyTorch Dataset and DataLoader for NER training and evaluation.
+用于 NER 任务的 PyTorch Dataset 与 DataLoader 实现。
+
+- 重要：采用子词对齐策略（word-level → subword-level），仅词的首个子词继承词级标签；其余位置使用 pad_token_label_id（默认 -100），从而在损失与评估中被忽略。
+- 调试：设置环境变量 DEBUG_ALIGNMENT=1 可输出一次性对齐表，帮助核对分词与标签对齐是否正确。
 """
 
 import torch
@@ -11,20 +14,25 @@ import os
 from ..utils import NERLogger
 
 class NERDataset(Dataset):
-    """PyTorch Dataset for NER data"""
+    """用于 NER 的 PyTorch Dataset
+
+    职责：
+    - 接收词序列与词级标签
+    - 使用分词器进行子词化，并将词级标签精确对齐到子词级
+    - 产出模型训练/评估直接可用的 input_ids、attention_mask 与 labels
+    """
     
     def __init__(self, examples: List[Dict[str, Any]], tokenizer, 
                  label2id: Dict[str, int], max_length: int = 512,
                  pad_token_label_id: int = -100):
-        """
-        Initialize NER Dataset
+        """初始化 NER Dataset
         
-        Args:
-            examples: List of examples with tokens and labels
-            tokenizer: Tokenizer for encoding text
-            label2id: Label to ID mapping
-            max_length: Maximum sequence length
-            pad_token_label_id: Label ID for padding tokens
+        参数：
+            examples: 样本列表，元素包含 'tokens' 与 'labels'
+            tokenizer: 分词器实例（需为 fast tokenizer 以支持 word_ids 对齐）
+            label2id: 标签到 ID 的映射
+            max_length: 最大序列长度（会进行截断与填充）
+            pad_token_label_id: 用于填充/忽略位置的标签 ID（通常为 -100）
         """
         self.examples = examples
         self.tokenizer = tokenizer
@@ -32,18 +40,19 @@ class NERDataset(Dataset):
         self.max_length = max_length
         self.pad_token_label_id = pad_token_label_id
         
-        # Process examples
+        # 重要：将原始样本预处理为模型可直接消费的张量形式
+        # TODO：可考虑在大量数据时引入缓存/懒加载机制以降低启动开销
         self.processed_examples = self._process_examples()
     
     def _process_examples(self) -> List[Dict[str, Any]]:
-        """Process examples for model input"""
+        """将原始样本转为模型输入格式"""
         processed = []
         
         for example in self.examples:
             tokens = example['tokens']
             labels = example['labels']
             
-            # Tokenize and align labels
+            # 分词并对齐标签
             tokenized = self._tokenize_and_align_labels(tokens, labels)
             
             if tokenized:
@@ -52,13 +61,13 @@ class NERDataset(Dataset):
         return processed
     
     def _tokenize_and_align_labels(self, tokens: List[str], labels: List[str]) -> Optional[Dict[str, Any]]:
-        """Tokenize tokens and align labels with subword tokens.
-        Strategy:
-          - Only the first subword of each word receives the word-level label
-          - All subsequent subwords are set to pad_token_label_id (e.g., -100) and ignored by loss/metrics
-          - Special tokens (pad/cls/sep) also receive pad_token_label_id
+        """对输入词列表进行分词，并将词级标签对齐到子词级。
+        策略：
+          - 每个词仅其首个子词继承该词的标签
+          - 该词其余子词位置使用 pad_token_label_id（如 -100），在损失/指标中被忽略
+          - 特殊符号（CLS/SEP/PAD）位置同样使用 pad_token_label_id
         """
-        # Tokenize each word and keep track of word boundaries
+        # 将词序列作为已分好词的输入传给分词器
         tokenized_inputs = self.tokenizer(
             tokens,
             is_split_into_words=True,
@@ -68,35 +77,41 @@ class NERDataset(Dataset):
             return_tensors='pt'
         )
 
-        # Get word IDs to align labels (single example → no batch_index needed)
+        # ERROR：在部分 transformers 版本中，BatchEncoding.word_ids 需要传入 batch_index=0；
+        # 这里未显式传参可能导致运行时错误（TypeError）。建议做兼容处理或统一传入 batch_index=0。
+        # 参考：tokenized_inputs.word_ids(batch_index=0)
+        # TODO：增加健壮性：try/except 捕获并回退到 batch_index=0 调用
         word_ids = tokenized_inputs.word_ids()
 
-        # Align labels with tokenized inputs
+        # 将标签按照分词后的子词对齐
         aligned_labels: List[int] = []
         previous_word_idx: Optional[int] = None
 
         for word_idx in word_ids:
             if word_idx is None:
-                # Special tokens (CLS, SEP, PAD)
+                # 特殊符号（CLS, SEP, PAD）
                 aligned_labels.append(self.pad_token_label_id)
             elif word_idx != previous_word_idx:
-                # First subword of a word → assign the word label
+                # 该词的首个子词 → 赋予对应词级标签
                 if word_idx < len(labels):
                     label = labels[word_idx]
                     aligned_labels.append(self.label2id.get(label, self.pad_token_label_id))
                 else:
+                    # ERROR：此分支表明 word_ids 的索引超出 labels 长度，通常意味着上游 tokens/labels 未对齐
+                    # TODO：可在此处记录告警日志或直接丢弃样本
                     aligned_labels.append(self.pad_token_label_id)
             else:
-                # Subsequent subwords of the same word → ignore
+                # 该词的后续子词 → 忽略
                 aligned_labels.append(self.pad_token_label_id)
 
             previous_word_idx = word_idx
 
-        # Optional one-time debug print for alignment
+        # 可选：一次性打印对齐调试信息（仅当设置 DEBUG_ALIGNMENT=1）
         if os.environ.get("DEBUG_ALIGNMENT", "0") == "1" and not getattr(self, "_alignment_debug_printed", False):
             try:
                 self._print_alignment_debug(tokenized_inputs, tokens, labels, aligned_labels)
             except Exception:
+                # TODO：可更细化异常类型并记录日志
                 pass
             self._alignment_debug_printed = True
 
@@ -115,7 +130,8 @@ class NERDataset(Dataset):
         labels: List[str],
         aligned_labels: List[int]
     ) -> None:
-        """Print a one-time alignment table for quick verification when DEBUG_ALIGNMENT=1."""
+        """当 DEBUG_ALIGNMENT=1 时打印对齐表，便于快速人工核验。"""
+        # ERROR：与上文一致，若使用批量编码，word_ids 可能需要 batch_index=0
         word_ids = tokenized_inputs.word_ids()
         input_ids = tokenized_inputs['input_ids'][0]
         sub_tokens = self.tokenizer.convert_ids_to_tokens(input_ids.tolist())
@@ -132,44 +148,51 @@ class NERDataset(Dataset):
         print("\n".join(rows))
     
     def __len__(self) -> int:
+        """返回样本数量"""
         return len(self.processed_examples)
     
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+        """返回单条样本的张量化结果"""
         return self.processed_examples[idx]
 
 class NERDataLoader:
-    """Data loader manager for NER tasks"""
+    """NER 数据加载器管理器
+    
+    职责：
+    - 基于给定分词器与标签映射，创建 Dataset 与 DataLoader
+    - 提供训练/验证/测试三种数据加载器的便捷构建入口
+    """
     
     def __init__(self, tokenizer_name: str, label2id: Dict[str, int], 
                  max_length: int = 512, pad_token_label_id: int = -100, logger: Optional[NERLogger] = None):
-        """
-        Initialize NER Data Loader
+        """初始化 NER 数据加载器
         
-        Args:
-            tokenizer_name: Name or path of tokenizer
-            label2id: Label to ID mapping
-            max_length: Maximum sequence length
-            pad_token_label_id: Label ID for padding tokens
+        参数：
+            tokenizer_name: 分词器名称或路径
+            label2id: 标签到 ID 的映射
+            max_length: 最大序列长度
+            pad_token_label_id: 用于忽略位置的标签 ID
         """
-        # Always use fast tokenizer to enable word_ids alignment
+        # 始终使用 fast 分词器以启用 word_ids 对齐
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
         self.label2id = label2id
         self.max_length = max_length
         self.pad_token_label_id = pad_token_label_id
         self.logger = logger
         
-        # Add special tokens if needed
+        # 为部分未定义 pad_token 的分词器设置回退
+        # TODO：当前回退为 eos_token；对不具备 eos_token 的模型可能并不稳妥，建议根据模型类型更精细地选择（如使用 sep_token 或新增 pad_token）
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
     
     def create_dataset(self, examples: List[Dict[str, Any]]) -> NERDataset:
-        """Create NER dataset from examples
+        """由样本创建 NERDataset 实例
         
-        Args:
-            examples: List of examples
+        参数：
+            examples: 样本列表
             
-        Returns:
-            NERDataset instance
+        返回：
+            NERDataset 实例
         """
         dataset = NERDataset(
             examples=examples,
@@ -182,22 +205,24 @@ class NERDataLoader:
             try:
                 self.logger.info(f"Created dataset with {len(dataset)} samples")
             except Exception:
+                # TODO：可考虑在调试级别记录更详细异常信息
                 pass
         return dataset
     
     def create_dataloader(self, dataset: NERDataset, batch_size: int = 16, 
                          shuffle: bool = True, num_workers: int = 0) -> DataLoader:
-        """Create PyTorch DataLoader
+        """创建 PyTorch DataLoader
         
-        Args:
-            dataset: NER dataset
-            batch_size: Batch size
-            shuffle: Whether to shuffle data
-            num_workers: Number of worker processes
+        参数：
+            dataset: NER 数据集
+            batch_size: 批大小
+            shuffle: 是否打乱
+            num_workers: DataLoader 子进程数量（Windows 下需注意多进程启动方式）
             
-        Returns:
-            DataLoader instance
+        返回：
+            DataLoader 实例
         """
+        # TODO：可考虑使用 transformers 的 DataCollatorForTokenClassification 或基于 tokenizer 的动态 padding，降低显存浪费
         dl = DataLoader(
             dataset,
             batch_size=batch_size,
@@ -215,8 +240,8 @@ class NERDataLoader:
         return dl
     
     def _collate_fn(self, batch: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
-        """Collate function for batching"""
-        # Stack tensors
+        """自定义合批函数：将样本堆叠为批次张量"""
+        # 重要：此处直接 stack，依赖于上游已按 max_length 对齐（固定长度）。若改为动态 padding，应在此处改为 pad_sequence。
         input_ids = torch.stack([item['input_ids'] for item in batch])
         attention_mask = torch.stack([item['attention_mask'] for item in batch])
         labels = torch.stack([item['labels'] for item in batch])
@@ -232,34 +257,34 @@ class NERDataLoader:
                            test_examples: Optional[List[Dict[str, Any]]] = None,
                            batch_size: int = 16, 
                            num_workers: int = 0) -> Dict[str, DataLoader]:
-        """Prepare data loaders for training, validation, and testing
+        """构建训练/验证/测试的数据加载器集合
         
-        Args:
-            train_examples: Training examples
-            val_examples: Validation examples (optional)
-            test_examples: Test examples (optional)
-            batch_size: Batch size
-            num_workers: Number of worker processes
+        参数：
+            train_examples: 训练样本
+            val_examples: 验证样本（可选）
+            test_examples: 测试样本（可选）
+            batch_size: 批大小
+            num_workers: DataLoader 子进程数量
             
-        Returns:
-            Dictionary of data loaders
+        返回：
+            包含 'train'/'val'/'test' 的 DataLoader 字典
         """
         data_loaders = {}
         
-        # Training data loader
+        # 训练集
         train_dataset = self.create_dataset(train_examples)
         data_loaders['train'] = self.create_dataloader(
             train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers
         )
         
-        # Validation data loader
+        # 验证集
         if val_examples:
             val_dataset = self.create_dataset(val_examples)
             data_loaders['val'] = self.create_dataloader(
                 val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
             )
         
-        # Test data loader
+        # 测试集
         if test_examples:
             test_dataset = self.create_dataset(test_examples)
             data_loaders['test'] = self.create_dataloader(
@@ -269,41 +294,40 @@ class NERDataLoader:
         return data_loaders
     
     def get_tokenizer(self):
-        """Get the tokenizer instance"""
+        """返回分词器实例"""
         return self.tokenizer
 
 class NERTokenizer:
-    """Wrapper for NER tokenization operations"""
+    """NER 预测/交互流程的分词与解码工具封装"""
     
     def __init__(self, tokenizer_name: str, max_length: int = 512):
-        """
-        Initialize NER Tokenizer
+        """初始化 NER 分词工具
         
-        Args:
-            tokenizer_name: Name or path of tokenizer
-            max_length: Maximum sequence length
+        参数：
+            tokenizer_name: 分词器名称或路径
+            max_length: 最大序列长度
         """
-        # Use fast tokenizer to enable word_ids alignment in interactive/predict flows
+        # 使用 fast 分词器以支持 word_ids 对齐（用于预测/交互场景）
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
         self.max_length = max_length
         
-        # Add special tokens if needed
+        # TODO：与数据加载部分一致，若无 pad_token，可考虑更稳妥的回退策略
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
     
     def tokenize_text(self, text: str) -> Dict[str, Any]:
-        """Tokenize text for prediction
+        """对输入文本分词并返回与词级对齐相关的信息（用于预测）
         
-        Args:
-            text: Input text
+        参数：
+            text: 原始输入文本
             
-        Returns:
-            Tokenized inputs
+        返回：
+            包含 input_ids、attention_mask、word_ids、words 的字典
         """
-        # Split text into words
+        # 简单按空白切分为词（针对已空白分词的语言/数据）
         words = text.split()
         
-        # Tokenize
+        # 分词
         tokenized = self.tokenizer(
             words,
             is_split_into_words=True,
@@ -313,7 +337,7 @@ class NERTokenizer:
             return_tensors='pt'
         )
         
-        # Get word IDs for alignment
+        # ERROR：同样可能需要 batch_index=0，建议做兼容处理
         word_ids = tokenized.word_ids()
         
         return {
@@ -325,21 +349,21 @@ class NERTokenizer:
     
     def decode_predictions(self, predictions: torch.Tensor, word_ids: List[Optional[int]], 
                          words: List[str], id2label: Dict[int, str]) -> List[Tuple[str, str]]:
-        """Decode model predictions to word-label pairs
+        """将模型的 token 级预测解码为 (word, label) 对
         
-        Args:
-            predictions: Model predictions (token-level)
-            word_ids: Word IDs for alignment
-            words: Original words
-            id2label: ID to label mapping
+        参数：
+            predictions: 模型 token 级预测（通常是 argmax 后的 ID 序列）
+            word_ids: 分词与词的对齐索引
+            words: 原始词序列
+            id2label: ID 到标签的映射
             
-        Returns:
-            List of (word, label) pairs
+        返回：
+            (word, label) 列表（仅保留每个词的首个子词位置）
         """
-        # Convert predictions to labels
+        # 将预测 ID 转为标签字符串
         predicted_labels = [id2label.get(pred.item(), 'O') for pred in predictions]
         
-        # Align with words
+        # 按词级对齐聚合
         word_labels = []
         previous_word_idx = None
         
@@ -349,16 +373,17 @@ class NERTokenizer:
                     word_labels.append((words[word_idx], label))
                 previous_word_idx = word_idx
         
+        # TODO：可选支持将 BIOES 等标签解码为实体片段（span）结构
         return word_labels
     
     def batch_tokenize(self, texts: List[str]) -> Dict[str, torch.Tensor]:
-        """Tokenize batch of texts
+        """批量分词（预测批处理场景）
         
-        Args:
-            texts: List of input texts
+        参数：
+            texts: 输入文本列表
             
-        Returns:
-            Batched tokenized inputs
+        返回：
+            批量分词后的张量
         """
         return self.tokenizer(
             texts,
@@ -369,11 +394,11 @@ class NERTokenizer:
         )
     
     def get_vocab_size(self) -> int:
-        """Get tokenizer vocabulary size"""
+        """返回词表大小"""
         return len(self.tokenizer)
     
     def get_special_tokens(self) -> Dict[str, str]:
-        """Get special tokens"""
+        """返回特殊符号"""
         return {
             'pad_token': self.tokenizer.pad_token,
             'cls_token': self.tokenizer.cls_token,
