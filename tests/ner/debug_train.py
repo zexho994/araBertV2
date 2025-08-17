@@ -83,7 +83,7 @@ def debug_evaluate_command():
         '--country',
         'uae_xml_roberta_base',
         '--model-path',
-        'data/ner/models/uae_xml_roberta_base/uae_xml_roberta_base_model',
+        'data/ner/models/uae_xml_roberta_base/best_model',
         '--data-path',
         'data/ner/data/uae_xml_roberta_base/val.jsonl'
     ]
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     # 执行调试
     # 默认调试评估命令，若需训练请改为调用 `debug_train_command()`
     # TODO: 通过命令行/环境变量选择调试目标（train/evaluate）。
-    exit_code = debug_train_command()
-    # exit_code = debug_evaluate_command()
+    # exit_code = debug_train_command()
+    exit_code = debug_evaluate_command()
     
     print(f"\n脚本执行完成，退出码: {exit_code}")
