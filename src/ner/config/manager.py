@@ -1,7 +1,16 @@
-"""Configuration Manager for NER System
+"""NER 配置管理器（Configuration Manager）
 
-Handles loading, validation, and management of country-specific configurations.
-Provides centralized access to all configuration settings.
+职责：
+- 加载/校验/管理按国家划分的配置文件
+- 统一访问配置模板与外部模板
+- 提供创建国家配置与工程目录/样例数据的能力
+
+设计说明：
+- 默认配置根目录为 `data/ner/configs/`，下含 `countries/` 与 `templates/`
+- 国家配置当前仅支持 `.json`，模板支持 `.json5`（若已安装 json5）与 `.json`
+
+# TODO: 为国家配置增加 `.json5` 支持，复用模板解析逻辑（优先 json5，其次 json）。
+# TODO: 提供更严格的 Schema 校验（可对接 pydantic/voluptuous）并输出聚合错误。
 """
 
 import json
@@ -19,13 +28,26 @@ except ImportError:
     HAS_JSON5 = False
 
 class ConfigManager:
-    """Manages NER configuration files and settings"""
+    """NER 配置文件与设置的统一管理入口
+
+    - 负责配置的读取/缓存/写入
+    - 提供模板加载与国家配置创建
+    - 负责工程目录与样例数据的初始化
+
+    # TODO: 支持按环境（dev/test/prod）或版本管理配置（如带有 `version` 字段）。
+    """
     
     def __init__(self, config_dir: str = "data/ner/configs"):
-        """Initialize configuration manager
+        """初始化配置管理器
         
         Args:
-            config_dir: Directory containing configuration files
+            config_dir: 存放配置文件的根目录
+
+        注意：
+        - 构造时会确保 `countries/` 与 `templates/` 目录存在。
+        - 为提升健壮性，建议在上层传入绝对路径或项目根相对路径。
+
+        # TODO: 若在只读环境下应避免自动创建目录，或提供显式开关。
         """
         self.config_dir = Path(config_dir)
         self.countries_dir = self.config_dir / "countries"
@@ -38,18 +60,21 @@ class ConfigManager:
         self.templates_dir.mkdir(parents=True, exist_ok=True)
     
     def load_country_config(self, country: str, use_cache: bool = True) -> Dict[str, Any]:
-        """Load configuration for a specific country
+        """加载指定国家的配置
         
         Args:
-            country: Country code (e.g., 'uae', 'saudi')
-            use_cache: Whether to use cached configuration
+            country: 国家代码（如 'uae', 'saudi'）
+            use_cache: 是否优先使用缓存
             
         Returns:
-            Dictionary containing country configuration
+            该国家的配置字典
             
         Raises:
-            FileNotFoundError: If country configuration file doesn't exist
-            ValueError: If configuration is invalid
+            FileNotFoundError: 对应配置文件不存在
+            ValueError: 配置解析或校验失败
+
+        # TODO: 支持 `.json5` 的国家配置文件加载；如同时存在，以 `.json5` 优先。
+        # TODO: 提供基于 mtime 的缓存失效策略，或允许外部显式禁用缓存。
         """
         if use_cache and country in self._config_cache:
             return deepcopy(self._config_cache[country])
@@ -79,13 +104,16 @@ class ConfigManager:
             raise ValueError(f"Error loading configuration for {country}: {e}")
     
     def load_template_config(self, template: str) -> Dict[str, Any]:
-        """Load a configuration template
+        """加载模板配置
         
         Args:
-            template: Template name (e.g., 'default', 'address_ner')
+            template: 模板名（如 'default', 'address_ner'）
             
         Returns:
-            Dictionary containing template configuration
+            模板配置字典
+
+        说明：
+        - 若安装了 json5，优先尝试读取 `.json5`；否则回退 `.json`。
         """
         # Try to load .json5 file first if json5 is available
         if HAS_JSON5:
@@ -112,13 +140,15 @@ class ConfigManager:
             raise ValueError(f"Invalid JSON in template file {template_file}: {e}")
     
     def load_external_template(self, template_path: str) -> Dict[str, Any]:
-        """Load a configuration template from an external file path
+        """从外部路径加载模板配置
         
         Args:
-            template_path: Full path to the template file
+            template_path: 模板文件绝对路径
             
         Returns:
-            Dictionary containing template configuration
+            模板配置字典
+
+        # TODO: 对 `.jsonl` 的处理当前仅读取首行；可考虑支持全量/多行合并。
         """
         template_file = Path(template_path)
         
@@ -154,11 +184,14 @@ class ConfigManager:
             )
     
     def save_country_config(self, country: str, config: Dict[str, Any]) -> None:
-        """Save configuration for a country
+        """保存国家配置
         
         Args:
-            country: Country code
-            config: Configuration dictionary to save
+            country: 国家代码
+            config: 待持久化的配置字典
+
+        # TODO: 使用原子写（临时文件 + 覆盖）避免中途失败导致的文件损坏。
+        # TODO: 可选开启 JSON 排序键与结尾换行，增强可读性与稳定性。
         """
         # Validate configuration before saving
         self._validate_config(config, country)
@@ -177,15 +210,19 @@ class ConfigManager:
     
     def create_country_config(self, country: str, template: str = "default", 
                                 external_template_path: Optional[str] = None) -> Dict[str, Any]:
-        """Create a new country configuration from template
+        """基于模板创建新的国家配置
         
         Args:
-            country: Country code for new configuration
-            template: Template to use as base (ignored if external_template_path is provided)
-            external_template_path: Optional path to external template file
+            country: 国家代码
+            template: 模板名称（若指定 external_template_path 则忽略）
+            external_template_path: 外部模板文件路径（可选）
             
         Returns:
-            New configuration dictionary
+            新创建的配置字典
+
+        说明：
+        - 若使用 DAPT 模板，会调用 `_fix_template_structure` 调整为 NER 兼容结构。
+        - 会自动进行占位符替换与项目结构初始化。
         """
         # Load template from external path or standard template
         if external_template_path:
@@ -212,10 +249,10 @@ class ConfigManager:
         return config
     
     def list_countries(self) -> List[str]:
-        """List all available country configurations
+        """列出当前所有可用的国家配置
         
         Returns:
-            List of country codes
+            国家代码列表（按名称排序）
         """
         if not self.countries_dir.exists():
             return []
@@ -227,10 +264,10 @@ class ConfigManager:
         return sorted(countries)
     
     def list_templates(self) -> List[str]:
-        """List all available configuration templates
+        """列出所有可用的配置模板
         
         Returns:
-            List of template names
+            模板名称列表（去重并排序）
         """
         if not self.templates_dir.exists():
             return []
@@ -249,22 +286,24 @@ class ConfigManager:
         return sorted(list(templates))
     
     def country_exists(self, country: str) -> bool:
-        """Check if a country configuration exists
+        """检查指定国家配置是否存在
         
         Args:
-            country: Country code to check
+            country: 要检查的国家代码
             
         Returns:
-            True if configuration exists, False otherwise
+            存在返回 True，否则 False
         """
         config_file = self.countries_dir / f"{country}.json"
         return config_file.exists()
     
     def delete_country_config(self, country: str) -> None:
-        """Delete a country configuration
+        """删除指定国家的配置
         
         Args:
-            country: Country code to delete
+            country: 待删除的国家代码
+
+        # TODO: 支持回收站/备份机制，避免误删；或增加 `force`/交互确认机制在 CLI 层实现。
         """
         config_file = self.countries_dir / f"{country}.json"
         
@@ -278,18 +317,20 @@ class ConfigManager:
             del self._config_cache[country]
     
     def clear_cache(self) -> None:
-        """Clear the configuration cache"""
+        """清空配置缓存"""
         self._config_cache.clear()
     
     def _replace_placeholders(self, config: Dict[str, Any], country: str) -> Dict[str, Any]:
-        """Replace placeholders in configuration template
+        """替换模板中的占位符
         
         Args:
-            config: Configuration dictionary with placeholders
-            country: Country code to use for replacement
+            config: 含占位符的配置字典
+            country: 用于替换的国家代码
             
         Returns:
-            Configuration dictionary with placeholders replaced
+            替换占位符后的配置字典
+
+        # TODO: 支持更多占位符（如日期/作者/版本等），并允许自定义替换上下文。
         """
         # Convert config to JSON string for placeholder replacement
         config_str = json.dumps(config, ensure_ascii=False, indent=2)
@@ -308,14 +349,17 @@ class ConfigManager:
             raise ValueError(f"Error parsing configuration after placeholder replacement: {e}")
     
     def _fix_template_structure(self, config: Dict[str, Any]) -> None:
-        """Fix template structure for NER compatibility
+        """修正模板结构以兼容 NER 配置
         
-        This method handles differences between DAPT and NER template structures,
-        particularly moving num_labels from model section to labels section and
-        fixing model field names.
+        作用：
+        - 处理 DAPT 与 NER 模板结构上的差异
+        - 将 `model.num_labels` 移动到 `labels.num_labels`
+        - 若缺失 `model.type`，默认补为 'bert'
         
         Args:
-            config: Configuration dictionary to fix (modified in-place)
+            config: 待修正的配置字典（原地修改）
+
+        # TODO: 补充更多字段的兼容映射（如 `training` 字段命名差异）。
         """
         # Fix model section fields
         if 'model' in config:
@@ -344,11 +388,16 @@ class ConfigManager:
             config['labels']['num_labels'] = len(config['labels']['label_names'])
     
     def _create_project_structure(self, config: Dict[str, Any], country: str) -> None:
-        """Create project directories and sample data files based on configuration
+        """根据配置创建工程目录与样例数据
         
         Args:
-            config: Configuration dictionary
-            country: Country code
+            config: 配置字典
+            country: 国家代码
+
+        说明：
+        - 会根据 `output.*`、`logging.log_file`、`data.{train,val,test}_file` 创建目录/样例文件
+
+        # TODO: 支持自定义样例数据模板；对于已存在文件提供覆盖/跳过开关。
         """
         import logging
         logger = logging.getLogger(__name__)
@@ -413,12 +462,14 @@ class ConfigManager:
             raise
     
     def _create_sample_data_file(self, file_path: Path, file_type: str, config: Dict[str, Any]) -> None:
-        """Create a sample data file with NER annotations
+        """创建带有 NER 标注的样例数据（JSONL）
         
         Args:
-            file_path: Path where to create the file
-            file_type: Type of file (train_file, val_file, test_file)
-            config: Configuration dictionary for context
+            file_path: 文件输出路径
+            file_type: 文件类型（train_file/val_file/test_file）
+            config: 配置字典（可用于读取标签）
+
+        # TODO: 允许按 `label_names` 生成更贴合业务的样例；支持多语言示例。
         """
         # Sample NER data in JSONL format
         sample_data = []
@@ -491,14 +542,21 @@ class ConfigManager:
             raise ValueError(f"Error creating sample data file {file_path}: {e}")
     
     def _validate_config(self, config: Dict[str, Any], country: str) -> None:
-        """Validate configuration structure and required fields
+        """校验配置结构与必需字段
         
         Args:
-            config: Configuration to validate
-            country: Country code for context
+            config: 待校验的配置
+            country: 国家代码（用于错误提示）
             
         Raises:
-            ValueError: If configuration is invalid
+            ValueError: 配置不合法
+
+        说明：
+        - 当前强制要求 `labels` 包含 `num_labels`/`label_names`/`label_mapping`；
+          与训练器中允许通过 `entities` 推导 BIO 标签的逻辑存在一定冗余。
+
+        # TODO: 统一标签定义来源与约束，避免“配置校验通过但训练时重建标签”的重复逻辑。
+        # TODO: 校验 `label_mapping` 与 `label_names` 的对应关系与口径（BIO vs 非 BIO）。
         """
         required_sections = [
             'country', 'model', 'training', 'data', 'labels', 
@@ -546,13 +604,15 @@ class ConfigManager:
                 raise ValueError(f"Model section missing required field '{field}'")
     
     def get_config_summary(self, country: str) -> Dict[str, Any]:
-        """Get a summary of configuration for a country
+        """获取指定国家配置的摘要信息
         
         Args:
-            country: Country code
+            country: 国家代码
             
         Returns:
-            Dictionary with configuration summary
+            配置摘要字典（核心字段集中展示）
+
+        # TODO: 支持更多摘要字段（如数据路径、warmup、scheduler 等）。
         """
         config = self.load_country_config(country)
         
