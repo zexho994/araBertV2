@@ -261,11 +261,10 @@ class EvaluateCommand(BaseCommand):
             import torch
             from ..evaluation import NEREvaluator
             from ..models import NERModelManager
-            from ..models.wrapper import TransformersNERModelWrapper
             from pathlib import Path
             
             # 加载模型
-            model_manager = NERModelManager(self.global_config.get('model_dir'), logger=self.logger)
+            model_manager = NERModelManager(logger=self.logger)
             model = model_manager.load_model(args.model_path)
             
             # 加载 tokenizer
@@ -278,30 +277,16 @@ class EvaluateCommand(BaseCommand):
                 label_list = list(id2label.values())
             else:
                 raise ValueError("Model configuration does not contain label mappings.")
-            
-            # 如果模型没有 predict 方法, 则包装为 TransformersNERModelWrapper
-            if not hasattr(model, 'predict'):
-                self.logger.info("Model doesn't have predict method, wrapping with TransformersNERModelWrapper...")
-                # 获取标签映射
-                if hasattr(model, 'config') and hasattr(model.config, 'label2id'):
-                    label2id = model.config.label2id
-                else:
-                    label2id = {label: i for i, label in id2label.items()}
-                
-                # 包装模型
-                model = TransformersNERModelWrapper(model, tokenizer, id2label, label2id)
-                self.logger.info("Model successfully wrapped.")
-            
+
             # 加载配置
             config = None
             if hasattr(args, 'country') and args.country:
                 config_manager = ConfigManager(self.global_config.get('config_dir'))
                 config = config_manager.load_country_config(args.country)
-            
+
             # 初始化评估器
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
             model = model.to(device)  # 将模型移动到设备
-            eval_logs_dir = None
             if config and 'output' in config and 'logs_dir' in config['output']:
                 eval_logs_dir = config['output']['logs_dir']
             else:
@@ -313,11 +298,13 @@ class EvaluateCommand(BaseCommand):
                 name=f"{(config or {}).get('country', {}).get('code', 'unknown')}_eval",
                 log_dir=eval_logs_dir
             )
-            evaluator = NEREvaluator(model, tokenizer, label_list, device, logger=eval_logger)
+            evaluator = NEREvaluator(model, tokenizer, label_list, device, logger=self.logger)
             
+            # 读取数据
             texts = []
             true_labels = []
-            
+
+            # 读取数据文件
             with open(args.data_path, 'r', encoding='utf-8') as f:
                 f.seek(0)
                 for line in f:
@@ -325,40 +312,45 @@ class EvaluateCommand(BaseCommand):
                     if line:
                         data = json.loads(line)
                         # 如果数据包含 tokens, 则使用 tokens 重建文本
-                        if 'tokens' in data:
-                            text = ' '.join(data['tokens'])  # 使用 tokens 重建文本
-                        else:
-                            text = data.get('text', '')
-                        texts.append(text)
-                        true_labels.append(data.get('labels', []))
-            
-            # 运行评估
-            confidence_threshold = getattr(args, 'confidence_threshold', 0.1)  # 默认置信度阈值
-            results = evaluator.evaluate_text(
+                        if 'text' not in data or 'tokens' not in data or 'labels' not in data:
+                            raise ValueError(f"Data file {args.data_path} is invalid")
+
+                        texts.append(data['text'])
+                        true_labels.append(data['labels'])
+
+                        
+
+            # 运行评估, 默认置信度阈值为 0.1, 表示预测结果中置信度大于 0.1 的才被认为是有效的预测结果
+            confidence_threshold = getattr(args, 'confidence_threshold', 0.1)
+
+            # 评估文本
+            results = evaluator.evaluate(
                 texts=texts,
                 true_labels=true_labels,
                 confidence_threshold=confidence_threshold
             )
             
-            # 打印结果
             self.logger.info("Evaluation Results:")
+
             # 打印 token 级指标
             self.logger.info("\nToken-level Metrics:")
             for metric, value in results.get('token_metrics', {}).items():
                 self.logger.info(f"  {metric}: {value:.4f}")
             
-            self.logger.info("\nEntity-level Metrics:")
+            # 打印实体级指标
+            self.logger.info("Entity-level Metrics:")
             for metric, value in results.get('entity_metrics', {}).items():
                 self.logger.info(f"  {metric}: {value:.4f}")
             
+            # 打印逐实体指标
             if 'per_entity_metrics' in results:
-                self.logger.info("\nPer-Entity Metrics:")
+                self.logger.info("Per-Entity Metrics:")
                 for entity, metrics in results['per_entity_metrics'].items():
                     self.logger.info(f"  {entity}:")
                     for metric, value in metrics.items():
                         self.logger.info(f"    {metric}: {value:.4f}")
             
-            self.logger.info(f"\nTotal samples evaluated: {results.get('num_samples', 0)}")
+            self.logger.info(f"Total samples evaluated: {results.get('num_samples', 0)}")
 
             # 持久化结果
             out_dir = None
@@ -446,13 +438,7 @@ class PredictCommand(BaseCommand):
             # Load tokenizer
             from transformers import AutoTokenizer
             tokenizer = AutoTokenizer.from_pretrained(args.model_path)
-            
-            # Load configuration if country specified
-            config = None
-            if hasattr(args, 'country') and args.country:
-                config_manager = ConfigManager(self.global_config.get('config_dir'))
-                config = config_manager.load_country_config(args.country)
-            
+
             # Single text prediction
             if args.text:
                 prediction = model.predict(args.text, tokenizer=tokenizer, confidence_threshold=args.confidence_threshold)
@@ -465,13 +451,10 @@ class PredictCommand(BaseCommand):
                 elif args.output_format == "conll":
                     for token, label in zip(prediction['tokens'], prediction['labels']):
                         self.logger.info(f"{token} {label}")
-                
                 return True
             
-            # Batch prediction from file
             if args.file:
                 predictions = []
-                
                 with open(args.file, 'r', encoding='utf-8') as f:
                     for line in f:
                         text = line.strip()

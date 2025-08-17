@@ -527,7 +527,8 @@ class NERTrainer:
                     metrics[f'entity_{ent}_f1'] = stats.get('f1', 0.0)
                     metrics[f'entity_{ent}_precision'] = stats.get('precision', 0.0)
                     metrics[f'entity_{ent}_recall'] = stats.get('recall', 0.0)
-            except Exception:
+            except Exception as e:
+                self.logger.error(f"计算实体级指标时出错: {e}")
                 pass
 
         return metrics

@@ -203,7 +203,7 @@ def main():
             "name": "Debug Train Script",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/ner/debug_train.py",
+            "program": "${workspaceFolder}/tests/ner/train_and_evaluate.py",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
         },

@@ -15,7 +15,7 @@ if readme_file.exists():
     with open(readme_file, "r", encoding="utf-8") as f:
         long_description = f.read()
 else:
-    long_description = "AraBERTv2 - A comprehensive toolkit for Arabic NLP with Domain Adaptive Pre-Training (DAPT) and Named Entity Recognition (NER) capabilities."
+    long_description = "AraBERTv2 - A comprehensive toolkit for Arabic NLP with Named Entity Recognition (NER) capabilities."
 
 # Read requirements
 requirements_file = here / "requirements.txt"
@@ -47,7 +47,7 @@ else:
 version = "1.0.0"  # Default version
 
 # Try to get version from NER module first, then DAPT
-for module_path in ["src/ner/__init__.py", "src/dapt/__init__.py"]:
+for module_path in ["src/ner/__init__.py"]:
     version_file = here / module_path
     if version_file.exists():
         with open(version_file, "r", encoding="utf-8") as f:
@@ -77,10 +77,6 @@ docs_requirements = [
 # Optional requirements for different features
 optional_requirements = {
     # Core modules
-    "dapt": [
-        "wandb>=0.12.0",
-        "tensorboard>=2.8.0",
-    ],
     "ner": [
         "seqeval>=1.2.2",
         "rich>=12.0.0",
@@ -107,14 +103,13 @@ setup(
     version=version,
     author="AraBERTv2 Development Team",
     author_email="contact@arabertv2.com",
-    description="AraBERTv2 Toolkit - Domain Adaptive Pre-Training and Named Entity Recognition for Arabic NLP",
+    description="AraBERTv2 Toolkit - Named Entity Recognition for Arabic NLP",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/your-org/araBertv2",
     project_urls={
         "Bug Reports": "https://github.com/your-org/araBertv2/issues",
         "Source": "https://github.com/your-org/araBertv2",
-        "DAPT Documentation": "https://dapt.readthedocs.io/",
         "NER Documentation": "https://ner-cli.readthedocs.io/",
     },
     packages=find_packages(where="src"),
@@ -139,24 +134,13 @@ setup(
     extras_require=optional_requirements,
     entry_points={
         "console_scripts": [
-            # DAPT CLI commands
-            "dapt=dapt_cli:main",
-            "dapt-cli=dapt_cli:main",
             # NER CLI commands
             "ner=ner_cli:main",
         ],
     },
-    scripts=["dapt_cli.py", "ner_cli.py"],
+    scripts=["ner_cli.py"],
     include_package_data=True,
     package_data={
-        "dapt": [
-            "configs/*.yaml",
-            "configs/**/*.yaml",
-            "configs/*.json",
-            "configs/**/*.json",
-            "data/*.json",
-            "data/**/*.json",
-        ],
         "ner": [
             "configs/*.json",
             "configs/**/*.json",
@@ -165,9 +149,6 @@ setup(
         ],
     },
     data_files=[
-        # DAPT data files
-        ("data/dapt/configs/templates", ["data/dapt/configs/templates/default.json"]),
-        ("data/dapt/configs/countries", ["data/dapt/configs/countries/uae.json"]),
         # NER data files
         ("data/ner/configs/templates", ["data/ner/configs/templates/default.json", "data/ner/configs/templates/address_ner.json"]),
         ("data/ner/configs/countries", ["data/ner/configs/countries/uae.json"]),
@@ -180,10 +161,6 @@ setup(
         "bert",
         "transformer",
         "arabertv2",
-        # DAPT specific
-        "domain-adaptation",
-        "pre-training",
-        "dapt",
         # NER specific
         "ner",
         "named-entity-recognition",
@@ -217,13 +194,6 @@ if __name__ == "__main__":
         
         # Create necessary directories for both modules
         directories = [
-            # DAPT directories
-            "data/dapt",
-            "data/dapt/models",
-            "data/dapt/datasets",
-            "data/dapt/outputs",
-            "data/dapt/logs",
-            "data/dapt/checkpoints",
             # NER directories
             "data/ner",
             "data/ner/models",
@@ -237,30 +207,16 @@ if __name__ == "__main__":
             os.makedirs(directory, exist_ok=True)
             print(f"✓ Created directory: {directory}")
         
-        print("\nAvailable CLI Commands:")
-        print("  DAPT (Domain Adaptive Pre-Training):")
-        print("    dapt --help                    # Show DAPT help")
-        print("    dapt train --country uae       # Train DAPT model")
-        print("    dapt evaluate --model path     # Evaluate DAPT model")
-        
         print("\n  NER (Named Entity Recognition):")
         print("    ner --help                     # Show NER help")
         print("    ner train --country uae        # Train NER model")
         print("    ner predict --text 'text'      # Predict entities")
         
-        print("\nNext steps:")
-        print("1. Run 'dapt status' or 'ner status' to check system status")
-        print("2. Run 'dapt config list' or 'ner config list' for configurations")
-        print("3. Check documentation for detailed usage instructions")
-        
         print("\nFor UAE address parsing:")
-        print("  # DAPT training:")
-        print("  dapt train --country uae --data-path your_data.json")
         print("  # NER training:")
         print("  ner train --country uae --data-path your_data.json")
         
         print("\nDocumentation:")
-        print("  DAPT: https://dapt.readthedocs.io/")
         print("  NER:  https://ner-cli.readthedocs.io/")
         print("="*60 + "\n")
     

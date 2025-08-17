@@ -111,9 +111,9 @@ class NERModel(PreTrainedModel):
         # 将文本按空白切词；若文本并非空白分词语种，可在外部提供更合适的分词方式
         words = text.split()
         tokenized = tokenizer(
-            words,
-            is_split_into_words=True,
-            return_tensors="pt",
+            words, # 输入文本
+            is_split_into_words=True,  # 输入已分词，无需再切词
+            return_tensors="pt", # 转换为 PyTorch 张量
             padding=True,
             truncation=True,
             max_length=512
@@ -121,7 +121,7 @@ class NERModel(PreTrainedModel):
         
         # 重要：对齐信息需在迁移到设备前获取
         # ERROR：若 tokenizer 非 fast 实现，可能不支持 word_ids，需在外层校验或提供回退策略
-        word_ids = tokenized.word_ids(batch_index=0)
+        word_ids = tokenized.word_ids(batch_index=0) # ex.[None, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 4, 5, 5, 6, 6, 7, 8, 9, 10, 11, 12, 13, 13, None]
         
         # 迁移到设备
         tokenized = {k: v.to(device) for k, v in tokenized.items()}

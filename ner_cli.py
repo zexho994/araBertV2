@@ -468,17 +468,16 @@ def main():
     log_level = 'DEBUG' if args.verbose else args.log_level
     
     # 日志文件名, {country.code}
-    log_file = args.log_file or f'data/ner/logs/{args.country}/start_{args.command}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
+    log_file = args.log_file or f'data/ner/logs/{args.country}/ner_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
     
     logger = setup_logging(
         level=log_level,
-        log_dir=Path(log_file).parent,
+        log_dir= Path(log_file).parent,
         log_to_console=True,
         log_to_file=True
     )
     
     try:
-        # Initialize CLI manager
         cli_manager = NERCLIManager(
             config_dir=args.config_dir,
             data_dir=args.data_dir,

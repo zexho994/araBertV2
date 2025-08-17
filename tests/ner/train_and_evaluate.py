@@ -21,7 +21,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-def debug_train_command():
+def exec_train_command(country : str):
     """调试训练命令
 
     说明：
@@ -35,9 +35,10 @@ def debug_train_command():
     # 原命令: python .\ner_cli.py train --country uae_xml_roberta_base
     sys.argv = [
         'ner_cli.py',
+        '--verbose',
         'train', 
         '--country', 
-        'uae_xml_roberta_base'
+        country,
     ]
     
     print(f"模拟命令行参数: {' '.join(sys.argv)}")
@@ -68,7 +69,7 @@ def debug_train_command():
         traceback.print_exc()
         return 1
 
-def debug_evaluate_command():
+def exec_evaluate_command(country : str = None):
     """调试评估命令
 
     说明：
@@ -79,13 +80,14 @@ def debug_evaluate_command():
     """
     sys.argv = [
         'ner_cli.py',
+        '--verbose',
         'evaluate',
         '--country',
-        'uae_xml_roberta_base',
+        country,
         '--model-path',
-        'data/ner/models/uae_xml_roberta_base/best_model',
+        f'data/ner/models/{country}/best_model',
         '--data-path',
-        'data/ner/data/uae_xml_roberta_base/val.jsonl'
+        f'data/ner/data/{country}/val.jsonl',
     ]
     print(f"模拟命令行参数: {' '.join(sys.argv)}")
     print(f"当前工作目录: {os.getcwd()}")
@@ -113,11 +115,12 @@ def debug_evaluate_command():
 if __name__ == '__main__':
     print("NER CLI 训练命令调试脚本")
     print("=" * 30)
+
+    country = 'uae_xml_roberta_base'
     
-    # 执行调试
     # 默认调试评估命令，若需训练请改为调用 `debug_train_command()`
     # TODO: 通过命令行/环境变量选择调试目标（train/evaluate）。
-    # exit_code = debug_train_command()
-    exit_code = debug_evaluate_command()
+    exec_train_command(country = country)
+    exec_evaluate_command(country = country)
     
-    print(f"\n脚本执行完成，退出码: {exit_code}")
+    print(f"\n脚本执行完成")

@@ -40,7 +40,7 @@ class NERModelManager:
         
         # 模型注册表文件
         self.registry_file = self.model_dir / "model_registry.json"
-        self.registry = self._load_registry()
+        self.registry = self._load_registry()  # eg. 'data/ner/models/model_registry.json'
     
     def _load_registry(self) -> Dict[str, Any]:
         """加载模型注册表
@@ -147,8 +147,8 @@ class NERModelManager:
             raise ValueError(f"Unsupported model type: {model_type}")
         
         # 附加属性
-        model.config_data = config
-        model.country = config.get('country', 'unknown')
+        # model.config_data = config
+        # model.country = config.get('country', 'unknown')
         
         self.logger.info(f"Loaded model from {model_path}")
         return model
