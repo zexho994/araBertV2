@@ -232,16 +232,15 @@ class NERTrainer:
             logger=self.logger
         )
         
-        # 创建数据加载器
-        self.data_loaders = ner_data_loader.prepare_data_loaders(
-            train_examples=train_dataset,
-            val_examples=val_dataset,
+        # 构建数据加载器, 返回包含 'train'/'val'/'test' 的 DataLoader 字典
+        self.data_loaders = ner_data_loader.prepare_loaders(
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
             batch_size=self.config['training']['batch_size'],
             num_workers=self.config.get('hardware', {}).get('num_workers', 0)
         )
         
         self.tokenizer = ner_data_loader.get_tokenizer()
-        
         self.logger.info(f"Created data loaders with {self.num_labels} labels")
     
     def prepare_model(self):

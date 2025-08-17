@@ -22,19 +22,19 @@ class NERDataset(Dataset):
     - 产出模型训练/评估直接可用的 input_ids、attention_mask 与 labels
     """
     
-    def __init__(self, examples: List[Dict[str, Any]], tokenizer, 
+    def __init__(self, dataset: List[Dict[str, Any]], tokenizer, 
                  label2id: Dict[str, int], max_length: int = 512,
                  pad_token_label_id: int = -100):
         """初始化 NER Dataset
         
         参数：
-            examples: 样本列表，元素包含 'tokens' 与 'labels'
+            dataset: 样本列表，元素包含 'tokens' 与 'labels'
             tokenizer: 分词器实例（需为 fast tokenizer 以支持 word_ids 对齐）
             label2id: 标签到 ID 的映射
             max_length: 最大序列长度（会进行截断与填充）
             pad_token_label_id: 用于填充/忽略位置的标签 ID（通常为 -100）
         """
-        self.examples = examples
+        self.dataset = dataset
         self.tokenizer = tokenizer
         self.label2id = label2id
         self.max_length = max_length
@@ -48,7 +48,7 @@ class NERDataset(Dataset):
         """将原始样本转为模型输入格式"""
         processed = []
         
-        for example in self.examples:
+        for example in self.dataset:
             tokens = example['tokens']
             labels = example['labels']
             
@@ -180,34 +180,27 @@ class NERDataLoader:
         self.pad_token_label_id = pad_token_label_id
         self.logger = logger
         
-        # 为部分未定义 pad_token 的分词器设置回退
-        # TODO：当前回退为 eos_token；对不具备 eos_token 的模型可能并不稳妥，建议根据模型类型更精细地选择（如使用 sep_token 或新增 pad_token）
         if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
+            raise ValueError("Tokenizer must have a pad_token")
     
-    def create_dataset(self, examples: List[Dict[str, Any]]) -> NERDataset:
-        """由样本创建 NERDataset 实例
+    def create_dataset_loader(self, dataset: List[Dict[str, Any]]) -> NERDataset:
+        """由数据集创建 NERDataset 实例
         
         参数：
-            examples: 样本列表
+            dataset: 数据集列表
             
         返回：
             NERDataset 实例
         """
-        dataset = NERDataset(
-            examples=examples,
+        dataset_loader = NERDataset(
+            dataset=dataset,
             tokenizer=self.tokenizer,
             label2id=self.label2id,
             max_length=self.max_length,
             pad_token_label_id=self.pad_token_label_id
         )
-        if self.logger:
-            try:
-                self.logger.info(f"Created dataset with {len(dataset)} samples")
-            except Exception:
-                # TODO：可考虑在调试级别记录更详细异常信息
-                pass
-        return dataset
+        self.logger.info(f"Created dataset loader with {len(dataset)} samples")
+        return dataset_loader
     
     def create_dataloader(self, dataset: NERDataset, batch_size: int = 16, 
                          shuffle: bool = True, num_workers: int = 0) -> DataLoader:
@@ -230,13 +223,7 @@ class NERDataLoader:
             num_workers=num_workers,
             collate_fn=self._collate_fn
         )
-        if self.logger:
-            try:
-                self.logger.info(
-                    f"Created dataloader: batch_size={batch_size}, shuffle={shuffle}, num_workers={num_workers}"
-                )
-            except Exception:
-                pass
+        self.logger.info(f"Created dataloader with batch_size={batch_size}, shuffle={shuffle}, num_workers={num_workers}")
         return dl
     
     def _collate_fn(self, batch: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
@@ -252,16 +239,16 @@ class NERDataLoader:
             'labels': labels
         }
     
-    def prepare_data_loaders(self, train_examples: List[Dict[str, Any]], 
-                           val_examples: Optional[List[Dict[str, Any]]] = None,
-                           test_examples: Optional[List[Dict[str, Any]]] = None,
+    def prepare_loaders(self, train_dataset: List[Dict[str, Any]], 
+                           val_dataset: List[Dict[str, Any]],
+                           test_dataset: Optional[List[Dict[str, Any]]] = None,
                            batch_size: int = 16, 
                            num_workers: int = 0) -> Dict[str, DataLoader]:
         """构建训练/验证/测试的数据加载器集合
         
         参数：
             train_examples: 训练样本
-            val_examples: 验证样本（可选）
+            val_examples: 验证样本
             test_examples: 测试样本（可选）
             batch_size: 批大小
             num_workers: DataLoader 子进程数量
@@ -271,22 +258,21 @@ class NERDataLoader:
         """
         data_loaders = {}
         
-        # 训练集
-        train_dataset = self.create_dataset(train_examples)
+        # 构建训练集数据加载器
+        train_dataset = self.create_dataset_loader(train_dataset)
         data_loaders['train'] = self.create_dataloader(
             train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers
         )
         
-        # 验证集
-        if val_examples:
-            val_dataset = self.create_dataset(val_examples)
-            data_loaders['val'] = self.create_dataloader(
-                val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
-            )
+        # 构建验证集数据加载器
+        val_dataset = self.create_dataset_loader(val_dataset)
+        data_loaders['val'] = self.create_dataloader(
+            val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
+        )
         
-        # 测试集
-        if test_examples:
-            test_dataset = self.create_dataset(test_examples)
+        if test_dataset:
+            # 构建测试集数据加载器
+            test_dataset = self.create_dataset_loader(test_dataset)
             data_loaders['test'] = self.create_dataloader(
                 test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
             )
