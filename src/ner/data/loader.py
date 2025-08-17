@@ -42,15 +42,15 @@ class NERDataset(Dataset):
         
         # 重要：将原始样本预处理为模型可直接消费的张量形式
         # TODO：可考虑在大量数据时引入缓存/懒加载机制以降低启动开销
-        self.processed_examples = self._process_examples()
+        self.processed_datasets = self._process_datasets()
     
-    def _process_examples(self) -> List[Dict[str, Any]]:
-        """将原始样本转为模型输入格式"""
+    def _process_datasets(self) -> List[Dict[str, Any]]:
+        """将原始数据集转为模型输入格式"""
         processed = []
         
-        for example in self.dataset:
-            tokens = example['tokens']
-            labels = example['labels']
+        for data in self.dataset:
+            tokens = data['tokens'] # 词列表
+            labels = data['labels'] # 标签列表
             
             # 分词并对齐标签
             tokenized = self._tokenize_and_align_labels(tokens, labels)
@@ -69,12 +69,12 @@ class NERDataset(Dataset):
         """
         # 将词序列作为已分好词的输入传给分词器
         tokenized_inputs = self.tokenizer(
-            tokens,
-            is_split_into_words=True,
-            max_length=self.max_length,
-            padding='max_length',
-            truncation=True,
-            return_tensors='pt'
+            tokens, # 词列表
+            is_split_into_words=True, # 输入已分词，无需再切词
+            max_length=self.max_length, # 最大长度
+            padding='max_length', # 填充
+            truncation=True, # 截断
+            return_tensors='pt' # 转换为 PyTorch 张量
         )
 
         # 兼容不同 transformers 版本对 BatchEncoding.word_ids 的签名差异
@@ -152,11 +152,11 @@ class NERDataset(Dataset):
     
     def __len__(self) -> int:
         """返回样本数量"""
-        return len(self.processed_examples)
+        return len(self.processed_datasets)
     
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         """返回单条样本的张量化结果"""
-        return self.processed_examples[idx]
+        return self.processed_datasets[idx]
 
 class NERDataLoader:
     """NER 数据加载器管理器
