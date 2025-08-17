@@ -19,41 +19,67 @@ class NERDataProcessor:
         if logger is None:
             raise ValueError("NERDataProcessor requires a logger instance")
         self.logger = logger
-        self.config = config or {}
+
+        self.config = config or None
+        if self.config is None:
+            raise ValueError("NERDataProcessor requires a config instance")
+
         self.labels = self.config.get('labels', {}).get('label_mapping', [])
-        self.max_length = self.config.get('data', {}).get('max_length', 512)
+        if not self.labels:
+            raise ValueError("NERDataProcessor requires labels")
+
+        self.max_length = self.config.get('data', {}).get('max_length', 0)
+        if self.max_length <= 0:
+            raise ValueError("max_length must be greater than 0")
+
         self.encoding = self.config.get('data', {}).get('encoding', 'utf-8')
-        
         self.logger.info("Initializing NERDataProcessor")
         self.logger.debug(f"Processor config: max_length={self.max_length}, encoding={self.encoding}")
         
-        # Initialize label mappings
         self._init_label_mappings()
     
     def _init_label_mappings(self):
-        """Initialize label to ID mappings"""
+        """初始化标签到ID的映射关系
+        
+        基于配置中的实体类型列表，构建完整的BIO标注体系的标签映射：
+        - 从 config['labels']['label_mapping'] 读取实体类型列表
+        - 自动生成BIO格式标签：'O' + 'B-{entity}' + 'I-{entity}'
+        - 创建双向映射：label2id（标签名→索引）和 id2label（索引→标签名）
+        - 用于模型训练时的标签编码和解码
+        
+        生成的标签顺序：
+        1. 'O' (Outside，非实体标签)
+        2. 'B-{entity1}', 'I-{entity1}' (第一个实体的开始和内部标签)
+        3. 'B-{entity2}', 'I-{entity2}' (第二个实体的开始和内部标签)
+        4. ...以此类推
+        
+        Raises:
+            ValueError: 当配置中未提供标签时抛出异常
+        """
         if self.labels:
-            # Create BIO tags for each entity
+            # 创建BIO标签
             bio_labels = ['O']  # Outside
             for entity in self.labels:
                 bio_labels.extend([f'B-{entity}', f'I-{entity}'])
             
+            # 创建标签到ID的映射, ex. {'O': 0, 'B-PER': 1, 'I-PER': 2, 'B-ORG': 3, 'I-ORG': 4}
             self.label2id = {label: idx for idx, label in enumerate(bio_labels)}
+            # 创建ID到标签的映射, ex. {0: 'O', 1: 'B-PER', 2: 'I-PER', 3: 'B-ORG', 4: 'I-ORG'}
             self.id2label = {idx: label for label, idx in self.label2id.items()}
             self.logger.info(f"Initialized label mappings for {len(self.labels)} entities, total BIO labels={len(bio_labels)}")
         else:
             self.label2id = {}
             self.id2label = {}
-            self.logger.warning("No labels provided in config; label mappings are empty")
+            raise ValueError("No labels provided in config")
     
     def _load_conll_file(self, file_path: str) -> List[Dict[str, Any]]:
-        """Load data from CoNLL format file
+        """加载CoNLL格式数据文件
         
         Args:
-            file_path: Path to CoNLL format file
+            file_path: CoNLL格式数据文件路径
             
         Returns:
-            List of examples with tokens and labels
+            数据示例列表
         """
         examples = []
         current_tokens = []
@@ -93,13 +119,13 @@ class NERDataProcessor:
         return examples
     
     def _load_json_file(self, file_path: str) -> List[Dict[str, Any]]:
-        """Load data from JSON format file
+        """加载JSON格式数据文件
         
         Args:
-            file_path: Path to JSON format file
+            file_path: JSON格式数据文件路径
             
         Returns:
-            List of examples
+            数据示例列表
         """
         self.logger.info(f"Loading JSON data from {file_path}")
         with open(file_path, 'r', encoding=self.encoding) as f:
@@ -115,16 +141,16 @@ class NERDataProcessor:
             raise ValueError(f"Unsupported JSON format in {file_path}")
 
     def _load_jsonl_file(self, file_path: str) -> List[Dict[str, Any]]:
-        """Load data from JSON Lines (JSONL) format file
+        """加载JSON Lines (JSONL)格式数据文件
 
         Args:
-            file_path: Path to JSONL format file
+            file_path: JSONL格式数据文件路径
 
         Returns:
-            List of examples (each line is a JSON object)
+            数据示例列表
         """
         self.logger.info(f"Loading JSONL data from {file_path}")
-        examples: List[Dict[str, Any]] = []
+        dataset: List[Dict[str, Any]] = []
         with open(file_path, 'r', encoding=self.encoding) as f:
             for line in f:
                 line = line.strip()
@@ -132,20 +158,20 @@ class NERDataProcessor:
                     continue
                 try:
                     obj = json.loads(line)
-                    examples.append(obj)
+                    dataset.append(obj)
                 except json.JSONDecodeError as e:
                     raise ValueError(f"Invalid JSONL line in {file_path}: {e}")
-        self.logger.info(f"Loaded {len(examples)} examples from JSONL file")
-        return examples
+        self.logger.info(f"Loaded {len(dataset)} dataset from {file_path}")
+        return dataset
     
     def _load_csv_file(self, file_path: str) -> List[Dict[str, Any]]:
-        """Load data from CSV format file
+        """加载CSV格式数据文件
         
         Args:
-            file_path: Path to CSV format file
+            file_path: CSV格式数据文件路径
             
         Returns:
-            List of examples
+            数据示例列表
         """
         self.logger.info(f"Loading CSV data from {file_path}")
         df = pd.read_csv(file_path, encoding=self.encoding)
@@ -171,13 +197,13 @@ class NERDataProcessor:
         return examples
     
     def load_data_file(self, file_path: str) -> List[Dict[str, Any]]:
-        """Load data from file (auto-detect format)
+        """加载数据文件, 自动检测文件格式
         
         Args:
-            file_path: Path to data file
+            file_path: 数据文件路径
             
         Returns:
-            List of examples
+            数据示例列表
         """
         self.logger.info(f"Loading data file: {file_path}")
         file_path = Path(file_path)
@@ -196,20 +222,7 @@ class NERDataProcessor:
         elif suffix == '.csv':
             return self._load_csv_file(str(file_path))
         else:
-            # Try to auto-detect format
-            with open(file_path, 'r', encoding=self.encoding) as f:
-                first_line = f.readline().strip()
-                
-            if first_line.startswith('{') or first_line.startswith('['):
-                # Try JSON first, then fallback to JSONL
-                try:
-                    return self._load_json_file(str(file_path))
-                except Exception:
-                    return self._load_jsonl_file(str(file_path))
-            elif '\t' in first_line or len(first_line.split()) == 2:
-                return self._load_conll_file(str(file_path))
-            else:
-                raise ValueError(f"Cannot determine format for file: {file_path}")
+            raise ValueError(f"Unsupported data file format: {suffix}")
     
     def validate_data_file(self, file_path: str) -> bool:
         """Validate data file format and content

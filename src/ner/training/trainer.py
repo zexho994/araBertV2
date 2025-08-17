@@ -169,68 +169,78 @@ class NERTrainer:
           
           # TODO: 统一标签来源：优先从 `labels.label_names` 读取；如不存在再基于 `entities` 派生 BIO 标签。
         """
-        self.logger.info(f"Preparing training data form {self.config['data']['train_file']}...")
         
-        data_config = self.config['data']
+        data_config = self.config['data'] or {}
+        train_file_path = data_config.get('train_file', None)
+        val_file_path = data_config.get('val_file', None)
+
+        if not train_file_path:
+            raise ValueError("No training data file provided in config")
+        if not val_file_path:
+            raise ValueError("No validation data file provided in config")
+        if not os.path.exists(train_file_path):
+            raise ValueError(f"Training data file {train_file_path} does not exist")
+        if not os.path.exists(val_file_path):
+            raise ValueError(f"Validation data file {val_file_path} does not exist")
         
-        # Initialize data processor
+        self.logger.info(f"Preparing training data from {train_file_path}, validation data from {val_file_path}")
+
+        # 初始化数据处理器
         processor = NERDataProcessor(self.config, logger=self.logger)
         
-        # Load training data
-        train_dataset = processor.load_data_file(data_config['train_file'])
-        self.logger.info(f"Loaded {len(train_dataset)} training dataset")
+        # 加载训练数据
+        train_dataset = processor.load_data_file(train_file_path)
+        self.logger.info(f"Loaded {len(train_dataset)} training dataset from {train_file_path}")
+
+        # 加载验证数据
+        val_dataset = processor.load_data_file(val_file_path)
+        self.logger.info(f"Loaded {len(val_dataset)} validation dataset from {val_file_path}")
         
-        # Load validation data if available
-        val_dataset = None
-        if 'val_file' in data_config and data_config['val_file']:
-            val_dataset = processor.load_data_file(data_config['val_file'])
-            self.logger.info(f"Loaded {len(val_dataset)} validation dataset")
+        # 初始化标签映射
+        labels_config = self.config.get('labels', {})
+        if not labels_config:
+            raise ValueError("No labels provided in config")
         
-        # Create label mappings
-        labels_config = self.config['labels']
-        
-        # Handle both 'entities' and 'label_names' formats
-        if 'entities' in labels_config:
-            # Direct entities list format
-            entities = labels_config['entities']
-            bio_labels = ['O'] + [f'B-{entity}' for entity in entities] + [f'I-{entity}' for entity in entities]
-        elif 'label_names' in labels_config:
-            # BIO label names format - extract entities from BIO tags
-            label_names = labels_config['label_names']
+        if 'label_names' in labels_config:
+            # 使用 label_names 列表格式
+            bio_labels = labels_config['label_names']
+            if not bio_labels:
+                raise ValueError("No label names provided in config")
+
             entities = set()
-            for label in label_names:
+            for label in bio_labels:
                 if label.startswith('B-') or label.startswith('I-'):
-                    entity = label[2:]  # Remove 'B-' or 'I-' prefix
+                    entity = label[2:]  # 去除 'B-' 或 'I-' 前缀
                     entities.add(entity)
-            entities = sorted(list(entities))  # Convert to sorted list for consistency
-            bio_labels = label_names  # Use existing label names
+                    self.logger.debug(f"Found entity: {entity} from label: {label}")
+            entities = sorted(list(entities))  # 转换为排序列表以保持一致性
         else:
             raise ValueError("Configuration must contain either 'entities' or 'label_names' in labels section")
         
-        label2id = {label: idx for idx, label in enumerate(bio_labels)}
-        id2label = {idx: label for label, idx in label2id.items()}
+        # 初始化标签到ID的映射, ex. {'O': 0, 'B-PER': 1, 'I-PER': 2, 'B-ORG': 3, 'I-ORG': 4}
+        self.label2id = {label: idx for idx, label in enumerate(bio_labels)}
+        # 初始化ID到标签的映射, ex. {0: 'O', 1: 'B-PER', 2: 'I-PER', 3: 'B-ORG', 4: 'I-ORG'}
+        self.id2label = {idx: label for label, idx in self.label2id.items()}
+        self.num_labels = len(self.label2id)
+        self.logger.info(f"Initialized label mappings for {len(entities)} entities, total BIO labels={len(bio_labels)}")
         
-        self.label2id = label2id
-        self.id2label = id2label
-        self.num_labels = len(bio_labels)
-        
-        # Initialize data loader
-        data_loader = NERDataLoader(
+        # 初始化数据加载器
+        ner_data_loader = NERDataLoader(
             tokenizer_name=self.config['model']['pretrained_model'],
-            label2id=label2id,
+            label2id=self.label2id,
             max_length=data_config.get('max_length', 512),
             logger=self.logger
         )
         
-        # Create data loaders
-        self.data_loaders = data_loader.prepare_data_loaders(
+        # 创建数据加载器
+        self.data_loaders = ner_data_loader.prepare_data_loaders(
             train_examples=train_dataset,
             val_examples=val_dataset,
             batch_size=self.config['training']['batch_size'],
             num_workers=self.config.get('hardware', {}).get('num_workers', 0)
         )
         
-        self.tokenizer = data_loader.get_tokenizer()
+        self.tokenizer = ner_data_loader.get_tokenizer()
         
         self.logger.info(f"Created data loaders with {self.num_labels} labels")
     
