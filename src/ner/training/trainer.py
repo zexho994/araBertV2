@@ -345,65 +345,71 @@ class NERTrainer:
         # TODO: 支持 AMP 混合精度（torch.cuda.amp.autocast + GradScaler）降低显存/提升吞吐。
         # TODO: 支持梯度累积，在大 batch 受限的设备上稳定训练。
         """
-        self.model.train()
+        self.model.train() # 设置模型为训练模式
         total_loss = 0.0
         num_batches = len(self.data_loaders['train'])
         
+        # 进度条显示当前训练轮次、训练损失、学习率
         progress_bar = tqdm(
-            self.data_loaders['train'],
-            desc=f"Epoch {epoch + 1}",
-            leave=False
+            self.data_loaders['train'], # 训练数据集
+            desc=f"Epoch {epoch + 1}", # 进度条显示当前训练轮次
+            leave=False # 进度条不显示
         )
         
+        # 遍历训练数据集
         for batch_idx, batch in enumerate(progress_bar):
-            # Move batch to device
+
+            # 将批次数据移动到设备
             batch = {k: v.to(self.device) for k, v in batch.items()}
             
-            # 前向传播
+            # 前向传播, 返回损失
             outputs = self.model(**batch)
             loss = outputs['loss'] if isinstance(outputs, dict) else outputs.loss
             
-            # Backward pass
+            # 反向传播, 计算梯度
             self.optimizer.zero_grad()
             loss.backward()
             
-            # Gradient clipping（梯度裁剪，防止梯度爆炸）
+            # 梯度裁剪，防止梯度爆炸
             max_grad_norm = self.config['training'].get('max_grad_norm', 1.0)
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
             
-            # Update parameters
+            # 更新参数
             self.optimizer.step()
+
+            # 更新学习率
             if self.scheduler:
                 self.scheduler.step()
-            
-            # Update metrics
+
+            # 更新总损失
             total_loss += loss.item()
             
-            # Update progress bar（进度条显示当前 loss 与 lr）
+            # 更新进度条（进度条显示当前 loss 与 lr）
             current_lr = self.optimizer.param_groups[0]['lr']
             progress_bar.set_postfix({
                 'loss': f"{loss.item():.4f}",
                 'lr': f"{current_lr:.2e}"
             })
             
-            # TensorBoard: batch-level scalars
+            # TensorBoard: 记录当前批次损失与学习率
             if self.tb_writer is not None:
                 self.tb_writer.add_scalar('train/batch_loss', float(loss.item()), self.global_step)
                 self.tb_writer.add_scalar('train/lr', float(current_lr), self.global_step)
             
-            # Log batch metrics
+            # 记录当前批次损失与学习率
             if batch_idx % 100 == 0:
                 self.logger.debug(
                     f"Epoch {epoch + 1}, Batch {batch_idx}/{num_batches}, "
                     f"Loss: {loss.item():.4f}, LR: {current_lr:.2e}"
                 )
             
-            # Increase global step after logging
+            # 更新全局步数
             self.global_step += 1
         
+        # 计算平均损失
         avg_loss = total_loss / num_batches
         
-        # TensorBoard: epoch-level train loss
+        # TensorBoard: 记录当前轮次损失
         if self.tb_writer is not None:
             self.tb_writer.add_scalar('train/epoch_loss', float(avg_loss), epoch + 1)
         
@@ -413,7 +419,7 @@ class NERTrainer:
         """验证评估
         
         Returns:
-            验证指标字典（实体级与 token 级）
+            验证指标字典, 包含实体级与 token 级指标
 
         说明：
         - 忽略标签中的 padding（-100）再进行评估。
@@ -424,48 +430,82 @@ class NERTrainer:
         """
         if 'val' not in self.data_loaders:
             return {}
-        
+
+        # 设置模型为评估模式
         self.model.eval()
+
+        # 初始化总损失
         total_loss = 0.0
-        # Accumulate per-sequence labels for entity-level evaluation
+
+        # 累积每样本的标签序列，用于实体级评估
         y_true_sequences = []
         y_pred_sequences = []
         
         with torch.no_grad():
             for batch in tqdm(self.data_loaders['val'], desc="Validating", leave=False):
-                # Move batch to device
+
+                # 将批次数据移动到设备
                 batch = {k: v.to(self.device) for k, v in batch.items()}
                 
-                # Forward pass
+                # 前向传播, 返回损失与 logits
                 outputs = self.model(**batch)
+
+                # loss 是损失值, 是当前批次所有样本的平均损失
                 loss = outputs['loss'] if isinstance(outputs, dict) else outputs.loss
+
+                # logits 是模型输出, 是当前批次所有样本的预测结果
+                # 例如: 
+                # logits = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
+                # 因为 logits 的第二个维度是 3, 所以预测结果是 2
                 logits = outputs['logits'] if isinstance(outputs, dict) else outputs.logits
 
-                # Get predictions
+                # 获取预测结果, argmax 是取最大值的索引
+                # dim=-1 是取最后一个维度, 即每个样本的预测结果
+                # 预测结果是每个样本的预测标签, 是当前批次所有样本的预测结果
+                # 例如: logits = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
+                # predictions = [2, 2]
                 predictions = torch.argmax(logits, dim=-1)
 
-                # Build per-sample sequences (strip padding = -100) and convert to label strings
+                # 构建每样本的标签序列, 并转换为标签字符串
+                # 例如: batch_labels = [[1, 2, 3], [4, 5, 6]]
                 batch_labels = batch['labels']
+
+                # 遍历当前批次所有样本
                 for i in range(batch_labels.size(0)):
+                    # 例如: mask_i = [True, True, True]
                     mask_i = batch_labels[i] != -100
+                    # 例如: true_ids = [1, 2, 3]
                     true_ids = batch_labels[i][mask_i].tolist()
+                    # 例如: pred_ids = [2, 2, 2]
                     pred_ids = predictions[i][mask_i].tolist()
+                    # 例如: true_seq = ['B-PER', 'I-PER', 'O']
                     true_seq = [self.id2label.get(int(tid), 'O') for tid in true_ids]
+                    # 例如: pred_seq = ['B-PER', 'I-PER', 'O']
                     pred_seq = [self.id2label.get(int(pid), 'O') for pid in pred_ids]
+                    # 例如: y_true_sequences = [['B-PER', 'I-PER', 'O'], ['B-PER', 'I-PER', 'O']]
                     y_true_sequences.append(true_seq)
+                    # 例如: y_pred_sequences = [['B-PER', 'I-PER', 'O'], ['B-PER', 'I-PER', 'O']]
                     y_pred_sequences.append(pred_seq)
 
+                # 更新总损失
                 total_loss += loss.item()
         
-        # Calculate entity-level and token-level metrics using seqeval-based metrics
+        # 计算实体级与 token 级指标
         label_list = [self.id2label[i] for i in range(len(self.id2label))]
+
+        # 创建 SeqevalNERMetrics 实例
         seq_metrics = SeqevalNERMetrics(label_list)
 
+        # 计算 token 级指标
         token_metrics = seq_metrics.compute_token_metrics(y_true_sequences, y_pred_sequences)
+
+        # 计算实体级指标
         entity_metrics = seq_metrics.compute_entity_metrics(y_true_sequences, y_pred_sequences)
 
-        # Aggregate metrics for trainer consumption (use entity-level by default)
+        # 计算平均损失
         avg_loss = total_loss / len(self.data_loaders['val'])
+
+        # 创建验证指标字典
         metrics: Dict[str, float] = {
             'precision': entity_metrics.get('entity_precision', 0.0),
             'recall': entity_metrics.get('entity_recall', 0.0),
@@ -477,12 +517,12 @@ class NERTrainer:
             'token_accuracy': token_metrics.get('token_accuracy', 0.0),
         }
 
-        # Optional: include per-entity breakdown if requested in config
+        # 如果配置中请求了实体级指标, 则计算实体级指标
         eval_cfg = self.config.get('evaluation', {})
         if eval_cfg.get('return_entity_level_metrics', True) or eval_cfg.get('classification_report', False):
             try:
                 per_entity = seq_metrics.compute_per_entity_metrics(y_true_sequences, y_pred_sequences)
-                # Flatten selected stats with prefix for easy logging/consumption
+                # 将实体级指标扁平化, 便于日志记录与消费
                 for ent, stats in per_entity.items():
                     metrics[f'entity_{ent}_f1'] = stats.get('f1', 0.0)
                     metrics[f'entity_{ent}_precision'] = stats.get('precision', 0.0)
@@ -597,57 +637,27 @@ class NERTrainer:
         
         # 在 TensorBoard 中记录超参数与配置摘要
         if self.tb_writer is not None:
-            try:
-                # 仅记录关键信息，避免日志过大
-                hparams = {
-                    'epochs': self.config['training'].get('epochs'),
-                    'batch_size': self.config['training'].get('batch_size'),
-                    'learning_rate': self.config['training'].get('learning_rate'),
-                    'optimizer': self.config['training'].get('optimizer', 'adamw'),
-                    'scheduler': self.config['training'].get('scheduler', 'linear'),
-                    'max_length': self.config.get('data', {}).get('max_length', 512)
-                }
-                self.tb_writer.add_text('config/country', str(self.config.get('country', {})))
-                self.tb_writer.add_text('config/model', str(self.config.get('model', {})))
-                self.tb_writer.add_text('config/training', str(hparams))
-            except Exception:
-                pass
-        
+            self.write_hyper_parameters_to_tensorboard()
+
         # 训练轮次
         num_epochs = self.config['training']['epochs']
+        self.logger.info(f"Total training epochs: {num_epochs}")
         
         # 训练循环
         for epoch in range(num_epochs):
             epoch_start_time = time.time()
             
-            # 执行训练轮次，返回训练损失
-            # loss 是训练损失，是训练轮次中每个批次损失的平均值
+            # 执行训练轮次，返回训练损失, train_loss 是训练损失，是训练轮次中每个批次损失的平均值
             train_loss = self.train_epoch(epoch)
             
             # 验证训练结果，返回验证指标
             val_metrics = self.validate()
             
             # 更新训练历史结果
-            self.training_history['train_loss'].append(train_loss)
-            if val_metrics:
-                self.training_history['val_loss'].append(val_metrics.get('val_loss', 0))
-                self.training_history['val_f1'].append(val_metrics.get('f1', 0))
-                self.training_history['val_precision'].append(val_metrics.get('precision', 0))
-                self.training_history['val_recall'].append(val_metrics.get('recall', 0))
-            
-            if self.scheduler:
-                self.training_history['learning_rates'].append(self.optimizer.param_groups[0]['lr'])
-            
+            self.update_training_metric(train_loss, val_metrics)
+
             # TensorBoard: 验证轮次指标
-            if self.tb_writer is not None and val_metrics:
-                self.tb_writer.add_scalar('val/loss', float(val_metrics.get('val_loss', 0.0)), epoch + 1)
-                self.tb_writer.add_scalar('val/f1', float(val_metrics.get('f1', 0.0)), epoch + 1)
-                self.tb_writer.add_scalar('val/precision', float(val_metrics.get('precision', 0.0)), epoch + 1)
-                self.tb_writer.add_scalar('val/recall', float(val_metrics.get('recall', 0.0)), epoch + 1)
-                self.tb_writer.add_scalar('val/token_f1', float(val_metrics.get('token_f1', 0.0)), epoch + 1)
-                self.tb_writer.add_scalar('val/token_precision', float(val_metrics.get('token_precision', 0.0)), epoch + 1)
-                self.tb_writer.add_scalar('val/token_recall', float(val_metrics.get('token_recall', 0.0)), epoch + 1)
-                self.tb_writer.add_scalar('val/token_accuracy', float(val_metrics.get('token_accuracy', 0.0)), epoch + 1)
+            self.write_training_metric_tensorboard_(epoch, val_metrics)
             
             # 检查最佳模型
             current_f1 = val_metrics.get('f1', 0) if val_metrics else 0
@@ -666,13 +676,11 @@ class NERTrainer:
             log_msg = f"Epoch {epoch + 1}/{num_epochs} - "
             log_msg += f"Train Loss: {train_loss:.4f}, "
             log_msg += f"Time: {epoch_time:.2f}s"
-            
             if val_metrics:
                 log_msg += f", Val Loss: {val_metrics.get('val_loss', 0):.4f}"
                 log_msg += f", Val F1: {val_metrics.get('f1', 0):.4f}"
                 log_msg += f", Val Precision: {val_metrics.get('precision', 0):.4f}"
                 log_msg += f", Val Recall: {val_metrics.get('recall', 0):.4f}"
-            
             self.logger.info(log_msg)
             
             # Early stopping（基于验证集 F1 触发）
@@ -693,9 +701,51 @@ class NERTrainer:
             try:
                 self.tb_writer.flush()
                 self.tb_writer.close()
-            except Exception:
+            except Exception as e:
+                self.logger.error(f"Error flushing/closing TensorBoard writer: {e}")
                 pass
-    
+
+    def write_training_metric_tensorboard_(self, epoch, val_metrics):
+        if self.tb_writer is not None and val_metrics:
+            self.tb_writer.add_scalar('val/loss', float(val_metrics.get('val_loss', 0.0)), epoch + 1)
+            self.tb_writer.add_scalar('val/f1', float(val_metrics.get('f1', 0.0)), epoch + 1)
+            self.tb_writer.add_scalar('val/precision', float(val_metrics.get('precision', 0.0)), epoch + 1)
+            self.tb_writer.add_scalar('val/recall', float(val_metrics.get('recall', 0.0)), epoch + 1)
+            self.tb_writer.add_scalar('val/token_f1', float(val_metrics.get('token_f1', 0.0)), epoch + 1)
+            self.tb_writer.add_scalar('val/token_precision', float(val_metrics.get('token_precision', 0.0)), epoch + 1)
+            self.tb_writer.add_scalar('val/token_recall', float(val_metrics.get('token_recall', 0.0)), epoch + 1)
+            self.tb_writer.add_scalar('val/token_accuracy', float(val_metrics.get('token_accuracy', 0.0)), epoch + 1)
+
+    def update_training_metric(self, train_loss, val_metrics):
+        self.training_history['train_loss'].append(train_loss)
+        if val_metrics:
+            self.training_history['val_loss'].append(val_metrics.get('val_loss', 0))
+            self.training_history['val_f1'].append(val_metrics.get('f1', 0))
+            self.training_history['val_precision'].append(val_metrics.get('precision', 0))
+            self.training_history['val_recall'].append(val_metrics.get('recall', 0))
+        if self.scheduler:
+            self.training_history['learning_rates'].append(self.optimizer.param_groups[0]['lr'])
+
+    def write_hyper_parameters_to_tensorboard(self):
+        """记录超参数与配置摘要到 TensorBoard
+        """
+        try:
+            # 仅记录关键信息，避免日志过大
+            hparams = {
+                'epochs': self.config['training'].get('epochs'),
+                'batch_size': self.config['training'].get('batch_size'),
+                'learning_rate': self.config['training'].get('learning_rate'),
+                'optimizer': self.config['training'].get('optimizer', 'adamw'),
+                'scheduler': self.config['training'].get('scheduler', 'linear'),
+                'max_length': self.config.get('data', {}).get('max_length', 512)
+            }
+            self.tb_writer.add_text('config/country', str(self.config.get('country', {})))
+            self.tb_writer.add_text('config/model', str(self.config.get('model', {})))
+            self.tb_writer.add_text('config/training', str(hparams))
+        except Exception as e:
+            self.logger.warning(f"Error while logging hyperparameters to TensorBoard. {e}")
+            pass
+
     def resume_from_checkpoint(self, checkpoint_path: str):
         """从检查点恢复训练
         

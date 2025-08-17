@@ -18,7 +18,6 @@
 # TODO: 为 `global_config` 定义强类型（TypedDict/dataclass），并在入口层进行完整校验。
 """
 
-import os
 import json
 from abc import ABC, abstractmethod
 from typing import Dict, Any
@@ -88,7 +87,7 @@ class TrainCommand(BaseCommand):
     - 覆盖项仅在用户显式传入时生效，避免默认值覆盖配置。
     - 支持外层 CLI 注入 `data_path`/`val_data_path` 用于快速调试。
 
-    # TODO: 支持 `test_data_path` 以及自动识别数据格式（JSON/JSONL）。
+    # TODO: 支持 `test_data_path` 以及自动识别数据格式（JSONL）。
     """
     
     @property
@@ -164,16 +163,16 @@ class TrainCommand(BaseCommand):
             # 校验配置
             validator = ConfigValidator()
             if not validator.validate_config(config, args.country):
-                print("Configuration validation failed:")
+                self.logger.error("Configuration validation failed:")
                 for error in validator.get_errors():
-                    print(f"  ERROR: {error}")
+                    self.logger.error(f"  ERROR: {error}")
                 for warning in validator.get_warnings():
-                    print(f"  WARNING: {warning}")
+                    self.logger.info(f"  WARNING: {warning}")
                 return False
             
             # 快速校验
             if getattr(args, 'dry_run', False):
-                print("Configuration validation passed. Dry run completed.")
+                self.logger.info("Configuration validation passed. Dry run completed.")
                 return True
             
             # 导入训练器
@@ -192,7 +191,7 @@ class TrainCommand(BaseCommand):
             return True
             
         except Exception as e:
-            print(f"Training failed: {e}")
+            self.logger.error(f"Training failed: {e}")
             return False
 
 class EvaluateCommand(BaseCommand):
@@ -259,55 +258,56 @@ class EvaluateCommand(BaseCommand):
     
     def execute(self, args) -> bool:
         try:
-            # Import evaluator
             import torch
             from ..evaluation import NEREvaluator
             from ..models import NERModelManager
             from ..models.wrapper import TransformersNERModelWrapper
             from pathlib import Path
             
-            # Load model
+            # 加载模型
             model_manager = NERModelManager(self.global_config.get('model_dir'), logger=self.logger)
             model = model_manager.load_model(args.model_path)
             
-            # Load tokenizer separately
+            # 加载 tokenizer
             from transformers import AutoTokenizer
             tokenizer = AutoTokenizer.from_pretrained(args.model_path)
             
-            # Get label list from model config first
+            # 从模型配置中获取标签列表
             if hasattr(model, 'config') and hasattr(model.config, 'id2label'):
                 id2label = model.config.id2label
                 label_list = list(id2label.values())
             else:
                 raise ValueError("Model configuration does not contain label mappings.")
             
-            # Check if model has predict method, if not, wrap it
+            # 如果模型没有 predict 方法, 则包装为 TransformersNERModelWrapper
             if not hasattr(model, 'predict'):
-                print("Model doesn't have predict method, wrapping with TransformersNERModelWrapper...")
-                # Get label mappings
+                self.logger.info("Model doesn't have predict method, wrapping with TransformersNERModelWrapper...")
+                # 获取标签映射
                 if hasattr(model, 'config') and hasattr(model.config, 'label2id'):
                     label2id = model.config.label2id
                 else:
                     label2id = {label: i for i, label in id2label.items()}
                 
-                # Wrap the model
+                # 包装模型
                 model = TransformersNERModelWrapper(model, tokenizer, id2label, label2id)
-                print("Model successfully wrapped.")
+                self.logger.info("Model successfully wrapped.")
             
-            # Load configuration if country specified; otherwise try from model's training metadata
+            # 加载配置
             config = None
             if hasattr(args, 'country') and args.country:
                 config_manager = ConfigManager(self.global_config.get('config_dir'))
                 config = config_manager.load_country_config(args.country)
             
-            # Initialize evaluator with eval-specific logger under output.logs_dir
+            # 初始化评估器
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            model = model.to(device)  # Move model to device
+            model = model.to(device)  # 将模型移动到设备
             eval_logs_dir = None
             if config and 'output' in config and 'logs_dir' in config['output']:
                 eval_logs_dir = config['output']['logs_dir']
             else:
                 eval_logs_dir = self.global_config.get('log_dir', 'data/ner/logs')
+
+            # 创建评估器
             from ..utils import NERLogger
             eval_logger = NERLogger(
                 name=f"{(config or {}).get('country', {}).get('code', 'unknown')}_eval",
@@ -315,64 +315,52 @@ class EvaluateCommand(BaseCommand):
             )
             evaluator = NEREvaluator(model, tokenizer, label_list, device, logger=eval_logger)
             
-            import json
             texts = []
             true_labels = []
             
             with open(args.data_path, 'r', encoding='utf-8') as f:
-                try:
-                    data_list = json.load(f)
-                    for data in data_list:
-                        # Use pre-tokenized tokens if available, otherwise split text
+                f.seek(0)
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        data = json.loads(line)
+                        # 如果数据包含 tokens, 则使用 tokens 重建文本
                         if 'tokens' in data:
-                            text = ' '.join(data['tokens'])  # Reconstruct text from tokens
+                            text = ' '.join(data['tokens'])  # 使用 tokens 重建文本
                         else:
                             text = data.get('text', '')
                         texts.append(text)
                         true_labels.append(data.get('labels', []))
-                except json.JSONDecodeError:
-                    # If that fails, try JSONL format
-                    f.seek(0)
-                    for line in f:
-                        line = line.strip()
-                        if line:
-                            data = json.loads(line)
-                            # Use pre-tokenized tokens if available, otherwise split text
-                            if 'tokens' in data:
-                                text = ' '.join(data['tokens'])  # Reconstruct text from tokens
-                            else:
-                                text = data.get('text', '')
-                            texts.append(text)
-                            true_labels.append(data.get('labels', []))
             
-            # Run evaluation with configurable confidence threshold
-            confidence_threshold = getattr(args, 'confidence_threshold', 0.1)  # Lower default threshold
+            # 运行评估
+            confidence_threshold = getattr(args, 'confidence_threshold', 0.1)  # 默认置信度阈值
             results = evaluator.evaluate_text(
                 texts=texts,
                 true_labels=true_labels,
                 confidence_threshold=confidence_threshold
             )
             
-            # Print results
-            print("Evaluation Results:")
-            print("\nToken-level Metrics:")
+            # 打印结果
+            self.logger.info("Evaluation Results:")
+            # 打印 token 级指标
+            self.logger.info("\nToken-level Metrics:")
             for metric, value in results.get('token_metrics', {}).items():
-                print(f"  {metric}: {value:.4f}")
+                self.logger.info(f"  {metric}: {value:.4f}")
             
-            print("\nEntity-level Metrics:")
+            self.logger.info("\nEntity-level Metrics:")
             for metric, value in results.get('entity_metrics', {}).items():
-                print(f"  {metric}: {value:.4f}")
+                self.logger.info(f"  {metric}: {value:.4f}")
             
             if 'per_entity_metrics' in results:
-                print("\nPer-Entity Metrics:")
+                self.logger.info("\nPer-Entity Metrics:")
                 for entity, metrics in results['per_entity_metrics'].items():
-                    print(f"  {entity}:")
+                    self.logger.info(f"  {entity}:")
                     for metric, value in metrics.items():
-                        print(f"    {metric}: {value:.4f}")
+                        self.logger.info(f"    {metric}: {value:.4f}")
             
-            print(f"\nTotal samples evaluated: {results.get('num_samples', 0)}")
+            self.logger.info(f"\nTotal samples evaluated: {results.get('num_samples', 0)}")
 
-            # Persist results if output directory is provided or available via config
+            # 持久化结果
             out_dir = None
             if getattr(args, 'output_dir', None):
                 out_dir = Path(args.output_dir)
@@ -384,29 +372,12 @@ class EvaluateCommand(BaseCommand):
                 metrics_path = out_dir / 'metrics.json'
                 with open(metrics_path, 'w', encoding='utf-8') as f:
                     json.dump(results, f, ensure_ascii=False, indent=2)
-                print(f"\nSaved evaluation metrics to: {metrics_path}")
-            
-            # Compare with another model if specified
-            if hasattr(args, 'compare_with') and args.compare_with:
-                # ERROR: 下段代码参数不匹配 `NEREvaluator` 的构造与 `evaluate` 的签名，无法按预期工作。
-                # TODO: 若需支持模型对比，应：
-                #   1) 同样加载 `other_tokenizer` 与 `other_label_list` 构造 `other_evaluator`
-                #   2) 复用同一 `texts/true_labels` 调用 `evaluate_text`，再对比关键指标。
-                other_model = model_manager.load_model(args.compare_with)
-                # other_evaluator = NEREvaluator(other_model, other_tokenizer, other_label_list, device)
-                # other_results = other_evaluator.evaluate_text(texts, true_labels, confidence_threshold)
-                other_results = {}
-                
-                print(f"\nComparison with {args.compare_with}:")
-                for metric in args.metrics:
-                    if metric in results and metric in other_results:
-                        diff = results[metric] - other_results[metric]
-                        print(f"  {metric}: {diff:+.4f}")
+                self.logger.info(f"\nSaved evaluation metrics to: {metrics_path}")
             
             return True
             
         except Exception as e:
-            print(f"Evaluation failed: {e}")
+            self.logger.error(f"Evaluation failed: {e}")
             return False
 
 class PredictCommand(BaseCommand):
@@ -487,13 +458,13 @@ class PredictCommand(BaseCommand):
                 prediction = model.predict(args.text, tokenizer=tokenizer, confidence_threshold=args.confidence_threshold)
                 
                 if args.output_format == "json":
-                    print(json.dumps(prediction, indent=2, ensure_ascii=False))
+                    self.logger.info(json.dumps(prediction, indent=2, ensure_ascii=False))
                 elif args.output_format == "text":
                     for token, label in zip(prediction['tokens'], prediction['labels']):
-                        print(f"{token}\t{label}")
+                        self.logger.info(f"{token}\t{label}")
                 elif args.output_format == "conll":
                     for token, label in zip(prediction['tokens'], prediction['labels']):
-                        print(f"{token} {label}")
+                        self.logger.info(f"{token} {label}")
                 
                 return True
             
@@ -508,7 +479,6 @@ class PredictCommand(BaseCommand):
                             prediction = model.predict(text, tokenizer=tokenizer, confidence_threshold=args.confidence_threshold)
                             predictions.append(prediction)
                 
-                # Save or print predictions
                 if args.output_file:
                     with open(args.output_file, 'w', encoding='utf-8') as f:
                         if args.output_format == "json":
@@ -525,16 +495,15 @@ class PredictCommand(BaseCommand):
                                     f.write("\n")
                 else:
                     for pred in predictions:
-                        print(json.dumps(pred, indent=2, ensure_ascii=False))
-                        print("---")
+                        self.logger.info(json.dumps(pred, indent=2, ensure_ascii=False))
                 
                 return True
             
-            print("Please provide either --text or --file")
+            self.logger.error("Please provide either --text or --file")
             return False
             
         except Exception as e:
-            print(f"Prediction failed: {e}")
+            self.logger.error(f"Prediction failed: {e}")
             return False
 
 class ConfigCommand(BaseCommand):
@@ -587,23 +556,23 @@ class ConfigCommand(BaseCommand):
             if args.config_action == "list":
                 if args.templates:
                     templates = config_manager.list_templates()
-                    print("Available templates:")
+                    self.logger.info("Available templates:")
                     for template in templates:
-                        print(f"  {template}")
+                        self.logger.info(f"  {template}")
                 else:
                     countries = config_manager.list_countries()
-                    print("Available country configurations:")
+                    self.logger.info("Available country configurations:")
                     for country in countries:
-                        print(f"  {country}")
+                        self.logger.info(f"  {country}")
                 
             elif args.config_action == "show":
                 config = config_manager.load_country_config(args.country)
-                print(f"Configuration for {args.country}:")
-                print(json.dumps(config, indent=2, ensure_ascii=False))
+                self.logger.info(f"Configuration for {args.country}:")
+                self.logger.info(json.dumps(config, indent=2, ensure_ascii=False))
                 
             elif args.config_action == "create":
                 if config_manager.country_exists(args.country):
-                    print(f"Configuration for '{args.country}' already exists")
+                    self.logger.error(f"Configuration for '{args.country}' already exists")
                     return False
                 
                 if hasattr(args, 'external_template') and args.external_template:
@@ -612,10 +581,10 @@ class ConfigCommand(BaseCommand):
                         args.template, 
                         external_template_path=args.external_template
                     )
-                    print(f"Created configuration for '{args.country}' using external template '{args.external_template}'")
+                    self.logger.info(f"Created configuration for '{args.country}' using external template '{args.external_template}'")
                 else:
                     config = config_manager.create_country_config(args.country, args.template)
-                    print(f"Created configuration for '{args.country}' using template '{args.template}'")
+                    self.logger.info(f"Created configuration for '{args.country}' using template '{args.template}'")
 
                 
             elif args.config_action == "validate":
@@ -623,40 +592,40 @@ class ConfigCommand(BaseCommand):
                 validator = ConfigValidator()
                 
                 if validator.validate_config(config, args.country):
-                    print(f"Configuration for '{args.country}' is valid")
+                    self.logger.info(f"Configuration for '{args.country}' is valid")
                     warnings = validator.get_warnings()
                     if warnings:
-                        print("Warnings:")
+                        self.logger.info("Warnings:")
                         for warning in warnings:
-                            print(f"  WARNING: {warning}")
+                            self.logger.info(f"  WARNING: {warning}")
                 else:
-                    print(f"Configuration for '{args.country}' is invalid")
+                    self.logger.error(f"Configuration for '{args.country}' is invalid")
                     for error in validator.get_errors():
-                        print(f"  ERROR: {error}")
+                        self.logger.error(f"  ERROR: {error}")
                     return False
                 
             elif args.config_action == "delete":
                 if not config_manager.country_exists(args.country):
-                    print(f"Configuration for '{args.country}' does not exist")
+                    self.logger.error(f"Configuration for '{args.country}' does not exist")
                     return False
                 
                 if not args.force:
                     response = input(f"Are you sure you want to delete configuration for '{args.country}'? (y/N): ")
                     if response.lower() != 'y':
-                        print("Deletion cancelled")
+                        self.logger.info("Deletion cancelled")
                         return True
                 
                 config_manager.delete_country_config(args.country)
-                print(f"Deleted configuration for '{args.country}'")
+                self.logger.info(f"Deleted configuration for '{args.country}'")
             
             else:
-                print("Please specify a configuration action")
+                self.logger.error("Please specify a configuration action")
                 return False
             
             return True
             
         except Exception as e:
-            print(f"Configuration operation failed: {e}")
+            self.logger.error(f"Configuration operation failed: {e}")
             return False
 
 class DataCommand(BaseCommand):
@@ -712,9 +681,9 @@ class DataCommand(BaseCommand):
                 is_valid = processor.validate_data_file(args.input_file)
                 
                 if is_valid:
-                    print(f"Data file '{args.input_file}' is valid")
+                    self.logger.info(f"Data file '{args.input_file}' is valid")
                 else:
-                    print(f"Data file '{args.input_file}' has validation errors")
+                    self.logger.error(f"Data file '{args.input_file}' has validation errors")
                     return False
                 
             elif args.data_action == "process":
@@ -723,34 +692,19 @@ class DataCommand(BaseCommand):
                 
                 processor = NERDataProcessor(config, logger=self.logger)
                 processor.process_file(args.input_file, args.output_file)
-                print(f"Processed data saved to '{args.output_file}'")
+                self.logger.info(f"Processed data saved to '{args.output_file}'")
                 
             elif args.data_action == "split":
                 raise NotImplementedError("Data split not implemented")
-                # # Validate ratios
-                # total_ratio = args.train_ratio + args.val_ratio + args.test_ratio
-                # if abs(total_ratio - 1.0) > 0.001:
-                #     print(f"Ratios must sum to 1.0, got {total_ratio}")
-                #     return False
-                
-                # processor = NERDataProcessor()
-                # processor.split_data(
-                #     args.input_file,
-                #     args.output_dir,
-                #     train_ratio=args.train_ratio,
-                #     val_ratio=args.val_ratio,
-                #     test_ratio=args.test_ratio
-                # )
-                # print(f"Data split completed. Files saved to '{args.output_dir}'")
-            
+
             else:
-                print("Please specify a data action")
+                self.logger.error("Please specify a data action")
                 return False
             
             return True
             
         except Exception as e:
-            print(f"Data operation failed: {e}")
+            self.logger.error(f"Data operation failed: {e}")
             return False
 
 class ModelCommand(BaseCommand):
@@ -794,37 +748,37 @@ class ModelCommand(BaseCommand):
             
             if args.model_action == "list":
                 models = model_manager.list_models(country=args.country)
-                print("Available models:")
+                self.logger.info("Available models:")
                 for model in models:
-                    print(f"  {model}")
+                    self.logger.info(f"  {model}")
                 
             elif args.model_action == "info":
                 info = model_manager.get_model_info(args.model)
-                print(f"Model information for '{args.model}':")
-                print(json.dumps(info, indent=2, ensure_ascii=False))
+                self.logger.info(f"Model information for '{args.model}':")
+                self.logger.info(json.dumps(info, indent=2, ensure_ascii=False))
                 
             elif args.model_action == "delete":
                 if not model_manager.model_exists(args.model):
-                    print(f"Model '{args.model}' does not exist")
+                    self.logger.error(f"Model '{args.model}' does not exist")
                     return False
                 
                 if not args.force:
                     response = input(f"Are you sure you want to delete model '{args.model}'? (y/N): ")
                     if response.lower() != 'y':
-                        print("Deletion cancelled")
+                        self.logger.info("Deletion cancelled")
                         return True
                 
                 model_manager.delete_model(args.model)
-                print(f"Deleted model '{args.model}'")
+                self.logger.info(f"Deleted model '{args.model}'")
             
             else:
-                print("Please specify a model action")
+                self.logger.error("Please specify a model action")
                 return False
             
             return True
             
         except Exception as e:
-            print(f"Model operation failed: {e}")
+            self.logger.error(f"Model operation failed: {e}")
             return False
 
 class StatusCommand(BaseCommand):
@@ -881,35 +835,35 @@ class StatusCommand(BaseCommand):
                     log_file = log_dir / "cli.log"
                 
                 if log_file.exists():
-                    print(f"Recent logs from {log_file}:")
+                    self.logger.info(f"Recent logs from {log_file}:")
                     with open(log_file, 'r', encoding='utf-8') as f:
                         lines = f.readlines()
                         for line in lines[-args.tail:]:
-                            print(line.rstrip())
+                            self.logger.info(line.rstrip())
                 else:
-                    print(f"Log file {log_file} not found")
+                    self.logger.error(f"Log file {log_file} not found")
                     return False
             
             else:
                 # Show general status
-                print("NER System Status:")
-                print(f"Log directory: {log_dir}")
-                print(f"Model directory: {self.global_config.get('model_dir')}")
-                print(f"Config directory: {self.global_config.get('config_dir')}")
+                self.logger.info("NER System Status:")
+                self.logger.info(f"Log directory: {log_dir}")
+                self.logger.info(f"Model directory: {self.global_config.get('model_dir')}")
+                self.logger.info(f"Config directory: {self.global_config.get('config_dir')}")
                 
                 # List recent log files
                 if log_dir.exists():
                     log_files = list(log_dir.glob("*.log"))
                     if log_files:
-                        print("\nRecent log files:")
+                        self.logger.info("\nRecent log files:")
                         for log_file in sorted(log_files, key=lambda x: x.stat().st_mtime, reverse=True)[:5]:
                             mtime = log_file.stat().st_mtime
                             import datetime
                             mtime_str = datetime.datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
-                            print(f"  {log_file.name} (modified: {mtime_str})")
+                            self.logger.info(f"  {log_file.name} (modified: {mtime_str})")
             
             return True
             
         except Exception as e:
-            print(f"Status check failed: {e}")
+            self.logger.error(f"Status check failed: {e}")
             return False

@@ -46,21 +46,44 @@ class NERMetrics:
 
     # TODO: `ignore_labels` 默认忽略 'O'；应允许按需扩展/关闭忽略机制。
     """
+
+    label_list = [] # 标签列表
+    ignore_labels = ['O'] # 忽略的标签列表
+    entity_types = [] # 实体类型列表
     
     def __init__(self, label_list: List[str], ignore_labels: Optional[List[str]] = None):
         """
         Initialize metrics calculator
         
         Args:
-            label_list: List of all possible labels
-            ignore_labels: Labels to ignore in evaluation (default: ['O'])
+            label_list: 标签列表
+            ignore_labels: 忽略的标签列表 (默认: ['O'])
         """
+        
+        if not label_list:
+            raise ValueError("label_list is required")
+
         self.label_list = label_list
-        self.ignore_labels = ignore_labels or ['O']
+
+        # 如果 ignore_labels 不为空, 则设置忽略的标签列表
+        if ignore_labels:
+            self.ignore_labels = ignore_labels
+
         self.entity_types = self._extract_entity_types(label_list)
     
     def _extract_entity_types(self, label_list: List[str]) -> List[str]:
-        """从 BIO/IOB2 标签中抽取实体类型集合"""
+        """从 BIO 标签中抽取实体类型集合
+
+        例如: 
+            label_list = ['B-PER', 'I-PER', 'O', 'B-ORG', 'I-ORG']
+            返回: ['PER', 'ORG']
+
+        说明:
+        - 从标签列表中抽取实体类型集合, 例如 'PER', 'ORG'
+        - 忽略忽略的标签, 例如 'O'
+        - 忽略标签中不包含 '-' 的标签, 例如 'O'
+        - 返回的实体类型列表按字母顺序排序, 例如 ['PER', 'ORG']
+        """
         entity_types = set()
         for label in label_list:
             if label not in self.ignore_labels and '-' in label:
@@ -89,11 +112,11 @@ class NERMetrics:
 
         # TODO: 支持 average 策略可配（micro/macro/weighted），并暴露 zero_division 策略。
         """
-        # Flatten sequences
+        # 展平序列
         true_flat = [label for seq in y_true for label in seq]
         pred_flat = [label for seq in y_pred for label in seq]
         
-        # Filter out ignored labels
+        # 过滤忽略标签
         filtered_true = []
         filtered_pred = []
         
@@ -102,7 +125,6 @@ class NERMetrics:
                 filtered_true.append(true_label)
                 filtered_pred.append(pred_label)
         
-        # Calculate metrics
         if not filtered_true:
             return {
                 'token_precision': 0.0,
@@ -111,15 +133,15 @@ class NERMetrics:
                 'token_accuracy': 0.0
             }
         
-        # Get unique labels
+        # 获取唯一标签
         unique_labels = sorted(list(set(filtered_true + filtered_pred)))
         
-        # Calculate precision, recall, f1
+        # 计算 precision, recall, f1
         precision, recall, f1, _ = precision_recall_fscore_support(
             filtered_true, filtered_pred, labels=unique_labels, average='weighted', zero_division=0
         )
         
-        # Calculate accuracy
+        # 计算 accuracy
         accuracy = sum(t == p for t, p in zip(filtered_true, filtered_pred)) / len(filtered_true)
         
         return {
@@ -146,7 +168,7 @@ class NERMetrics:
         # TODO: 将 `mode` 与 `scheme` 参数暴露为可配置项（当前固定为 strict + IOB2）。
         """
         try:
-            # Use seqeval for entity-level evaluation
+            # 使用 seqeval 计算实体级指标
             precision = precision_score(y_true, y_pred, mode='strict', scheme=IOB2)
             recall = recall_score(y_true, y_pred, mode='strict', scheme=IOB2)
             f1 = f1_score(y_true, y_pred, mode='strict', scheme=IOB2)
@@ -190,14 +212,14 @@ class NERMetrics:
         per_entity_metrics = {}
         
         for entity_type in self.entity_types:
-            # Extract entities for this type
+            # 提取指定类型的实体跨度集合
             true_entities = self._extract_entities_for_type(y_true, entity_type)
             pred_entities = self._extract_entities_for_type(y_pred, entity_type)
             
-            # Calculate metrics
-            tp = len(true_entities & pred_entities)
-            fp = len(pred_entities - true_entities)
-            fn = len(true_entities - pred_entities)
+            # 计算 TP/FP/FN
+            tp = len(true_entities & pred_entities) # 真阳性, 预测正确的实体
+            fp = len(pred_entities - true_entities) # 假阳性, 预测错误的实体
+            fn = len(true_entities - pred_entities) # 假阴性, 漏掉的实体
             
             precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
             recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
