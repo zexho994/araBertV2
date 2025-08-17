@@ -136,7 +136,7 @@ class TrainCommand(BaseCommand):
     
     def execute(self, args) -> bool:
         try:
-            # Load configuration
+            # 加载配置
             config_manager = ConfigManager(self.global_config.get('config_dir'))
 
             # 优先使用命令行参数指定的配置文件
@@ -167,19 +167,22 @@ class TrainCommand(BaseCommand):
                     print(f"  WARNING: {warning}")
                 return False
             
+            # 快速校验
             if getattr(args, 'dry_run', False):
                 print("Configuration validation passed. Dry run completed.")
                 return True
             
-            # Import and initialize trainer
+            # 导入训练器
             from ..training import NERTrainer
             
+            # 初始化训练器
             trainer = NERTrainer(config, self.global_config)
             
+            # 恢复训练
             if args.resume:
                 trainer.resume_from_checkpoint(args.resume)
             
-            # Start training
+            # 启动训练
             trainer.train()
             
             return True

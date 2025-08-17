@@ -33,6 +33,7 @@ from pathlib import Path
 from tqdm import tqdm
 import time
 from datetime import datetime
+from torch.utils.tensorboard import SummaryWriter
 
 from ..data import NERDataProcessor, NERDataLoader
 from ..models import  BertNERModel
@@ -59,17 +60,29 @@ class NERTrainer:
         # TODO: 统一日志目录的读取来源，例如优先：config['output']['logs_dir'] -> global_config['log_dir'] -> 默认路径。
         self.logger = NERLogger(
             name=f"{config.get('country', {}).get('code', 'unknown')}_training",
-            log_dir=config.get('logs_dir', 'data/ner/logs')
+            log_dir=config.get('output', {}).get('logs_dir', 'data/ner/logs')
         )
         
-        # Setup device
+        # 初始化 TensorBoard SummaryWriter
+        country_code_for_run = config.get('country', {}).get('code', 'unknown')
+        logs_root = Path(config.get('output', {}).get('logs_dir', 'data/ner/logs')) / 'tensorboard'
+        run_name = f"{country_code_for_run}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        self.tensorboard_log_dir = logs_root / run_name
+        self.tensorboard_log_dir.mkdir(parents=True, exist_ok=True)
+        self.tb_writer: Optional[SummaryWriter] = SummaryWriter(log_dir=str(self.tensorboard_log_dir))
+        self.logger.info(f"TensorBoard logs will be written to: {self.tensorboard_log_dir}")
+        
+        # 设置设备, device 是训练器中最重要的参数，决定了模型在哪个设备上运行
+        # 如果配置文件中 device 字段为 'cuda'，则使用 GPU 设备
+        # 如果配置文件中 device 字段为 'cpu'，则使用 CPU 设备
         self.device = self._setup_device()
         
-        # Training state
+        # 训练状态
         self.model = None
         self.optimizer = None
         self.scheduler = None
         self.data_loaders = {}
+        self.global_step: int = 0
         
         # Training metrics
         self.training_history = {
@@ -344,14 +357,27 @@ class NERTrainer:
                 'lr': f"{current_lr:.2e}"
             })
             
+            # TensorBoard: batch-level scalars
+            if self.tb_writer is not None:
+                self.tb_writer.add_scalar('train/batch_loss', float(loss.item()), self.global_step)
+                self.tb_writer.add_scalar('train/lr', float(current_lr), self.global_step)
+            
             # Log batch metrics
             if batch_idx % 100 == 0:
                 self.logger.debug(
                     f"Epoch {epoch + 1}, Batch {batch_idx}/{num_batches}, "
                     f"Loss: {loss.item():.4f}, LR: {current_lr:.2e}"
                 )
+            
+            # Increase global step after logging
+            self.global_step += 1
         
         avg_loss = total_loss / num_batches
+        
+        # TensorBoard: epoch-level train loss
+        if self.tb_writer is not None:
+            self.tb_writer.add_scalar('train/epoch_loss', float(avg_loss), epoch + 1)
+        
         return avg_loss
     
     def validate(self) -> Dict[str, float]:
@@ -460,17 +486,17 @@ class NERTrainer:
             'training_history': self.training_history
         }
         
-        # Save regular checkpoint
+        # 保存常规检查点
         checkpoint_path = self.checkpoint_dir / f"checkpoint_epoch_{epoch + 1}.pt"
         torch.save(checkpoint, checkpoint_path)
         
-        # Save best checkpoint
+        # 保存最佳检查点
         if is_best:
             best_path = self.checkpoint_dir / "best_checkpoint.pt"
             torch.save(checkpoint, best_path)
             self.logger.info(f"Saved best checkpoint with F1: {metrics.get('f1', 0):.4f}")
         
-        # Save latest checkpoint
+        # 保存最新检查点
         latest_path = self.checkpoint_dir / "latest_checkpoint.pt"
         torch.save(checkpoint, latest_path)
     
@@ -533,25 +559,46 @@ class NERTrainer:
         self.logger.info("Starting training...")
         start_time = time.time()
         
-        # Prepare components
+        # 准备数据
         self.prepare_data()
+        # 准备模型
         self.prepare_model()
+        # 准备优化器
         self.prepare_optimizer()
         
-        # Training configuration
+        # 在 TensorBoard 中记录超参数与配置摘要
+        if self.tb_writer is not None:
+            try:
+                # 仅记录关键信息，避免日志过大
+                hparams = {
+                    'epochs': self.config['training'].get('epochs'),
+                    'batch_size': self.config['training'].get('batch_size'),
+                    'learning_rate': self.config['training'].get('learning_rate'),
+                    'optimizer': self.config['training'].get('optimizer', 'adamw'),
+                    'scheduler': self.config['training'].get('scheduler', 'linear'),
+                    'max_length': self.config.get('data', {}).get('max_length', 512)
+                }
+                self.tb_writer.add_text('config/country', str(self.config.get('country', {})))
+                self.tb_writer.add_text('config/model', str(self.config.get('model', {})))
+                self.tb_writer.add_text('config/training', str(hparams))
+            except Exception:
+                pass
+        
+        # 训练轮次
         num_epochs = self.config['training']['epochs']
         
-        # Training loop
+        # 训练循环
         for epoch in range(num_epochs):
             epoch_start_time = time.time()
             
-            # Train epoch
+            # 执行训练轮次，返回训练损失
+            # loss 是训练损失，是训练轮次中每个批次损失的平均值
             train_loss = self.train_epoch(epoch)
             
-            # Validate
+            # 验证训练结果，返回验证指标
             val_metrics = self.validate()
             
-            # Update training history
+            # 更新训练历史结果
             self.training_history['train_loss'].append(train_loss)
             if val_metrics:
                 self.training_history['val_loss'].append(val_metrics.get('val_loss', 0))
@@ -562,8 +609,19 @@ class NERTrainer:
             if self.scheduler:
                 self.training_history['learning_rates'].append(self.optimizer.param_groups[0]['lr'])
             
-            # Check for best model
-            current_f1 = val_metrics.get('f1', 0)
+            # TensorBoard: 验证轮次指标
+            if self.tb_writer is not None and val_metrics:
+                self.tb_writer.add_scalar('val/loss', float(val_metrics.get('val_loss', 0.0)), epoch + 1)
+                self.tb_writer.add_scalar('val/f1', float(val_metrics.get('f1', 0.0)), epoch + 1)
+                self.tb_writer.add_scalar('val/precision', float(val_metrics.get('precision', 0.0)), epoch + 1)
+                self.tb_writer.add_scalar('val/recall', float(val_metrics.get('recall', 0.0)), epoch + 1)
+                self.tb_writer.add_scalar('val/token_f1', float(val_metrics.get('token_f1', 0.0)), epoch + 1)
+                self.tb_writer.add_scalar('val/token_precision', float(val_metrics.get('token_precision', 0.0)), epoch + 1)
+                self.tb_writer.add_scalar('val/token_recall', float(val_metrics.get('token_recall', 0.0)), epoch + 1)
+                self.tb_writer.add_scalar('val/token_accuracy', float(val_metrics.get('token_accuracy', 0.0)), epoch + 1)
+            
+            # 检查最佳模型
+            current_f1 = val_metrics.get('f1', 0) if val_metrics else 0
             is_best = current_f1 > self.best_val_f1
             if is_best:
                 self.best_val_f1 = current_f1
@@ -571,10 +629,10 @@ class NERTrainer:
             else:
                 self.patience_counter += 1
             
-            # Save checkpoint
+            # 保存检查点
             self.save_checkpoint(epoch, val_metrics, is_best)
             
-            # Log epoch results
+            # 记录轮次结果
             epoch_time = time.time() - epoch_start_time
             log_msg = f"Epoch {epoch + 1}/{num_epochs} - "
             log_msg += f"Train Loss: {train_loss:.4f}, "
@@ -600,6 +658,14 @@ class NERTrainer:
         total_time = time.time() - start_time
         self.logger.info(f"Training completed in {total_time:.2f}s")
         self.logger.info(f"Best validation F1: {self.best_val_f1:.4f}")
+        
+        # 关闭 TensorBoard Writer
+        if self.tb_writer is not None:
+            try:
+                self.tb_writer.flush()
+                self.tb_writer.close()
+            except Exception:
+                pass
     
     def resume_from_checkpoint(self, checkpoint_path: str):
         """从检查点恢复训练

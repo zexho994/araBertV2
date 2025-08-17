@@ -18,7 +18,6 @@ import sys
 import os
 from pathlib import Path
 
-# 将项目根目录添加到 Python 路径，便于在 IDE 直接导入包
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -118,7 +117,7 @@ if __name__ == '__main__':
     # 执行调试
     # 默认调试评估命令，若需训练请改为调用 `debug_train_command()`
     # TODO: 通过命令行/环境变量选择调试目标（train/evaluate）。
-    # exit_code = debug_train_command()
-    exit_code = debug_evaluate_command()
+    exit_code = debug_train_command()
+    # exit_code = debug_evaluate_command()
     
     print(f"\n脚本执行完成，退出码: {exit_code}")
