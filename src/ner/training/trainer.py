@@ -21,29 +21,34 @@
 # TODO: 提供统一的配置 Schema 校验（或复用上层 `ConfigManager` 的校验），并在构造时早失败。
 """
 
-import os
 import json
-import torch
-import torch.nn as nn
-from torch.optim import AdamW
-from torch.optim.lr_scheduler import CosineAnnealingLR
-from transformers import get_linear_schedule_with_warmup, AutoConfig
-from typing import Dict, Any, Optional, List
-from pathlib import Path
-from tqdm import tqdm
+import os
 import time
 from datetime import datetime
+from pathlib import Path
+from typing import Dict, Any, Optional
+
+import torch
+from torch.optim import AdamW
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
+from transformers import get_linear_schedule_with_warmup, AutoConfig
 
 from ..data import NERDataProcessor, NERDataLoader
-from ..models import  BertNERModel
 from ..evaluation.evaluator import NERMetrics as SeqevalNERMetrics
+from ..models import BertNERModel
 from ..utils import NERLogger
 
 class NERTrainer:
     """Main trainer class for NER models"""
-    
-    def __init__(self, config: Dict[str, Any], global_config: Dict[str, Any], logger: Optional[NERLogger] = None):
+    config = {}
+    global_config = {}
+    country_code: str
+    pretrained_model_name: str
+    model_type: str
+    logger: NERLogger
+
+    def __init__(self, config: Dict[str, Any], global_config: Dict[str, Any], logger: NERLogger):
         """
         初始化 NER 训练器
         
@@ -61,23 +66,23 @@ class NERTrainer:
             raise ValueError("Logger is required")
 
         # 初始化国家代码
-        self.country_code = config.get('country', {}).get('code', None)
-        if self.country_code is None:
+        self.country_code = self.config.get('country', {}).get('code', '')
+        if self.country_code == '':
             raise ValueError("Country code is required")
         
         # 初始化预训练模型名称
-        self.pretrained_model_name = config.get('model', {}).get('pretrained_model', None) or global_config.get('pretrained_model', None)
-        if self.pretrained_model_name is None:
+        self.pretrained_model_name = self.config.get('model', {}).get('pretrained_model', '')
+        if self.pretrained_model_name == '':
             raise ValueError("Pretrained model name is required")
         
         # 初始化模型类型
-        self.model_type = config.get('model', {}).get('type', None) or global_config.get('model_type', None)
-        if self.model_type is None:
+        self.model_type = self.config.get('model', {}).get('type', '')
+        if self.model_type == '':
             raise ValueError("Model type is required")
         
         # 初始化 TensorBoard SummaryWriter
-        logs_root = Path(config.get('output', {}).get('logs_dir', None)) or Path(global_config.get('log_dir', None))
-        if logs_root is None:
+        logs_root = Path(self.config.get('output', {}).get('logs_dir', ''))
+        if logs_root == '':
             raise ValueError("Logs directory is required")
         run_name = f"{self.country_code}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         self.tensorboard_log_dir = logs_root / 'tensorboard' / run_name
@@ -115,13 +120,13 @@ class NERTrainer:
         self.early_stopping_patience = config.get('training', {}).get('early_stopping_patience', 5)
         
         # 训练模型保存输出目录
-        self.output_dir = Path(config.get('output', {}).get('model_dir', None)) or Path(global_config.get('model_dir', None))
-        if self.output_dir is None:
+        self.output_dir = Path(self.config.get('output', {}).get('model_dir', ''))
+        if self.output_dir == '':
             raise ValueError("Output directory is required")
         self.checkpoint_dir = self.output_dir / 'checkpoints'
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         
-        self.logger.info(f"Initialized trainer for {country_code} on device: {self.device.type}")
+        self.logger.info(f"Initialized trainer for {self.country_code} on device: {self.device.type}")
     
     def _setup_device(self) -> torch.device:
         """设置训练设备（GPU/CPU/指定 CUDA 设备）
@@ -186,8 +191,8 @@ class NERTrainer:
         """
         
         data_config = self.config['data'] or {}
-        train_file_path = data_config.get('train_file', None)
-        val_file_path = data_config.get('val_file', None)
+        train_file_path = data_config.get('train_file', '')
+        val_file_path = data_config.get('val_file', '')
 
         if not train_file_path:
             raise ValueError("No training data file provided in config")

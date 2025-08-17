@@ -113,7 +113,8 @@ class DataQualityChecker:
         
         return analysis
     
-    def print_analysis_report(self, analysis: Dict):
+    @staticmethod
+    def print_analysis_report(analysis: Dict):
         """打印分析报告"""
         print("=== 数据质量分析报告 ===\n")
         
