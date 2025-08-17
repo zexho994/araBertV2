@@ -58,41 +58,55 @@ class NERTrainer:
         if logger is not None:
             self.logger = logger
         else:
-            logs_dir = config.get('output', {}).get('logs_dir') or global_config.get('log_dir') or 'data/ner/logs'
-            self.logger = NERLogger(
-                name=f"{config.get('country', {}).get('code', 'unknown')}_training",
-                log_dir=logs_dir
-            )
+            raise ValueError("Logger is required")
+
+        # 初始化国家代码
+        self.country_code = config.get('country', {}).get('code', None)
+        if self.country_code is None:
+            raise ValueError("Country code is required")
+        
+        # 初始化预训练模型名称
+        self.pretrained_model_name = config.get('model', {}).get('pretrained_model', None) or global_config.get('pretrained_model', None)
+        if self.pretrained_model_name is None:
+            raise ValueError("Pretrained model name is required")
+        
+        # 初始化模型类型
+        self.model_type = config.get('model', {}).get('type', None) or global_config.get('model_type', None)
+        if self.model_type is None:
+            raise ValueError("Model type is required")
         
         # 初始化 TensorBoard SummaryWriter
-        country_code_for_run = config.get('country', {}).get('code', 'unknown')
-        logs_root = Path(config.get('output', {}).get('logs_dir', 'data/ner/logs')) / 'tensorboard'
-        run_name = f"{country_code_for_run}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        self.tensorboard_log_dir = logs_root / run_name
+        logs_root = Path(config.get('output', {}).get('logs_dir', None)) or Path(global_config.get('log_dir', None))
+        if logs_root is None:
+            raise ValueError("Logs directory is required")
+        run_name = f"{self.country_code}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        self.tensorboard_log_dir = logs_root / 'tensorboard' / run_name
         self.tensorboard_log_dir.mkdir(parents=True, exist_ok=True)
         self.tb_writer: Optional[SummaryWriter] = SummaryWriter(log_dir=str(self.tensorboard_log_dir))
         self.logger.info(f"TensorBoard logs will be written to: {self.tensorboard_log_dir}")
         
-        # 设置设备, device 是训练器中最重要的参数，决定了模型在哪个设备上运行
-        # 如果配置文件中 device 字段为 'cuda'，则使用 GPU 设备
-        # 如果配置文件中 device 字段为 'cpu'，则使用 CPU 设备
+        # 设置设备, device 是训练器中重要的参数，决定了模型在哪个设备上运行
         self.device = self._setup_device()
         
-        # 训练状态
+        # 模型
         self.model = None
+        # 优化器
         self.optimizer = None
+        # 学习率调度器
         self.scheduler = None
+        # 数据加载器
         self.data_loaders = {}
+        # 全局步数
         self.global_step: int = 0
         
         # Training metrics
         self.training_history = {
-            'train_loss': [],
-            'val_loss': [],
-            'val_f1': [],
-            'val_precision': [],
-            'val_recall': [],
-            'learning_rates': []
+            'train_loss': [], # 训练损失
+            'val_loss': [], # 验证损失
+            'val_f1': [], # 验证F1分数
+            'val_precision': [], # 验证精度
+            'val_recall': [], # 验证召回率
+            'learning_rates': [] # 学习率
         }
         
         # Checkpointing
@@ -100,13 +114,14 @@ class NERTrainer:
         self.patience_counter = 0
         self.early_stopping_patience = config.get('training', {}).get('early_stopping_patience', 5)
         
-        # Output directories
-        self.output_dir = Path(config.get('output', {}).get('model_dir', 'data/ner/models'))
+        # 训练模型保存输出目录
+        self.output_dir = Path(config.get('output', {}).get('model_dir', None)) or Path(global_config.get('model_dir', None))
+        if self.output_dir is None:
+            raise ValueError("Output directory is required")
         self.checkpoint_dir = self.output_dir / 'checkpoints'
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         
-        country_display = config.get('country', {}).get('code') or config.get('country') or 'unknown'
-        self.logger.info(f"Initialized trainer for {country_display} on device: {self.device}")
+        self.logger.info(f"Initialized trainer for {country_code} on device: {self.device.type}")
     
     def _setup_device(self) -> torch.device:
         """设置训练设备（GPU/CPU/指定 CUDA 设备）
@@ -123,7 +138,7 @@ class NERTrainer:
         device_config = hardware_config.get('device', 'auto')
         
         if device_config == 'auto':
-            # Auto-select: use GPU if available, otherwise CPU
+            # 自动选择：若可用则优先 GPU，否则 CPU
             if torch.cuda.is_available():
                 device = torch.device('cuda')
                 self.logger.info(f"Using GPU (auto-selected): {torch.cuda.get_device_name()}")
@@ -131,7 +146,7 @@ class NERTrainer:
                 device = torch.device('cpu')
                 self.logger.info("Using CPU (auto-selected, no GPU available)")
         elif device_config == 'cuda':
-            # Force GPU usage
+            # 强制使用 GPU
             if torch.cuda.is_available():
                 device = torch.device('cuda')
                 self.logger.info(f"Using GPU (forced): {torch.cuda.get_device_name()}")
@@ -139,11 +154,11 @@ class NERTrainer:
                 self.logger.warning("CUDA requested but not available, falling back to CPU")
                 device = torch.device('cpu')
         elif device_config == 'cpu':
-            # Force CPU usage
+            # 强制使用 CPU
             device = torch.device('cpu')
             self.logger.info("Using CPU (forced)")
         else:
-            # Handle specific device like 'cuda:0'
+            # 处理特定设备，如 'cuda:0'
             if device_config.startswith('cuda:') and torch.cuda.is_available():
                 device = torch.device(device_config)
                 self.logger.info(f"Using specific GPU device: {device_config}")
@@ -226,7 +241,7 @@ class NERTrainer:
         
         # 初始化数据加载器
         ner_data_loader = NERDataLoader(
-            tokenizer_name=self.config['model']['pretrained_model'],
+            tokenizer_name=self.pretrained_model_name,
             label2id=self.label2id,
             max_length=data_config.get('max_length', 512),
             logger=self.logger
@@ -252,11 +267,10 @@ class NERTrainer:
         
         model_config = self.config['model']
 
-        model_type = model_config['type']
-        self.logger.debug(f"Preparing {model_type} model...")
-        if model_type == 'bert' or model_type == 'roberta':
+        self.logger.debug(f"Preparing {self.model_type} model...")
+        if self.model_type == 'bert' or self.model_type == 'roberta':
             self.model = BertNERModel.from_pretrained(
-                pretrained_model_name_or_path=model_config['pretrained_model'],
+                pretrained_model_name_or_path=self.pretrained_model_name,
                 num_labels=self.num_labels,
                 dropout=model_config.get('dropout', 0.1),
                 label2id=self.label2id,
@@ -309,13 +323,8 @@ class NERTrainer:
                 num_warmup_steps=warmup_steps,
                 num_training_steps=num_training_steps
             )
-        elif scheduler_name.lower() == 'cosine':
-            self.scheduler = CosineAnnealingLR(
-                self.optimizer,
-                T_max=num_training_steps
-            )
         else:
-            self.scheduler = None
+            raise ValueError(f"Unsupported scheduler: {scheduler_name}")
         
         self.logger.info(f"Initialized {optimizer_name} optimizer with {scheduler_name} scheduler")
     
@@ -525,7 +534,7 @@ class NERTrainer:
         # TODO: 采用 `safe_serialization=True`（如适用）提高健壮性。
         # TODO: 导出 `label_mapping` 与版本信息，便于推理侧复盘。
         """
-        model_dir = self.output_dir / f"{self.config['country']['code']}_model"
+        model_dir = self.output_dir / "best_model"
         model_dir.mkdir(parents=True, exist_ok=True)
         
         # Save model
@@ -534,7 +543,7 @@ class NERTrainer:
         
         # Create a Transformers config based on the actual pretrained base to
         # avoid shape mismatches (e.g., vocab_size/model_type must match xlm-roberta-base)
-        base_model_name = self.config['model']['pretrained_model']
+        base_model_name = self.pretrained_model_name
         base_cfg = AutoConfig.from_pretrained(base_model_name)
         # Inject NER-specific fields
         base_cfg.id2label = self.id2label
@@ -555,8 +564,8 @@ class NERTrainer:
                 'training_config': self.config,
                 'training_history': self.training_history,
                 'model_info': {
-                    'country': self.config['country']['code'],
-                    'pretrained_model': self.config['model']['pretrained_model'],
+                    'country': self.country_code,
+                    'pretrained_model': self.pretrained_model_name,
                     'num_labels': self.config['labels']['num_labels'],
                     'label_names': self.config['labels']['label_names']
                 }
