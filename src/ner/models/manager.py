@@ -1,6 +1,9 @@
-"""NER Model Manager
+"""NER 模型管理器
 
-Handles model loading, saving, versioning, and management operations.
+负责模型的加载、保存、版本管理与元信息登记。
+
+- 重要：本管理器假定模型目录包含模型权重与配置（参考 save_model 的保存布局）。
+- 提示：若直接加载标准 transformers 目录（非本工具保存格式），需确保存在 label2id/id2label 信息。
 """
 
 import os
@@ -16,60 +19,67 @@ from .model import NERModel, BertNERModel
 from ..utils import NERLogger
 
 class NERModelManager:
-    """Manager for NER model operations"""
+    """NER 模型管理器
+    
+    职责：
+    - 统一管理模型的存储位置、元信息注册（registry）、加载/保存/备份/恢复
+    - 便于基于国家/类型进行筛选与检索
+    """
     
     def __init__(self, model_dir: str = "data/ner/models", logger: Optional[NERLogger] = None):
-        """
-        Initialize Model Manager
+        """初始化管理器
         
-        Args:
-            model_dir: Base directory for model storage
+        参数：
+            model_dir: 模型存储的根目录
         """
         self.model_dir = Path(model_dir)
         self.model_dir.mkdir(parents=True, exist_ok=True)
         
-        # Reuse provided logger if available, otherwise create a local one
+        # 复用外部传入的 logger，否则就地创建
         self.logger = logger if logger is not None else NERLogger(name="model_manager", log_dir=self.model_dir)
         
-        # Model registry file
+        # 模型注册表文件
         self.registry_file = self.model_dir / "model_registry.json"
         self.registry = self._load_registry()
     
     def _load_registry(self) -> Dict[str, Any]:
-        """Load model registry"""
+        """加载模型注册表
+        
+        注意：注册表损坏或 JSON 解析失败时将回退为空结构；可考虑增加备份策略。
+        """
         if self.registry_file.exists():
             with open(self.registry_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
         return {'models': {}}
     
     def _save_registry(self):
-        """Save model registry"""
+        """保存模型注册表"""
         with open(self.registry_file, 'w', encoding='utf-8') as f:
             json.dump(self.registry, f, indent=2, ensure_ascii=False)
     
     def _generate_model_id(self, country: str, model_type: str, timestamp: str) -> str:
-        """Generate unique model ID"""
+        """生成模型 ID（短 MD5 截断）"""
         base_string = f"{country}_{model_type}_{timestamp}"
         return hashlib.md5(base_string.encode()).hexdigest()[:8]
     
     def register_model(self, model_path: str, country: str, model_type: str = "bert",
                       description: str = "", metadata: Optional[Dict[str, Any]] = None) -> str:
-        """Register a new model
+        """注册新模型到 registry
         
-        Args:
-            model_path: Path to model directory
-            country: Country code
-            model_type: Type of model
-            description: Model description
-            metadata: Additional metadata
-            
-        Returns:
-            Model ID
+        参数：
+            model_path: 模型目录路径
+            country: 国家/区域代码
+            model_type: 模型类型（当前支持 'bert'）
+            description: 模型描述
+            metadata: 额外元数据
+        
+        返回：
+            model_id
         """
         timestamp = datetime.now().isoformat()
         model_id = self._generate_model_id(country, model_type, timestamp)
         
-        # Create model entry
+        # 创建注册条目
         model_entry = {
             'id': model_id,
             'country': country,
@@ -81,7 +91,7 @@ class NERModelManager:
             'status': 'active'
         }
         
-        # Add to registry
+        # 写入注册表
         self.registry['models'][model_id] = model_entry
         self._save_registry()
         
@@ -89,21 +99,21 @@ class NERModelManager:
         return model_id
     
     def load_model(self, model_identifier: str) -> NERModel:
-        """Load model by ID or path
+        """按 ID 或路径加载模型
         
-        Args:
-            model_identifier: Model ID or path
-            
-        Returns:
-            Loaded NER model
+        参数：
+            model_identifier: 模型 ID 或模型路径
+        
+        返回：
+            已加载的 NER 模型实例
         """
-        # Check if it's a model ID
+        # 判断是否为已登记的模型 ID
         if model_identifier in self.registry['models']:
             model_entry = self.registry['models'][model_identifier]
             model_path = model_entry['path']
             model_type = model_entry['type']
         else:
-            # Assume it's a path
+            # 否则视为直接路径
             model_path = model_identifier
             model_type = self._detect_model_type(model_path)
         
@@ -112,7 +122,7 @@ class NERModelManager:
         if not model_path.exists():
             raise FileNotFoundError(f"Model not found: {model_path}")
         
-        # Load configuration
+        # 读取配置
         config_path = model_path / "config.json"
         if config_path.exists():
             with open(config_path, 'r', encoding='utf-8') as f:
@@ -121,10 +131,12 @@ class NERModelManager:
                 label2id = config_data.get('label2id', {})
                 id2label = config_data.get('id2label', {})
         else:
+            # ERROR：未发现自定义 config.json；若为标准 transformers 目录，可能需要从其 config.json 中获取 label2id/id2label
             raise FileNotFoundError(f"Model configuration not found: {config_path}")
         
-        # Initialize model
+        # 初始化模型
         if model_type == 'bert':
+            # ERROR：若 label2id 为空，num_labels=0 将导致分类器形状非法；需确保保存时写入了标签映射
             model = BertNERModel.from_pretrained(
                 str(model_path),
                 num_labels=len(label2id),
@@ -134,7 +146,7 @@ class NERModelManager:
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
         
-        # Set additional attributes
+        # 附加属性
         model.config_data = config
         model.country = config.get('country', 'unknown')
         
@@ -142,44 +154,50 @@ class NERModelManager:
         return model
     
     def _detect_model_type(self, model_path: str) -> str:
-        """Detect model type from path"""
+        """从路径推断模型类型
+        
+        策略：存在 'pytorch_model.bin' 或 'model.safetensors' 视为 BERT 模型。
+        # TODO：当前逻辑较为简化，后续可根据配置或文件结构更准确地区分不同模型类型。
+        """
         model_path = Path(model_path)
         
-        # Check for BERT model files
+        # 检查 BERT 常见文件
         if (model_path / "pytorch_model.bin").exists() or (model_path / "model.safetensors").exists():
             return "bert"
         
-        # Default to bert
+        # 默认返回 bert
         return "bert"
     
     def save_model(self, model: NERModel, country: str, description: str = "",
                   metadata: Optional[Dict[str, Any]] = None) -> str:
-        """Save model and register it
+        """保存模型并登记
         
-        Args:
-            model: Model to save
-            country: Country code
-            description: Model description
-            metadata: Additional metadata
-            
-        Returns:
-            Model ID
+        参数：
+            model: 待保存模型
+            country: 国家/区域代码
+            description: 模型描述
+            metadata: 额外元数据
+        
+        返回：
+            model_id
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         model_name = f"{country}_model_{timestamp}"
         model_path = self.model_dir / country / model_name
         model_path.mkdir(parents=True, exist_ok=True)
         
-        # Save model
+        # 保存模型权重与配置
         model.save_pretrained(str(model_path))
         
-        # Save tokenizer if available
+        # 可选保存 tokenizer（若模型对象附带）
+        # TODO：多数自定义模型未持有 tokenizer；建议在外部保存 tokenizer
         if hasattr(model, 'tokenizer') and model.tokenizer:
             model.tokenizer.save_pretrained(str(model_path))
         
-        # Save configuration
+        # 保存自定义配置（包含标签映射与国家信息）
         config_data = {
             'config': getattr(model, 'config_data', {}),
+            # ERROR：当 model.config 不是对象而是 dict 时，'.label2id' 会抛出 AttributeError；建议统一对象类型或改为字典访问
             'label2id': getattr(model, 'config', {}).label2id or {},
             'id2label': getattr(model, 'config', {}).id2label or {},
             'country': country,
@@ -190,7 +208,7 @@ class NERModelManager:
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(config_data, f, indent=2, ensure_ascii=False)
         
-        # Register model
+        # 登记
         model_id = self.register_model(
             str(model_path), country, model.config.model_type if hasattr(model.config, 'model_type') else 'bert',
             description, metadata
@@ -200,14 +218,14 @@ class NERModelManager:
         return model_id
     
     def list_models(self, country: Optional[str] = None, status: str = "active") -> List[Dict[str, Any]]:
-        """List available models
+        """列出可用模型
         
-        Args:
-            country: Filter by country (optional)
-            status: Filter by status
-            
-        Returns:
-            List of model information
+        参数：
+            country: 过滤国家（可选）
+            status: 状态过滤（active/deleted）
+        
+        返回：
+            模型信息列表（按创建时间倒序）
         """
         models = []
         
@@ -220,26 +238,25 @@ class NERModelManager:
             
             models.append(model_entry.copy())
         
-        # Sort by creation date (newest first)
+        # 按创建时间降序
         models.sort(key=lambda x: x.get('created_at', ''), reverse=True)
         
         return models
     
     def get_model_info(self, model_identifier: str) -> Dict[str, Any]:
-        """Get detailed model information
+        """获取某模型的详细信息
         
-        Args:
-            model_identifier: Model ID or path
-            
-        Returns:
-            Model information
+        参数：
+            model_identifier: 模型 ID 或路径
+        
+        返回：
+            模型信息字典（包含文件系统信息）
         """
-        # Check if it's a model ID
+        # ID 或路径
         if model_identifier in self.registry['models']:
             model_entry = self.registry['models'][model_identifier].copy()
             model_path = Path(model_entry['path'])
         else:
-            # Assume it's a path
             model_path = Path(model_identifier)
             model_entry = {
                 'id': 'unknown',
@@ -247,12 +264,12 @@ class NERModelManager:
                 'type': self._detect_model_type(str(model_path))
             }
         
-        # Add file system information
+        # 文件系统信息
         if model_path.exists():
             model_entry['exists'] = True
             model_entry['size_mb'] = self._get_directory_size(model_path) / (1024 * 1024)
             
-            # Load configuration if available
+            # 读取自定义配置
             config_path = model_path / "config.json"
             if config_path.exists():
                 with open(config_path, 'r', encoding='utf-8') as f:
@@ -264,7 +281,10 @@ class NERModelManager:
         return model_entry
     
     def _get_directory_size(self, path: Path) -> int:
-        """Get total size of directory in bytes"""
+        """计算目录总大小（字节）
+        
+        # TODO：对大目录频繁调用较耗时，可考虑缓存或异步统计
+        """
         total_size = 0
         for file_path in path.rglob('*'):
             if file_path.is_file():
@@ -272,33 +292,32 @@ class NERModelManager:
         return total_size
     
     def delete_model(self, model_identifier: str, remove_files: bool = True) -> bool:
-        """Delete model
+        """删除模型
         
-        Args:
-            model_identifier: Model ID or path
-            remove_files: Whether to remove model files
-            
-        Returns:
-            True if successful
+        参数：
+            model_identifier: 模型 ID 或路径
+            remove_files: 是否删除文件
+        
+        返回：
+            删除成功返回 True
         """
         try:
-            # Check if it's a model ID
+            # ID 或路径
             if model_identifier in self.registry['models']:
                 model_entry = self.registry['models'][model_identifier]
                 model_path = Path(model_entry['path'])
                 
-                # Mark as deleted in registry
+                # 标记删除
                 self.registry['models'][model_identifier]['status'] = 'deleted'
                 self.registry['models'][model_identifier]['deleted_at'] = datetime.now().isoformat()
                 self._save_registry()
                 
                 model_id = model_identifier
             else:
-                # Assume it's a path
                 model_path = Path(model_identifier)
                 model_id = model_identifier
             
-            # Remove files if requested
+            # 删除文件
             if remove_files and model_path.exists():
                 shutil.rmtree(model_path)
                 self.logger.info(f"Removed model files: {model_path}")
@@ -311,53 +330,52 @@ class NERModelManager:
             return False
     
     def model_exists(self, model_identifier: str) -> bool:
-        """Check if model exists
+        """检查模型是否存在（并处于 active 状态）
         
-        Args:
-            model_identifier: Model ID or path
-            
-        Returns:
-            True if model exists
+        参数：
+            model_identifier: 模型 ID 或路径
+        
+        返回：
+            存在返回 True
         """
-        # Check if it's a model ID
+        # ID 或路径
         if model_identifier in self.registry['models']:
             model_entry = self.registry['models'][model_identifier]
             if model_entry.get('status') != 'active':
                 return False
             model_path = Path(model_entry['path'])
         else:
-            # Assume it's a path
             model_path = Path(model_identifier)
         
         return model_path.exists()
     
     def get_latest_model(self, country: str) -> Optional[str]:
-        """Get latest model for country
+        """获取某国家/区域的最新模型 ID
         
-        Args:
-            country: Country code
-            
-        Returns:
-            Model ID or None
+        参数：
+            country: 国家/区域代码
+        
+        返回：
+            最新模型 ID 或 None
         """
         models = self.list_models(country=country)
         
         if models:
-            return models[0]['id']  # Already sorted by creation date
+            return models[0]['id']  # 已按创建时间倒序
         
         return None
     
     def backup_model(self, model_identifier: str, backup_dir: str) -> str:
-        """Backup model to specified directory
+        """备份模型到指定目录
         
-        Args:
-            model_identifier: Model ID or path
-            backup_dir: Backup directory
-            
-        Returns:
-            Backup path
+        参数：
+            model_identifier: 模型 ID 或路径
+            backup_dir: 备份目录
+        
+        返回：
+            实际备份路径
         """
-        # Get model path
+        # 获取路径
         if model_identifier in self.registry['models']:
             model_entry = self.registry['models'][model_identifier]
             model_path = Path(model_entry['path'])
@@ -369,45 +387,45 @@ class NERModelManager:
         if not model_path.exists():
             raise FileNotFoundError(f"Model not found: {model_path}")
         
-        # Create backup
+        # 创建备份目录
         backup_path = Path(backup_dir) / f"{model_id}_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         backup_path.mkdir(parents=True, exist_ok=True)
         
-        # Copy model files
+        # 拷贝模型目录
         shutil.copytree(model_path, backup_path / model_path.name)
         
         self.logger.info(f"Backed up model {model_id} to {backup_path}")
         return str(backup_path)
     
     def restore_model(self, backup_path: str, target_path: Optional[str] = None) -> str:
-        """Restore model from backup
+        """从备份恢复模型
         
-        Args:
-            backup_path: Path to backup
-            target_path: Target restoration path (optional)
-            
-        Returns:
-            Restored model path
+        参数：
+            backup_path: 备份路径
+            target_path: 目标恢复路径（可选）
+        
+        返回：
+            实际恢复的模型路径
         """
         backup_path = Path(backup_path)
         
         if not backup_path.exists():
             raise FileNotFoundError(f"Backup not found: {backup_path}")
         
-        # Find model directory in backup
+        # 定位备份内的模型目录
         model_dirs = [d for d in backup_path.iterdir() if d.is_dir()]
         if not model_dirs:
             raise ValueError(f"No model directory found in backup: {backup_path}")
         
         model_backup_dir = model_dirs[0]
         
-        # Determine target path
+        # 计算目标路径
         if target_path:
             target_path = Path(target_path)
         else:
             target_path = self.model_dir / model_backup_dir.name
         
-        # Restore model
+        # 恢复
         if target_path.exists():
             shutil.rmtree(target_path)
         
@@ -417,10 +435,10 @@ class NERModelManager:
         return str(target_path)
     
     def cleanup_deleted_models(self) -> int:
-        """Clean up models marked as deleted
+        """清理标记为 deleted 的模型（删除其文件并移出注册表）
         
-        Returns:
-            Number of models cleaned up
+        返回：
+            清理的模型数量
         """
         cleaned_count = 0
         
@@ -428,12 +446,12 @@ class NERModelManager:
             if model_entry.get('status') == 'deleted':
                 model_path = Path(model_entry['path'])
                 
-                # Remove files if they still exist
+                # 若文件依然存在则删除
                 if model_path.exists():
                     shutil.rmtree(model_path)
                     self.logger.info(f"Cleaned up deleted model files: {model_path}")
                 
-                # Remove from registry
+                # 从注册表移除
                 del self.registry['models'][model_id]
                 cleaned_count += 1
         
@@ -444,10 +462,10 @@ class NERModelManager:
         return cleaned_count
     
     def get_model_statistics(self) -> Dict[str, Any]:
-        """Get model statistics
+        """获取模型统计信息
         
-        Returns:
-            Statistics dictionary
+        返回：
+            统计字典（数量、类型分布、总体积等）
         """
         stats = {
             'total_models': 0,
@@ -469,7 +487,7 @@ class NERModelManager:
                 model_type = model_entry.get('type', 'unknown')
                 stats['model_types'][model_type] = stats['model_types'].get(model_type, 0) + 1
                 
-                # Calculate size
+                # 计算体积
                 model_path = Path(model_entry['path'])
                 if model_path.exists():
                     stats['total_size_mb'] += self._get_directory_size(model_path) / (1024 * 1024)
