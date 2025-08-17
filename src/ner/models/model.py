@@ -6,6 +6,7 @@
 - 提示：推理阶段对置信度的阈值化仅作简单筛选，具体阈值应依据校准结果调整。
 """
 
+from ner.utils.logger import NERLogger
 import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss

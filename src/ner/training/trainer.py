@@ -253,7 +253,6 @@ class NERTrainer:
         
         model_config = self.config['model']
         
-        # Initialize model
         if model_config['type'] == 'bert':
             self.model = BertNERModel.from_pretrained(
                 pretrained_model_name_or_path=model_config['pretrained_model'],
