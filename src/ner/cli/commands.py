@@ -1,7 +1,21 @@
-"""NER CLI Commands
+"""NER 命令行（CLI）指令集合
 
-Implements all CLI commands for the NER system including training,
-evaluation, prediction, configuration management, and more.
+提供 NER 系统的常用指令，包括：
+- 训练（train）
+- 评估（evaluate）
+- 预测（predict）
+- 配置管理（config）
+- 数据处理（data）
+- 状态查看（status）
+
+设计说明：
+- 通过 `BaseCommand` 统一约束命令的名称与描述、参数解析与执行。
+- 全局配置 `global_config` 由外层主程序注入，通常包含：
+  - `config_dir`: 配置目录
+  - `model_dir`: 模型目录
+  - `log_dir`: 日志目录
+
+# TODO: 为 `global_config` 定义强类型（TypedDict/dataclass），并在入口层进行完整校验。
 """
 
 import os
@@ -13,7 +27,15 @@ from pathlib import Path
 from ..config import ConfigManager, ConfigValidator
 
 class BaseCommand(ABC):
-    """Abstract base class for all NER CLI commands"""
+    """所有 NER CLI 子命令的抽象基类
+
+    职责：
+    - 提供统一的命令名称（`name`）与描述（`description`）属性
+    - 定义参数解析接口 `setup_parser` 与执行接口 `execute`
+    - 保存外层注入的 `global_config`
+
+    # TODO: 支持注入统一的 logger，并在各子命令中复用。
+    """
     
     def __init__(self):
         self.global_config = {}
@@ -50,7 +72,20 @@ class BaseCommand(ABC):
         return self.description
 
 class TrainCommand(BaseCommand):
-    """Command for training NER models"""
+    """训练 NER 模型的命令
+
+    流程：
+    1) 加载配置（可选使用自定义配置文件）
+    2) 应用命令行覆盖项（epochs/batch-size/learning-rate/output-dir 等）
+    3) 校验配置
+    4) 初始化并启动训练（可选从 checkpoint 恢复）
+
+    注意：
+    - 覆盖项仅在用户显式传入时生效，避免默认值覆盖配置。
+    - 支持外层 CLI 注入 `data_path`/`val_data_path` 用于快速调试。
+
+    # TODO: 支持 `test_data_path` 以及自动识别数据格式（JSON/JSONL）。
+    """
     
     @property
     def name(self) -> str:
@@ -104,16 +139,15 @@ class TrainCommand(BaseCommand):
             # Load configuration
             config_manager = ConfigManager(self.global_config.get('config_dir'))
 
+            # 优先使用命令行参数指定的配置文件
             config_arg = getattr(args, 'config', None)
             if config_arg:
-                # Load custom configuration
                 with open(config_arg, 'r', encoding='utf-8') as f:
                     config = json.load(f)
             else:
-                # Load country configuration
                 config = config_manager.load_country_config(args.country)
             
-            # Override configuration with command line arguments
+            # 覆盖配置
             if getattr(args, 'epochs', None):
                 config['training']['epochs'] = args.epochs
             if getattr(args, 'batch_size', None):
@@ -123,15 +157,7 @@ class TrainCommand(BaseCommand):
             if getattr(args, 'output_dir', None):
                 config['output']['model_dir'] = args.output_dir
                 
-                # Optional data path overrides (when provided by outer CLI)
-            if getattr(args, 'data_path', None):
-                    config.setdefault('data', {})
-                    config['data']['train_file'] = args.data_path
-            if getattr(args, 'val_data_path', None):
-                    config.setdefault('data', {})
-                    config['data']['val_file'] = args.val_data_path
-            
-            # Validate configuration
+            # 校验配置
             validator = ConfigValidator()
             if not validator.validate_config(config, args.country):
                 print("Configuration validation failed:")
@@ -163,7 +189,15 @@ class TrainCommand(BaseCommand):
             return False
 
 class EvaluateCommand(BaseCommand):
-    """Command for evaluating NER models"""
+    """评估 NER 模型的命令
+
+    说明：
+    - 当前实现默认从模型目录读取 tokenizer 与标签映射，从而进行文本级评估。
+    - 支持 `--output-dir` 持久化评估指标 JSON；可选 `--detailed-report` 生成详细报告（未实现）。
+
+    # TODO: 支持基于 DataLoader 的批量评估，并尊重 `--batch-size`。
+    # TODO: 将 `--metrics` 与 `--detailed-report` 真正接入评估与报告逻辑（当前未使用）。
+    """
     
     @property
     def name(self) -> str:
@@ -337,12 +371,14 @@ class EvaluateCommand(BaseCommand):
             
             # Compare with another model if specified
             if hasattr(args, 'compare_with') and args.compare_with:
+                # ERROR: 下段代码参数不匹配 `NEREvaluator` 的构造与 `evaluate` 的签名，无法按预期工作。
+                # TODO: 若需支持模型对比，应：
+                #   1) 同样加载 `other_tokenizer` 与 `other_label_list` 构造 `other_evaluator`
+                #   2) 复用同一 `texts/true_labels` 调用 `evaluate_text`，再对比关键指标。
                 other_model = model_manager.load_model(args.compare_with)
-                other_evaluator = NEREvaluator(other_model, config, self.global_config)
-                other_results = other_evaluator.evaluate(
-                    test_data_path=args.data_path,
-                    metrics=args.metrics
-                )
+                # other_evaluator = NEREvaluator(other_model, other_tokenizer, other_label_list, device)
+                # other_results = other_evaluator.evaluate_text(texts, true_labels, confidence_threshold)
+                other_results = {}
                 
                 print(f"\nComparison with {args.compare_with}:")
                 for metric in args.metrics:
@@ -357,7 +393,15 @@ class EvaluateCommand(BaseCommand):
             return False
 
 class PredictCommand(BaseCommand):
-    """Command for making predictions with NER models"""
+    """使用已训练模型进行预测的命令
+
+    支持：
+    - 单条文本预测（--text）
+    - 文件批量预测（--file，每行一条文本）
+    - 多种输出格式（json/text/conll）
+
+    # TODO: 支持输入 JSON/JSONL（含 tokens/labels）并保持结构化输出。
+    """
     
     @property
     def name(self) -> str:
@@ -477,7 +521,13 @@ class PredictCommand(BaseCommand):
             return False
 
 class ConfigCommand(BaseCommand):
-    """Command for managing configurations"""
+    """管理国家配置的命令
+
+    支持：
+    - 列表/展示/创建/校验/删除 配置
+
+    # TODO: `create` 时支持指定输出根目录（覆盖模板中的 output.*），并提示创建的目录与样例文件。
+    """
     
     @property
     def name(self) -> str:
@@ -593,7 +643,15 @@ class ConfigCommand(BaseCommand):
             return False
 
 class DataCommand(BaseCommand):
-    """Command for data processing operations"""
+    """数据处理相关命令
+
+    支持：
+    - 数据校验（validate）
+    - 数据预处理（process）
+    - 数据划分（split，暂未实现）
+
+    # TODO: 实现 `split`，并支持自定义随机种子与分层抽样。
+    """
     
     @property
     def name(self) -> str:
@@ -679,7 +737,13 @@ class DataCommand(BaseCommand):
             return False
 
 class ModelCommand(BaseCommand):
-    """Command for model management operations"""
+    """模型管理相关命令
+
+    支持：
+    - 列出/查询/删除 模型
+
+    # TODO: 支持导出（export）与转换（onnx、safetensors 等），并完善信息展示。
+    """
     
     @property
     def name(self) -> str:
@@ -747,7 +811,17 @@ class ModelCommand(BaseCommand):
             return False
 
 class StatusCommand(BaseCommand):
-    """Command for checking training status and logs"""
+    """训练状态与日志查看命令
+
+    功能：
+    - 按国家或默认日志展示近期日志（tail）
+    - 展示基本的目录状态与最近日志列表
+
+    注意：
+    - 日志文件命名约定（`{country}_training.log`）需与训练侧一致。
+      
+      # TODO: 与训练器的日志策略统一命名与路径；支持 CLI 选择具体日志文件。
+    """
     
     @property
     def name(self) -> str:

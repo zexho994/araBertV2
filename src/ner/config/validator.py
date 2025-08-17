@@ -1,7 +1,15 @@
-"""Configuration Validator for NER System
+"""NER 配置校验器（Configuration Validator）
 
-Provides comprehensive validation for NER configuration files.
-Ensures configuration integrity and consistency.
+职责：
+- 对 NER 系统使用的配置进行全面校验，保证结构完整与字段一致性
+- 输出错误与警告，帮助在训练前尽早发现问题
+
+设计说明：
+- 采用分区校验：country/model/training/data/labels/evaluation/output/hardware/logging
+- 提供跨区校验 `_validate_cross_sections`，用于检查区间之间的一致性
+
+# TODO: 支持 Schema 驱动的自动校验（如 pydantic），并汇总多处错误为结构化报告
+# TODO: 允许配置“严格/宽松”模式（将部分错误降级为警告，便于快速试跑）
 """
 
 import re
@@ -9,7 +17,30 @@ from typing import Dict, Any, List, Optional, Union
 from pathlib import Path
 
 class ConfigValidator:
-    """Validates NER configuration files and settings"""
+    """NER 配置文件与设置的校验器
+
+    说明：
+    - 存储校验期间的错误与警告列表，便于调用方打印或记录
+    - `validate_config` 为主入口，内部调用各分区校验方法
+
+    注意（与实现的其他模块一致性）：
+    - 训练器当前仅实现 `optimizer=adamw` 与 `scheduler in {linear, cosine}`；
+      本校验器的可选项更宽（如 `adam`/`sgd`/`rmsprop`、`polynomial`/`constant`）。
+      
+      # ERROR: 校验器允许的取值超出了训练器实际支持范围，会导致通过校验但训练报错。
+      # TODO: 将有效取值与训练器实现对齐，或在训练器增加对应支持。
+    - `hardware.device` 允许 `mps`，但训练器未显式支持；
+      
+      # TODO: 若要支持 MPS（Apple Silicon），训练器需增加相应分支与能力检测。
+    - `hardware.dataloader_num_workers` 与训练器中的 `hardware.num_workers` 键名不一致；
+      
+      # ERROR: 配置键不一致将导致工作线程设置失效。建议统一为 `num_workers`。
+    - `data.max_length` 与 `model.max_length`：当前 DataLoader 读取 `data.max_length`，
+      校验器却在 `model` 分区校验 `max_length`。建议统一归属 `data` 分区。
+    - `labels` 分区强制 `label_names` 与 `label_mapping`，而训练器允许通过 `entities` 自动派生 BIO 标签；
+      
+      # TODO: 统一标签定义来源（推荐固定为 `label_names`/`label_mapping`），避免重复口径。
+    """
     
     # Valid model types
     VALID_MODEL_TYPES = ['bert', 'distilbert', 'roberta', 'albert']
@@ -27,19 +58,19 @@ class ConfigValidator:
     VALID_METRICS = ['precision', 'recall', 'f1', 'accuracy', 'entity_f1']
     
     def __init__(self):
-        """Initialize the configuration validator"""
+        """初始化配置校验器"""
         self.errors = []
         self.warnings = []
     
     def validate_config(self, config: Dict[str, Any], country: str = None) -> bool:
-        """Validate a complete configuration
+        """校验完整配置
         
         Args:
-            config: Configuration dictionary to validate
-            country: Country code for context (optional)
+            config: 待校验的配置字典
+            country: 国家代码（可选，仅用于上下文提示）
             
         Returns:
-            True if configuration is valid, False otherwise
+            若配置有效返回 True，否则 False（错误信息在 `get_errors`）
         """
         self.errors.clear()
         self.warnings.clear()
@@ -54,22 +85,21 @@ class ConfigValidator:
         self._validate_output_section(config.get('output', {}))
         self._validate_hardware_section(config.get('hardware', {}))
         self._validate_logging_section(config.get('logging', {}))
-        
         # Cross-section validation
         self._validate_cross_sections(config)
         
         return len(self.errors) == 0
     
     def get_errors(self) -> List[str]:
-        """Get validation errors"""
+        """获取校验错误列表"""
         return self.errors.copy()
     
     def get_warnings(self) -> List[str]:
-        """Get validation warnings"""
+        """获取校验警告列表"""
         return self.warnings.copy()
     
     def _validate_country_section(self, country_config: Dict[str, Any], country: str = None):
-        """Validate country configuration section"""
+        """校验 country 分区"""
         required_fields = ['code', 'name']
         
         for field in required_fields:
@@ -91,7 +121,14 @@ class ConfigValidator:
                 self.errors.append("Country name must be a non-empty string")
     
     def _validate_model_section(self, model_config: Dict[str, Any]):
-        """Validate model configuration section"""
+        """校验 model 分区
+
+        注意：
+        - `VALID_MODEL_TYPES` 未包含诸如 `xlm-roberta`/`deberta` 等常见类型。
+          # TODO: 结合实际模型类型扩展列表，或放宽此处限制，仅由模型加载过程兜底。
+        - `max_length` 更适合放在 `data` 分区（DataLoader 消费），此处的校验可能与实际使用不一致。
+          # TODO: 迁移为校验 `data.max_length`，保留向后兼容。
+        """
         required_fields = ['name', 'type', 'pretrained_model']
         
         for field in required_fields:
@@ -122,7 +159,13 @@ class ConfigValidator:
                 self.errors.append("Model dropout must be a number between 0 and 1")
     
     def _validate_training_section(self, training_config: Dict[str, Any]):
-        """Validate training configuration section"""
+        """校验 training 分区
+
+        # ERROR: `optimizer` 与 `scheduler` 的可选值需与训练器实现对齐。
+        #   - 训练器仅支持 optimizer=adamw
+        #   - 训练器仅支持 scheduler in {linear, cosine}
+        # TODO: 若需保留更广泛的校验范围，训练器侧需要补齐支持，否则应在此处收紧可选值。
+        """
         required_fields = ['epochs', 'batch_size', 'learning_rate']
         
         for field in required_fields:
@@ -170,7 +213,13 @@ class ConfigValidator:
                 self.errors.append("Training weight_decay must be a non-negative number")
     
     def _validate_data_section(self, data_config: Dict[str, Any]):
-        """Validate data configuration section"""
+        """校验 data 分区
+
+        注意：
+        - 训练器允许 `val_file` 缺省（将跳过验证）；此处强制要求 `val_file` 会提高门槛。
+          # TODO: 将 `val_file` 从必填改为可选，缺省时给出警告而非错误。
+        - `max_length` 应位于 data 分区；可在此补充合法性校验。
+        """
         required_fields = ['train_file', 'val_file']
         
         for field in required_fields:
@@ -199,7 +248,12 @@ class ConfigValidator:
                         self.errors.append("Preprocessing remove_diacritics must be a boolean")
     
     def _validate_labels_section(self, labels_config: Dict[str, Any]):
-        """Validate labels configuration section"""
+        """校验 labels 分区
+
+        说明：
+        - 强制要求 `num_labels`/`label_names`/`label_mapping`，保证训练与导出一致性。
+        - 若要支持仅给定 `entities` 的最小化配置，应在上游模板生成时补齐所需字段。
+        """
         required_fields = ['num_labels', 'label_names', 'label_mapping']
         
         for field in required_fields:
@@ -262,7 +316,10 @@ class ConfigValidator:
             )
     
     def _validate_evaluation_section(self, eval_config: Dict[str, Any]):
-        """Validate evaluation configuration section"""
+        """校验 evaluation 分区
+
+        # TODO: 支持更多指标（如 per-entity 选择、micro/macro F1、置信度相关指标）。
+        """
         if 'metrics' in eval_config:
             metrics = eval_config['metrics']
             if not isinstance(metrics, list):
@@ -279,7 +336,10 @@ class ConfigValidator:
                 self.errors.append("Evaluation save_predictions must be a boolean")
     
     def _validate_output_section(self, output_config: Dict[str, Any]):
-        """Validate output configuration section"""
+        """校验 output 分区
+
+        # TODO: 校验 `results_dir`/`logs_dir` 等字段（若存在），并检测路径可写性（可选）。
+        """
         if 'model_dir' in output_config:
             model_dir = output_config['model_dir']
             if not isinstance(model_dir, str) or len(model_dir.strip()) == 0:
@@ -291,7 +351,14 @@ class ConfigValidator:
                 self.errors.append("Output save_steps must be a positive integer")
     
     def _validate_hardware_section(self, hardware_config: Dict[str, Any]):
-        """Validate hardware configuration section"""
+        """校验 hardware 分区
+
+        注意：
+        - 训练器当前不支持 `mps`；若检测到 `mps`，应提示潜在不兼容。
+        - 键名不一致问题：此处使用 `dataloader_num_workers`，训练器读取 `num_workers`。
+          
+          # ERROR: 键名不一致导致并行度配置失效。建议统一键为 `num_workers`。
+        """
         if 'device' in hardware_config:
             device = hardware_config['device']
             if device not in ['auto', 'cpu', 'cuda', 'mps']:
@@ -307,7 +374,10 @@ class ConfigValidator:
                 self.errors.append("Hardware dataloader_num_workers must be a non-negative integer")
     
     def _validate_logging_section(self, logging_config: Dict[str, Any]):
-        """Validate logging configuration section"""
+        """校验 logging 分区
+
+        # TODO: 校验 log_file 的目录是否存在或可创建；校验与 `output.logs_dir` 的一致性。
+        """
         if 'level' in logging_config:
             level = logging_config['level']
             if level not in self.VALID_LOG_LEVELS:
@@ -331,7 +401,14 @@ class ConfigValidator:
                         self.errors.append("Logging wandb enabled must be a boolean")
     
     def _validate_cross_sections(self, config: Dict[str, Any]):
-        """Validate consistency across configuration sections"""
+        """跨分区一致性校验
+
+        - 对内存占用的粗略估计，提示可能的风险
+        - 检查 `output.model_dir` 与 `logging.log_file` 是否在相近目录
+
+        # TODO: 补充更多约束：如标签与模型 `num_labels` 一致、数据文件路径存在性、
+        #       warmup_ratio/steps 之间的互斥或联动关系等。
+        """
         # Check if model max_length is compatible with training batch_size
         if 'model' in config and 'training' in config:
             model_config = config['model']
