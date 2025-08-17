@@ -174,17 +174,17 @@ class NERTrainer:
         data_config = self.config['data']
         
         # Initialize data processor
-        processor = NERDataProcessor(self.config)
+        processor = NERDataProcessor(self.config, logger=self.logger)
         
         # Load training data
-        train_examples = processor.load_data_file(data_config['train_file'])
-        self.logger.info(f"Loaded {len(train_examples)} training examples")
+        train_dataset = processor.load_data_file(data_config['train_file'])
+        self.logger.info(f"Loaded {len(train_dataset)} training dataset")
         
         # Load validation data if available
-        val_examples = None
+        val_dataset = None
         if 'val_file' in data_config and data_config['val_file']:
-            val_examples = processor.load_data_file(data_config['val_file'])
-            self.logger.info(f"Loaded {len(val_examples)} validation examples")
+            val_dataset = processor.load_data_file(data_config['val_file'])
+            self.logger.info(f"Loaded {len(val_dataset)} validation dataset")
         
         # Create label mappings
         labels_config = self.config['labels']
@@ -224,8 +224,8 @@ class NERTrainer:
         
         # Create data loaders
         self.data_loaders = data_loader.prepare_data_loaders(
-            train_examples=train_examples,
-            val_examples=val_examples,
+            train_examples=train_dataset,
+            val_examples=val_dataset,
             batch_size=self.config['training']['batch_size'],
             num_workers=self.config.get('hardware', {}).get('num_workers', 0)
         )

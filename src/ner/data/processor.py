@@ -10,14 +10,22 @@ from pathlib import Path
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
+from ..utils import NERLogger
+
 class NERDataProcessor:
     """Main data processor for NER tasks"""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: Optional[Dict[str, Any]], logger: NERLogger):
+        if logger is None:
+            raise ValueError("NERDataProcessor requires a logger instance")
+        self.logger = logger
         self.config = config or {}
         self.labels = self.config.get('labels', {}).get('label_mapping', [])
         self.max_length = self.config.get('data', {}).get('max_length', 512)
         self.encoding = self.config.get('data', {}).get('encoding', 'utf-8')
+        
+        self.logger.info("Initializing NERDataProcessor")
+        self.logger.debug(f"Processor config: max_length={self.max_length}, encoding={self.encoding}")
         
         # Initialize label mappings
         self._init_label_mappings()
@@ -32,9 +40,11 @@ class NERDataProcessor:
             
             self.label2id = {label: idx for idx, label in enumerate(bio_labels)}
             self.id2label = {idx: label for label, idx in self.label2id.items()}
+            self.logger.info(f"Initialized label mappings for {len(self.labels)} entities, total BIO labels={len(bio_labels)}")
         else:
             self.label2id = {}
             self.id2label = {}
+            self.logger.warning("No labels provided in config; label mappings are empty")
     
     def _load_conll_file(self, file_path: str) -> List[Dict[str, Any]]:
         """Load data from CoNLL format file
@@ -49,6 +59,7 @@ class NERDataProcessor:
         current_tokens = []
         current_labels = []
         
+        self.logger.info(f"Loading CoNLL data from {file_path}")
         with open(file_path, 'r', encoding=self.encoding) as f:
             for line in f:
                 line = line.strip()
@@ -78,6 +89,7 @@ class NERDataProcessor:
                 'text': ' '.join(current_tokens)
             })
         
+        self.logger.info(f"Loaded {len(examples)} examples from CoNLL file")
         return examples
     
     def _load_json_file(self, file_path: str) -> List[Dict[str, Any]]:
@@ -89,12 +101,15 @@ class NERDataProcessor:
         Returns:
             List of examples
         """
+        self.logger.info(f"Loading JSON data from {file_path}")
         with open(file_path, 'r', encoding=self.encoding) as f:
             data = json.load(f)
         
         if isinstance(data, list):
+            self.logger.info(f"Loaded {len(data)} examples from JSON file")
             return data
         elif isinstance(data, dict) and 'examples' in data:
+            self.logger.info(f"Loaded {len(data['examples'])} examples from JSON file (wrapped)")
             return data['examples']
         else:
             raise ValueError(f"Unsupported JSON format in {file_path}")
@@ -108,6 +123,7 @@ class NERDataProcessor:
         Returns:
             List of examples (each line is a JSON object)
         """
+        self.logger.info(f"Loading JSONL data from {file_path}")
         examples: List[Dict[str, Any]] = []
         with open(file_path, 'r', encoding=self.encoding) as f:
             for line in f:
@@ -119,6 +135,7 @@ class NERDataProcessor:
                     examples.append(obj)
                 except json.JSONDecodeError as e:
                     raise ValueError(f"Invalid JSONL line in {file_path}: {e}")
+        self.logger.info(f"Loaded {len(examples)} examples from JSONL file")
         return examples
     
     def _load_csv_file(self, file_path: str) -> List[Dict[str, Any]]:
@@ -130,6 +147,7 @@ class NERDataProcessor:
         Returns:
             List of examples
         """
+        self.logger.info(f"Loading CSV data from {file_path}")
         df = pd.read_csv(file_path, encoding=self.encoding)
         
         examples = []
@@ -149,6 +167,7 @@ class NERDataProcessor:
                     'labels': labels
                 })
         
+        self.logger.info(f"Loaded {len(examples)} examples from CSV file")
         return examples
     
     def load_data_file(self, file_path: str) -> List[Dict[str, Any]]:
@@ -160,6 +179,7 @@ class NERDataProcessor:
         Returns:
             List of examples
         """
+        self.logger.info(f"Loading data file: {file_path}")
         file_path = Path(file_path)
         
         if not file_path.exists():
@@ -202,9 +222,14 @@ class NERDataProcessor:
         """
         try:
             examples = self.load_data_file(file_path)
-            return self._validate_examples(examples)
+            valid = self._validate_examples(examples)
+            if valid:
+                self.logger.info(f"Data file '{file_path}' validation passed: {len(examples)} examples")
+            else:
+                self.logger.warning(f"Data file '{file_path}' validation failed")
+            return valid
         except Exception as e:
-            print(f"Validation error: {e}")
+            self.logger.error(f"Validation error for '{file_path}': {e}")
             return False
     
     def _validate_examples(self, examples: List[Dict[str, Any]]) -> bool:
@@ -217,13 +242,13 @@ class NERDataProcessor:
             True if valid, False otherwise
         """
         if not examples:
-            print("No examples found")
+            self.logger.warning("No examples found during validation")
             return False
         
         for i, example in enumerate(examples):
             # Check required fields
             if 'tokens' not in example or 'labels' not in example:
-                print(f"Example {i}: Missing required fields (tokens, labels)")
+                self.logger.warning(f"Example {i}: Missing required fields (tokens, labels)")
                 return False
             
             tokens = example['tokens']
@@ -231,7 +256,7 @@ class NERDataProcessor:
             
             # Check tokens and labels length match
             if len(tokens) != len(labels):
-                print(f"Example {i}: Token count ({len(tokens)}) != Label count ({len(labels)})")
+                self.logger.warning(f"Example {i}: Token count ({len(tokens)}) != Label count ({len(labels)})")
                 return False
             
             # Check label validity
@@ -239,12 +264,12 @@ class NERDataProcessor:
                 valid_labels = set(['O'] + [f'B-{entity}' for entity in self.labels] + [f'I-{entity}' for entity in self.labels])
                 for j, label in enumerate(labels):
                     if label not in valid_labels:
-                        print(f"Example {i}, Token {j}: Invalid label '{label}'")
+                        self.logger.warning(f"Example {i}, Token {j}: Invalid label '{label}'")
                         return False
             
             # Check BIO consistency
             if not self._validate_bio_sequence(labels):
-                print(f"Example {i}: Invalid BIO sequence")
+                self.logger.warning(f"Example {i}: Invalid BIO sequence")
                 return False
         
         return True
@@ -278,6 +303,7 @@ class NERDataProcessor:
             output_file: Output file path
             format: Output format ('json', 'conll', 'csv')
         """
+        self.logger.info(f"Processing file: {input_file} -> {output_file} (format={format})")
         examples = self.load_data_file(input_file)
         
         # Apply preprocessing
@@ -287,6 +313,7 @@ class NERDataProcessor:
             if processed_example:
                 processed_examples.append(processed_example)
         
+        self.logger.info(f"Processed {len(processed_examples)} examples (from {len(examples)})")
         # Save in specified format
         self._save_examples(processed_examples, output_file, format)
     
@@ -345,6 +372,7 @@ class NERDataProcessor:
         if format == 'json':
             with open(output_file, 'w', encoding=self.encoding) as f:
                 json.dump(examples, f, indent=2, ensure_ascii=False)
+            self.logger.info(f"Saved JSON examples to {output_file}")
         
         elif format == 'conll':
             with open(output_file, 'w', encoding=self.encoding) as f:
@@ -355,6 +383,7 @@ class NERDataProcessor:
                     for token, label in zip(tokens, labels):
                         f.write(f"{token}\t{label}\n")
                     f.write("\n")  # Empty line between sentences
+            self.logger.info(f"Saved CoNLL examples to {output_file}")
         
         elif format == 'csv':
             df_data = []
@@ -367,49 +396,8 @@ class NERDataProcessor:
             
             df = pd.DataFrame(df_data)
             df.to_csv(output_file, index=False, encoding=self.encoding)
+            self.logger.info(f"Saved CSV examples to {output_file}")
         
         else:
             raise ValueError(f"Unsupported output format: {format}")
     
-    # def split_data(self, input_file: str, output_dir: str, 
-    #                train_ratio: float = 0.8, val_ratio: float = 0.1, test_ratio: float = 0.1,
-    #                random_state: int = 42):
-    #     """Split data into train/validation/test sets
-        
-    #     Args:
-    #         input_file: Input data file
-    #         output_dir: Output directory
-    #         train_ratio: Training data ratio
-    #         val_ratio: Validation data ratio
-    #         test_ratio: Test data ratio
-    #         random_state: Random seed
-    #     """
-    #     examples = self.load_data_file(input_file)
-        
-    #     # First split: train + val vs test
-    #     train_val, test = train_test_split(
-    #         examples, 
-    #         test_size=test_ratio, 
-    #         random_state=random_state
-    #     )
-        
-    #     # Second split: train vs val
-    #     val_size = val_ratio / (train_ratio + val_ratio)
-    #     train, val = train_test_split(
-    #         train_val, 
-    #         test_size=val_size, 
-    #         random_state=random_state
-    #     )
-        
-    #     # Save splits
-    #     output_path = Path(output_dir)
-    #     output_path.mkdir(parents=True, exist_ok=True)
-        
-    #     self._save_examples(train, output_path / 'train.json')
-    #     self._save_examples(val, output_path / 'val.json')
-    #     self._save_examples(test, output_path / 'test.json')
-        
-    #     print(f"Data split completed:")
-    #     print(f"  Train: {len(train)} examples")
-    #     print(f"  Validation: {len(val)} examples")
-    #     print(f"  Test: {len(test)} examples")

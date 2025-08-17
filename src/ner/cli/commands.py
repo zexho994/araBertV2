@@ -708,7 +708,7 @@ class DataCommand(BaseCommand):
                 config_manager = ConfigManager(self.global_config.get('config_dir'))
                 config = config_manager.load_country_config(args.country)
                 
-                processor = NERDataProcessor(config)
+                processor = NERDataProcessor(config, logger=self.logger)
                 is_valid = processor.validate_data_file(args.input_file)
                 
                 if is_valid:
@@ -721,7 +721,7 @@ class DataCommand(BaseCommand):
                 config_manager = ConfigManager(self.global_config.get('config_dir'))
                 config = config_manager.load_country_config(args.country)
                 
-                processor = NERDataProcessor(config)
+                processor = NERDataProcessor(config, logger=self.logger)
                 processor.process_file(args.input_file, args.output_file)
                 print(f"Processed data saved to '{args.output_file}'")
                 
