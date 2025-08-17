@@ -30,6 +30,7 @@ Examples:
     python ner.py config create --country egypt --template address_ner
 """
 
+from datetime import datetime
 import sys
 import os
 import argparse
@@ -465,7 +466,9 @@ def main():
     
     # Setup logging
     log_level = 'DEBUG' if args.verbose else args.log_level
-    log_file = args.log_file or 'logs/ner.log'
+    
+    # 日志文件名, {country.code}
+    log_file = args.log_file or f'data/ner/logs/{args.country}/start_{args.command}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
     
     logger = setup_logging(
         level=log_level,

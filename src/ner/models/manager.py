@@ -18,7 +18,7 @@ from ..utils import NERLogger
 class NERModelManager:
     """Manager for NER model operations"""
     
-    def __init__(self, model_dir: str = "data/ner/models"):
+    def __init__(self, model_dir: str = "data/ner/models", logger: Optional[NERLogger] = None):
         """
         Initialize Model Manager
         
@@ -28,7 +28,8 @@ class NERModelManager:
         self.model_dir = Path(model_dir)
         self.model_dir.mkdir(parents=True, exist_ok=True)
         
-        self.logger = NERLogger(name="model_manager")
+        # Reuse provided logger if available, otherwise create a local one
+        self.logger = logger if logger is not None else NERLogger(name="model_manager", log_dir=self.model_dir)
         
         # Model registry file
         self.registry_file = self.model_dir / "model_registry.json"

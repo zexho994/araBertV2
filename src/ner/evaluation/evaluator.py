@@ -34,6 +34,7 @@ from seqeval.metrics import (
     classification_report as seq_classification_report
 )
 from seqeval.scheme import IOB2
+from ..utils import NERLogger
 
 class NERMetrics:
     """NER 评估指标计算器
@@ -293,7 +294,8 @@ class NEREvaluator:
         model, 
         tokenizer, 
         label_list: List[str],
-        device: Optional[torch.device] = None
+        device: Optional[torch.device] = None,
+        logger: Optional[NERLogger] = None
     ):
         """
         Initialize evaluator
@@ -309,6 +311,7 @@ class NEREvaluator:
         self.label_list = label_list
         self.device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.metrics_calculator = NERMetrics(label_list)
+        self.logger = logger
         
         # Create label mappings
         self.label2id = {label: i for i, label in enumerate(label_list)}
@@ -339,6 +342,8 @@ class NEREvaluator:
           # TODO: 在循环内 `all_attention_masks.append(batch['attention_mask'].cpu().numpy())`，
           #       并在调用 `_convert_to_sequences` 时传入拼接后的 masks。
         """
+        if self.logger:
+            self.logger.info("Starting evaluation on DataLoader...")
         self.model.eval()
         
         all_predictions = []
@@ -396,6 +401,15 @@ class NEREvaluator:
             'num_batches': num_batches
         }
         
+        if self.logger:
+            try:
+                self.logger.info(
+                    f"Eval done. loss={results['loss']:.4f}, token_f1={token_metrics.get('token_f1', 0.0):.4f}, "
+                    f"entity_f1={entity_metrics.get('entity_f1', 0.0):.4f}, samples={results['num_samples']}"
+                )
+            except Exception:
+                pass
+
         if return_predictions:
             results['predictions'] = pred_sequences
             results['true_labels'] = true_sequences

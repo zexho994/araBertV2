@@ -43,7 +43,7 @@
         }
     },
     "training": {
-        "epochs": 6,
+        "epochs": 2,
         "batch_size": 16,
         "learning_rate": 2e-05,
         "weight_decay": 0.01,

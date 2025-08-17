@@ -43,7 +43,7 @@ from ..utils import NERLogger
 class NERTrainer:
     """Main trainer class for NER models"""
     
-    def __init__(self, config: Dict[str, Any], global_config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], global_config: Dict[str, Any], logger: Optional[NERLogger] = None):
         """
         初始化 NER 训练器
         
@@ -54,14 +54,15 @@ class NERTrainer:
         self.config = config
         self.global_config = global_config
         
-        # 初始化日志
-        # ERROR: 这里从 `config.get('logs_dir')` 读取日志目录，但规范位置通常在 `config['output']['logs_dir']`
-        # 或 `config['logging']` 下，容易与项目其余部分不一致。
-        # TODO: 统一日志目录的读取来源，例如优先：config['output']['logs_dir'] -> global_config['log_dir'] -> 默认路径。
-        self.logger = NERLogger(
-            name=f"{config.get('country', {}).get('code', 'unknown')}_training",
-            log_dir=config.get('output', {}).get('logs_dir', 'data/ner/logs')
-        )
+        # 初始化日志（复用外层注入的 logger，若无则创建本地 logger）
+        if logger is not None:
+            self.logger = logger
+        else:
+            logs_dir = config.get('output', {}).get('logs_dir') or global_config.get('log_dir') or 'data/ner/logs'
+            self.logger = NERLogger(
+                name=f"{config.get('country', {}).get('code', 'unknown')}_training",
+                log_dir=logs_dir
+            )
         
         # 初始化 TensorBoard SummaryWriter
         country_code_for_run = config.get('country', {}).get('code', 'unknown')
@@ -168,7 +169,7 @@ class NERTrainer:
           
           # TODO: 统一标签来源：优先从 `labels.label_names` 读取；如不存在再基于 `entities` 派生 BIO 标签。
         """
-        self.logger.info("Preparing training data...")
+        self.logger.info(f"Preparing training data form {self.config['data']['train_file']}...")
         
         data_config = self.config['data']
         
@@ -217,7 +218,8 @@ class NERTrainer:
         data_loader = NERDataLoader(
             tokenizer_name=self.config['model']['pretrained_model'],
             label2id=label2id,
-            max_length=data_config.get('max_length', 512)
+            max_length=data_config.get('max_length', 512),
+            logger=self.logger
         )
         
         # Create data loaders
@@ -330,7 +332,7 @@ class NERTrainer:
             # Move batch to device
             batch = {k: v.to(self.device) for k, v in batch.items()}
             
-            # Forward pass
+            # 前向传播
             outputs = self.model(**batch)
             loss = outputs['loss'] if isinstance(outputs, dict) else outputs.loss
             

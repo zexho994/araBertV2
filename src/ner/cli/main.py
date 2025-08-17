@@ -53,6 +53,12 @@ class NERCLIManager:
         # Pass global config to all commands immediately
         for command in self.commands.values():
             command.set_global_config(self.global_config)
+            if self.logger is not None:
+                # Inject shared logger if already provided
+                if hasattr(command, "set_logger"):
+                    command.set_logger(self.logger)
+                else:
+                    command.logger = self.logger
     
     def _register_commands(self):
         """Register all available CLI commands"""
@@ -102,6 +108,11 @@ class NERCLIManager:
         # Pass global config to all commands
         for command in self.commands.values():
             command.set_global_config(self.global_config)
+            # Ensure shared logger is injected
+            if hasattr(command, "set_logger"):
+                command.set_logger(self.logger)
+            else:
+                command.logger = self.logger
     
     def execute_command(self, command_name: str, args) -> bool:
         """Execute a specific command
@@ -160,30 +171,15 @@ class NERCLIManager:
         
         # Create log directory if it doesn't exist
         Path(log_dir).mkdir(parents=True, exist_ok=True)
-        
-        # Setup logging configuration
-        logging_config = {
-            'level': 'DEBUG' if verbose else 'INFO',
-            'log_file': 'cli.log',
-            'error_log_file': 'cli_errors.log',
-            'wandb': {'enabled': False},
-            'tensorboard': {'enabled': False}
-        }
-        
-        country_config = {
-            'country': {'code': 'cli'},
-            'logging': logging_config
-        }
-        
-        global_config = {
-            'log_dir': log_dir
-        }
-        
-        # Initialize logger
-        self.logger = NERLogger(country_config, global_config)
-        
-        # Also setup module-level logging
-        setup_logging(logging_config, global_config)
+
+        # Initialize and configure a shared logger instance
+        self.logger = setup_logging(
+            level='DEBUG' if verbose else 'INFO',
+            log_dir=str(log_dir),
+            log_to_file=True,
+            log_to_console=True,
+            logger_name='ner_cli'
+        )
     
     def validate_global_config(self) -> bool:
         """Validate global configuration

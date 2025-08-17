@@ -67,6 +67,10 @@ class BaseCommand(ABC):
         """Set global configuration"""
         self.global_config = config
     
+    def set_logger(self, logger):
+        """Inject a shared logger instance"""
+        self.logger = logger
+    
     def get_help(self) -> str:
         """Get help text for this command"""
         return self.description
@@ -176,7 +180,7 @@ class TrainCommand(BaseCommand):
             from ..training import NERTrainer
             
             # 初始化训练器
-            trainer = NERTrainer(config, self.global_config)
+            trainer = NERTrainer(config, self.global_config, logger=self.logger)
             
             # 恢复训练
             if args.resume:
@@ -263,7 +267,7 @@ class EvaluateCommand(BaseCommand):
             from pathlib import Path
             
             # Load model
-            model_manager = NERModelManager(self.global_config.get('model_dir'))
+            model_manager = NERModelManager(self.global_config.get('model_dir'), logger=self.logger)
             model = model_manager.load_model(args.model_path)
             
             # Load tokenizer separately
@@ -296,10 +300,20 @@ class EvaluateCommand(BaseCommand):
                 config_manager = ConfigManager(self.global_config.get('config_dir'))
                 config = config_manager.load_country_config(args.country)
             
-            # Initialize evaluator
+            # Initialize evaluator with eval-specific logger under output.logs_dir
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
             model = model.to(device)  # Move model to device
-            evaluator = NEREvaluator(model, tokenizer, label_list, device)
+            eval_logs_dir = None
+            if config and 'output' in config and 'logs_dir' in config['output']:
+                eval_logs_dir = config['output']['logs_dir']
+            else:
+                eval_logs_dir = self.global_config.get('log_dir', 'data/ner/logs')
+            from ..utils import NERLogger
+            eval_logger = NERLogger(
+                name=f"{(config or {}).get('country', {}).get('code', 'unknown')}_eval",
+                log_dir=eval_logs_dir
+            )
+            evaluator = NEREvaluator(model, tokenizer, label_list, device, logger=eval_logger)
             
             import json
             texts = []
@@ -455,7 +469,7 @@ class PredictCommand(BaseCommand):
             from ..models import NERModelManager
             
             # Load model
-            model_manager = NERModelManager(self.global_config.get('model_dir'))
+            model_manager = NERModelManager(self.global_config.get('model_dir'), logger=self.logger)
             model = model_manager.load_model(args.model_path)
             
             # Load tokenizer
@@ -776,7 +790,7 @@ class ModelCommand(BaseCommand):
         try:
             from ..models import NERModelManager
             
-            model_manager = NERModelManager(self.global_config.get('model_dir'))
+            model_manager = NERModelManager(self.global_config.get('model_dir'), logger=self.logger)
             
             if args.model_action == "list":
                 models = model_manager.list_models(country=args.country)

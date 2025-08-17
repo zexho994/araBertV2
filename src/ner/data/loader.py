@@ -8,6 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 from typing import List, Dict, Any, Optional, Tuple
 from transformers import AutoTokenizer
 import os
+from ..utils import NERLogger
 
 class NERDataset(Dataset):
     """PyTorch Dataset for NER data"""
@@ -140,7 +141,7 @@ class NERDataLoader:
     """Data loader manager for NER tasks"""
     
     def __init__(self, tokenizer_name: str, label2id: Dict[str, int], 
-                 max_length: int = 512, pad_token_label_id: int = -100):
+                 max_length: int = 512, pad_token_label_id: int = -100, logger: Optional[NERLogger] = None):
         """
         Initialize NER Data Loader
         
@@ -155,6 +156,7 @@ class NERDataLoader:
         self.label2id = label2id
         self.max_length = max_length
         self.pad_token_label_id = pad_token_label_id
+        self.logger = logger
         
         # Add special tokens if needed
         if self.tokenizer.pad_token is None:
@@ -169,13 +171,19 @@ class NERDataLoader:
         Returns:
             NERDataset instance
         """
-        return NERDataset(
+        dataset = NERDataset(
             examples=examples,
             tokenizer=self.tokenizer,
             label2id=self.label2id,
             max_length=self.max_length,
             pad_token_label_id=self.pad_token_label_id
         )
+        if self.logger:
+            try:
+                self.logger.info(f"Created dataset with {len(dataset)} samples")
+            except Exception:
+                pass
+        return dataset
     
     def create_dataloader(self, dataset: NERDataset, batch_size: int = 16, 
                          shuffle: bool = True, num_workers: int = 0) -> DataLoader:
@@ -190,13 +198,21 @@ class NERDataLoader:
         Returns:
             DataLoader instance
         """
-        return DataLoader(
+        dl = DataLoader(
             dataset,
             batch_size=batch_size,
             shuffle=shuffle,
             num_workers=num_workers,
             collate_fn=self._collate_fn
         )
+        if self.logger:
+            try:
+                self.logger.info(
+                    f"Created dataloader: batch_size={batch_size}, shuffle={shuffle}, num_workers={num_workers}"
+                )
+            except Exception:
+                pass
+        return dl
     
     def _collate_fn(self, batch: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
         """Collate function for batching"""
