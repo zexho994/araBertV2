@@ -143,6 +143,21 @@ class NERModelManager:
                 id2label=id2label,
                 label2id=label2id
             )
+            # 关键：载入完整训练后的权重（包含分类头），防止仅加载主干导致评估效果极差
+            state_dict_path = model_path / "pytorch_model.bin"
+            if state_dict_path.exists():
+                try:
+                    state_dict = torch.load(state_dict_path, map_location="cpu")
+                    missing, unexpected = model.load_state_dict(state_dict, strict=False)
+                    if missing:
+                        self.logger.warning(f"Missing keys when loading state dict: {missing[:5]}{'...' if len(missing) > 5 else ''}")
+                    if unexpected:
+                        self.logger.warning(f"Unexpected keys when loading state dict into model: {unexpected[:5]}{'...' if len(unexpected) > 5 else ''}")
+                except Exception as e:
+                    self.logger.error(f"Failed to load full model state from {state_dict_path}: {e}")
+                    raise e
+            else:
+                raise FileNotFoundError(f"State dict not found at {state_dict_path}")
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
         

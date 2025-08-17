@@ -312,7 +312,7 @@ class NEREvaluator:
         true_labels: List[List[str]],
         confidence_threshold: float = 0.5
     ) -> Dict[str, Any]:
-        """对原始文本进行评估（无需 DataLoader）
+        """对原始文本进行评估
         
         Args:
             texts: 输入文本列表
@@ -327,21 +327,14 @@ class NEREvaluator:
         predictions = []
         
         for text in texts:
-            if hasattr(self.model, 'tokenizer') and hasattr(self.model, 'id2label'):
-                result = self.model.predict(
-                    text, 
-                    confidence_threshold=confidence_threshold
-                )
-            else:
-                result = self.model.predict(
-                    text, 
-                    self.tokenizer, 
-                    confidence_threshold=confidence_threshold,
-                    device=self.device
-                )
+            result = self.model.predict(
+                text,
+                self.tokenizer,
+                confidence_threshold=confidence_threshold,
+                device=self.device
+            )
             predictions.append(result['labels'])
         
-        # Compute metrics
         token_metrics = self.metrics_calculator.compute_token_metrics(
             true_labels, predictions
         )
@@ -360,3 +353,66 @@ class NEREvaluator:
             'true_labels': true_labels,
             'num_samples': len(texts)
         }
+
+    def evaluate_dataloader(self, dataloader) -> Dict[str, Any]:
+        """基于 DataLoader 进行评估（与训练时对齐方式一致）
+
+        返回：
+            指标与可选的平均损失（若 batch 含 labels）
+        """
+        self.model.eval()
+
+        total_loss: float = 0.0
+        num_batches: int = 0
+
+        y_true_sequences: List[List[str]] = []
+        y_pred_sequences: List[List[str]] = []
+
+        with torch.no_grad():
+            for batch in dataloader:
+                # 将批次迁移到设备
+                batch = {k: v.to(self.device) for k, v in batch.items()}
+
+                outputs = self.model(**batch)
+                logits = outputs['logits'] if isinstance(outputs, dict) else outputs.logits
+
+                # 若存在损失则累积
+                loss = outputs.get('loss', None) if isinstance(outputs, dict) else getattr(outputs, 'loss', None)
+                if loss is not None:
+                    total_loss += float(loss.item())
+                    num_batches += 1
+
+                predictions = torch.argmax(logits, dim=-1)
+
+                batch_labels = batch.get('labels', None)
+                if batch_labels is None:
+                    # 若无标签，无法计算指标
+                    continue
+
+                # 逐样本解码（仅保留 labels != -100 的位置）
+                for i in range(batch_labels.size(0)):
+                    mask_i = batch_labels[i] != -100
+                    true_ids = batch_labels[i][mask_i].tolist()
+                    pred_ids = predictions[i][mask_i].tolist()
+
+                    true_seq = [self.id2label.get(int(tid), 'O') for tid in true_ids]
+                    pred_seq = [self.id2label.get(int(pid), 'O') for pid in pred_ids]
+
+                    y_true_sequences.append(true_seq)
+                    y_pred_sequences.append(pred_seq)
+
+        token_metrics = self.metrics_calculator.compute_token_metrics(y_true_sequences, y_pred_sequences)
+        entity_metrics = self.metrics_calculator.compute_entity_metrics(y_true_sequences, y_pred_sequences)
+        per_entity_metrics = self.metrics_calculator.compute_per_entity_metrics(y_true_sequences, y_pred_sequences)
+
+        results: Dict[str, Any] = {
+            'token_metrics': token_metrics,
+            'entity_metrics': entity_metrics,
+            'per_entity_metrics': per_entity_metrics,
+            'num_samples': len(y_true_sequences)
+        }
+
+        if num_batches > 0:
+            results['val_loss'] = total_loss / num_batches
+
+        return results

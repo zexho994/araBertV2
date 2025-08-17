@@ -120,7 +120,7 @@ if __name__ == '__main__':
     
     # 默认调试评估命令，若需训练请改为调用 `debug_train_command()`
     # TODO: 通过命令行/环境变量选择调试目标（train/evaluate）。
-    exec_train_command(country = country)
+    # exec_train_command(country = country)
     exec_evaluate_command(country = country)
     
     print(f"\n脚本执行完成")

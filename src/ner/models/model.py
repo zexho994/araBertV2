@@ -128,13 +128,17 @@ class NERModel(PreTrainedModel):
         
         # 前向推理
         with torch.no_grad():
+            # outputs 是 dict 类型, 包含 logits, hidden_states, attentions
             outputs = self(**tokenized)
             # 兼容 dict 与对象风格输出
             if isinstance(outputs, dict):
-                logits = outputs['logits']
+                logits = outputs['logits'] # 兼容旧版本
             else:
-                logits = outputs.logits
+                logits = outputs.logits # 兼容新版本
+
+            # 对每个 token 计算每个标签的概率
             probabilities = torch.softmax(logits, dim=-1)
+            # 对每个 token 计算每个标签的预测
             predictions = torch.argmax(logits, dim=-1)
         
         # 将 token 级预测对齐到词级（仅保留每个词的首个子词）
@@ -143,9 +147,13 @@ class NERModel(PreTrainedModel):
         previous_word_idx = None
         
         for i, word_idx in enumerate(word_ids):
+            # 如果 word_idx 不为 None 且 word_idx 不等于 previous_word_idx, 则表示这是一个新的词
             if word_idx is not None and word_idx != previous_word_idx:
+                # 如果 word_idx 小于 words 的长度, 则表示这是一个有效的词
                 if word_idx < len(words):
+                    # 获取预测的标签 id, 预测结果是 tensor 类型, 需要转换为 int 类型
                     pred_id = predictions[0][i].item()
+                    # 获取预测的标签概率, 概率结果是 tensor 类型, 需要转换为 float 类型
                     confidence = probabilities[0][i][pred_id].item()
                     
                     if confidence >= confidence_threshold:

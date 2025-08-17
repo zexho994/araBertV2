@@ -262,73 +262,58 @@ class EvaluateCommand(BaseCommand):
             from ..evaluation import NEREvaluator
             from ..models import NERModelManager
             from pathlib import Path
+            from ..data import NERDataProcessor, NERDataLoader
+            from transformers import AutoTokenizer
             
             # 加载模型
             model_manager = NERModelManager(logger=self.logger)
             model = model_manager.load_model(args.model_path)
             
-            # 加载 tokenizer
-            from transformers import AutoTokenizer
-            tokenizer = AutoTokenizer.from_pretrained(args.model_path)
-            
-            # 从模型配置中获取标签列表
-            if hasattr(model, 'config') and hasattr(model.config, 'id2label'):
+            # 加载 tokenizer（保持与训练一致，优先从模型目录加载）
+            tokenizer = AutoTokenizer.from_pretrained(args.model_path, use_fast=True)
+
+            # 从模型配置中获取标签列表与映射（确保与模型训练时一致）
+            if hasattr(model, 'config') and hasattr(model.config, 'id2label') and hasattr(model.config, 'label2id'):
+                # id2label 可能是 {int: str} 或 {str: str}，统一按索引顺序取
                 id2label = model.config.id2label
-                label_list = list(id2label.values())
+                model_label2id = model.config.label2id
+                # 按键排序（数字键优先）；若是 str 键且可转 int，则按 int 排
+                try:
+                    label_list = [id2label[i] for i in range(len(id2label))]
+                except Exception as e:
+                    self.logger.error(f"加载标签列表与映射发生回退, ID2Label: {id2label}, Label2ID: {model_label2id}: {e}")
+                    label_list = list(id2label.values())
             else:
                 raise ValueError("Model configuration does not contain label mappings.")
 
-            # 加载配置
-            config = None
-            if hasattr(args, 'country') and args.country:
-                config_manager = ConfigManager(self.global_config.get('config_dir'))
-                config = config_manager.load_country_config(args.country)
+            # 加载国家配置（用于数据与标签一致性）
+            if not getattr(args, 'country', None):
+                raise ValueError("--country is required for evaluate to ensure consistent data processing")
+            config_manager = ConfigManager(self.global_config.get('config_dir'))
+            config = config_manager.load_country_config(args.country)
 
-            # 初始化评估器
+            # 准备数据（与训练流程一致）
+            processor = NERDataProcessor(config, logger=self.logger)
+            val_dataset = processor.load_data_file(args.data_path)
+
+            # 构建与训练一致的 DataLoader（使用 is_split_into_words 对齐）
+            ner_loader_builder = NERDataLoader(
+                tokenizer_name=args.model_path,
+                label2id=model_label2id,
+                max_length=config.get('data', {}).get('max_length', 512),
+                logger=self.logger
+            )
+            val_ds = ner_loader_builder.create_dataset_loader(val_dataset)
+            batch_size = getattr(args, 'batch_size', None) or config.get('training', {}).get('batch_size', 16)
+            val_loader = ner_loader_builder.create_dataloader(val_ds, batch_size=batch_size, shuffle=False)
+
+            # 初始化评估器，迁移模型至设备
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            model = model.to(device)  # 将模型移动到设备
-            if config and 'output' in config and 'logs_dir' in config['output']:
-                eval_logs_dir = config['output']['logs_dir']
-            else:
-                eval_logs_dir = self.global_config.get('log_dir', 'data/ner/logs')
-
-            # 创建评估器
-            from ..utils import NERLogger
-            eval_logger = NERLogger(
-                name=f"{(config or {}).get('country', {}).get('code', 'unknown')}_eval",
-                log_dir=eval_logs_dir
-            )
+            model = model.to(device)
             evaluator = NEREvaluator(model, tokenizer, label_list, device, logger=self.logger)
-            
-            # 读取数据
-            texts = []
-            true_labels = []
 
-            # 读取数据文件
-            with open(args.data_path, 'r', encoding='utf-8') as f:
-                f.seek(0)
-                for line in f:
-                    line = line.strip()
-                    if line:
-                        data = json.loads(line)
-                        # 如果数据包含 tokens, 则使用 tokens 重建文本
-                        if 'text' not in data or 'tokens' not in data or 'labels' not in data:
-                            raise ValueError(f"Data file {args.data_path} is invalid")
-
-                        texts.append(data['text'])
-                        true_labels.append(data['labels'])
-
-                        
-
-            # 运行评估, 默认置信度阈值为 0.1, 表示预测结果中置信度大于 0.1 的才被认为是有效的预测结果
-            confidence_threshold = getattr(args, 'confidence_threshold', 0.1)
-
-            # 评估文本
-            results = evaluator.evaluate(
-                texts=texts,
-                true_labels=true_labels,
-                confidence_threshold=confidence_threshold
-            )
+            # 运行基于 DataLoader 的评估
+            results = evaluator.evaluate_dataloader(val_loader)
             
             self.logger.info("Evaluation Results:")
 
@@ -351,6 +336,8 @@ class EvaluateCommand(BaseCommand):
                         self.logger.info(f"    {metric}: {value:.4f}")
             
             self.logger.info(f"Total samples evaluated: {results.get('num_samples', 0)}")
+            if 'val_loss' in results:
+                self.logger.info(f"Validation loss: {results['val_loss']:.4f}")
 
             # 持久化结果
             out_dir = None
@@ -557,19 +544,7 @@ class ConfigCommand(BaseCommand):
                 if config_manager.country_exists(args.country):
                     self.logger.error(f"Configuration for '{args.country}' already exists")
                     return False
-                
-                if hasattr(args, 'external_template') and args.external_template:
-                    config = config_manager.create_country_config(
-                        args.country, 
-                        args.template, 
-                        external_template_path=args.external_template
-                    )
-                    self.logger.info(f"Created configuration for '{args.country}' using external template '{args.external_template}'")
-                else:
-                    config = config_manager.create_country_config(args.country, args.template)
-                    self.logger.info(f"Created configuration for '{args.country}' using template '{args.template}'")
 
-                
             elif args.config_action == "validate":
                 config = config_manager.load_country_config(args.country)
                 validator = ConfigValidator()
