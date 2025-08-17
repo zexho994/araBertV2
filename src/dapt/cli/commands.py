@@ -1,12 +1,26 @@
-"""DAPT CLI Commands
+"""DAPT 命令行（CLI）指令集合
 
-Implements all CLI commands for DAPT operations including:
-- Training management
-- Model evaluation
-- Configuration management
-- Data processing
-- Model operations
-- Status monitoring
+提供 DAPT（领域自适应预训练）的常用指令，包括但不限于：
+- 训练管理（train）
+- 模型评估（evaluate）
+- 配置管理（config）
+- 数据处理（data）
+- 模型操作（model）
+- 状态监控（status）
+
+使用说明（高层设计）：
+- 本模块通过抽象基类 `BaseCommand` 统一约束各子命令，确保具备参数解析与执行接口。
+- 每个子命令在 `setup_parser` 中声明自己的参数；在 `execute` 中执行业务逻辑。
+- 全局配置通过 `BaseCommand.global_config` 注入，通常包含如下关键目录：
+  - `config_dir`: 配置文件根目录
+  - `model_dir`: 模型保存根目录
+  - `log_dir`: 日志根目录
+
+注意事项：
+- 如果全局配置未按要求提供上述键，将在运行期导致 KeyError。
+- 子命令中有部分参数的默认值会覆盖配置文件中的值，这在易用性与可控性之间需要权衡。
+
+# TODO: 为 `global_config` 定义强类型的数据结构（如 `TypedDict`/`dataclass`），并在入口处做完整校验。
 """
 
 import os
@@ -15,7 +29,20 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any
 
 class BaseCommand(ABC):
-    """Base class for all CLI commands"""
+    """所有 CLI 子命令的基类
+
+    责任：
+    - 提供统一的名称与描述信息
+    - 保存与注入全局配置 `global_config`
+    - 约束子类实现参数解析 `setup_parser` 与执行 `execute`
+
+    约定的 `global_config` 字段（由上层主程序注入）：
+    - `config_dir`: 配置根目录（必须）
+    - `model_dir`: 模型根目录（部分命令使用）
+    - `log_dir`: 日志根目录（部分命令使用）
+
+    # TODO: 在构造或 `set_global_config` 时进行键存在性与可访问性的校验，提前失败，提升可观测性。
+    """
     
     def __init__(self, name: str, description: str):
         self.name = name
@@ -37,7 +64,19 @@ class BaseCommand(ABC):
         pass
 
 class TrainCommand(BaseCommand):
-    """Command for starting DAPT training"""
+    """启动 DAPT 训练的命令
+
+    关键流程：
+    1. 解析国家与配置路径，并加载配置
+    2. 用命令行参数（如 epochs/batch_size/learning_rate）对配置进行覆盖
+    3. 初始化训练引擎并执行训练
+
+    风险与注意：
+    - 当前实现中，即使用户未显式传参，也会用解析器的默认值覆盖配置文件中的值；这可能与用户期望不符。
+      
+      # TODO: 仅在用户显式传入参数时才覆盖配置（可通过将 argparse 默认值设为 None 实现）。
+    - 依赖 `global_config` 中的 `config_dir`、`model_dir`；缺失将导致运行期错误。
+    """
     
     def __init__(self):
         super().__init__("train", "Start DAPT training for a specific country")
@@ -91,13 +130,15 @@ class TrainCommand(BaseCommand):
         )
     
     def execute(self, args) -> bool:
-        """Execute training command"""
+        """执行训练命令"""
         from ..engine import DAPTTrainingEngine
         from ..config import ConfigManager
         
         print(f"Starting DAPT training for country: {args.country}")
         
         # Load configuration
+        # 加载国家/自定义配置；优先使用 --config 指定文件，否则按国家模板加载
+        # ERROR: 若 `self.global_config` 未包含 `config_dir` 键，此处将抛出 KeyError。
         config_manager = ConfigManager(self.global_config['config_dir'])
         
         if args.config:
@@ -106,6 +147,8 @@ class TrainCommand(BaseCommand):
             config = config_manager.get_country_config(args.country)
         
         # Override config with command line arguments
+        # 使用 CLI 参数覆盖配置文件中的训练超参
+        # TODO: 仅当参数由用户显式传入时再覆盖，避免默认值意外覆盖配置文件。
         if hasattr(args, 'epochs'):
             config['training']['epochs'] = args.epochs
         if hasattr(args, 'batch_size'):
@@ -119,6 +162,7 @@ class TrainCommand(BaseCommand):
             return True
         
         # Initialize training engine
+        # TODO: 支持更多训练相关参数（如随机种子、梯度累积、warmup 比例、混合精度等），并在配置中统一管理。
         engine = DAPTTrainingEngine(config, self.global_config)
         
         # Start training
@@ -134,7 +178,14 @@ class TrainCommand(BaseCommand):
             return False
 
 class EvaluateCommand(BaseCommand):
-    """Command for evaluating trained models"""
+    """评估已训练模型的命令
+
+    特点：
+    - 针对 DAPT 模型提供简化评估流程
+    - 在指定 `--eval_dir` 时会自动启用详细报告并将结果持久化
+
+    # TODO: 支持递归统计模型体积（当前仅统计目录第一层文件大小）。
+    """
     
     def __init__(self):
         super().__init__("evaluate", "Evaluate trained DAPT models")
@@ -181,7 +232,7 @@ class EvaluateCommand(BaseCommand):
         )
     
     def execute(self, args) -> bool:
-        """Execute evaluation command"""
+        """执行评估命令"""
         from ..evaluation import EvaluationManager
         from ..config import ConfigManager
         import os
@@ -200,6 +251,7 @@ class EvaluateCommand(BaseCommand):
             print("Detailed report automatically enabled when using --eval_dir")
         
         # Load country configuration if provided
+        # 如果指定国家，则按国家维度加载配置；否则构造最小化配置用于 DAPT 评估
         if args.country:
             config_manager = ConfigManager(self.global_config['config_dir'])
             try:
@@ -253,6 +305,8 @@ class EvaluateCommand(BaseCommand):
                 # Model information
                 try:
                     if os.path.exists(args.model):
+                        # TODO: 当前仅统计目录第一层文件大小，未递归子目录；
+                        # 可考虑递归统计以获得更准确的模型体积。
                         model_size = sum(os.path.getsize(os.path.join(args.model, f)) 
                                        for f in os.listdir(args.model) if os.path.isfile(os.path.join(args.model, f)))
                         detailed_report += f"  - Model size: {model_size / (1024*1024):.2f} MB\n"
@@ -303,7 +357,15 @@ class EvaluateCommand(BaseCommand):
     
     def _evaluate_dapt_model(self, evaluator, model_path: str, test_data: str = None, 
                            country: str = None, metrics: list = None) -> dict:
-        """Evaluate DAPT model with simplified approach"""
+        """以简化方式评估 DAPT 模型
+
+        说明：
+        - 载入 HF 配置/模型/分词器，返回模型结构与基础统计
+        - 若提供 `test_data`，会进行基础文本统计，并在请求 `perplexity` 时尝试计算
+
+        限制：
+        - 非自回归语言模型的困惑度（perplexity）计算并不适用，且当前实现仅为占位示意。
+        """
         import os
         from transformers import AutoModel, AutoTokenizer, AutoConfig
         
@@ -368,7 +430,14 @@ class EvaluateCommand(BaseCommand):
             raise Exception(f"Failed to evaluate DAPT model: {str(e)}")
     
     def _evaluate_text_data(self, model, tokenizer, test_data_path: str) -> dict:
-        """Evaluate model on text data"""
+        """在文本数据上进行基础统计评估
+
+        说明：
+        - 仅做轻量统计（样本数、平均长度、平均 token 数等）
+        - 出于效率考虑，token 统计只抽样前 100 条样本
+
+        # TODO: 允许通过参数控制采样大小，支持全量统计或分布指标（分位数）。
+        """
         try:
             import json
             
@@ -393,11 +462,12 @@ class EvaluateCommand(BaseCommand):
             
             # Tokenization statistics
             total_tokens = 0
-            for text in texts[:100]:  # Limit to first 100 samples for efficiency
+            for text in texts[:100]:  # 为效率限制在前 100 条样本
                 tokens = tokenizer.encode(text, add_special_tokens=True)
                 total_tokens += len(tokens)
             
             results["avg_tokens_per_sample"] = total_tokens / min(len(texts), 100)
+            # TODO: 该 total_tokens 为抽样统计，而非全量；如需全量，需要遍历全部文本或改名以避免误解。
             results["total_tokens"] = total_tokens
             
             return results
@@ -407,7 +477,17 @@ class EvaluateCommand(BaseCommand):
             return {"test_samples": 0, "avg_text_length": 0, "total_tokens": 0}
     
     def _calculate_perplexity(self, model, tokenizer, test_data_path: str) -> float:
-        """Calculate perplexity for DAPT model"""
+        """计算 DAPT 模型的困惑度（perplexity）
+
+        重要说明：
+        - 当前实现仅为占位示例，并未基于语言模型的正确损失函数进行计算。
+        - 对于非自回归结构（如 BERT 家族），困惑度指标并不直接适用。
+
+        # ERROR: 下面的实现使用固定占位损失（`total_loss += 1.0`），并非真实的交叉熵损失，结果没有统计学意义。
+        # TODO: 若需支持困惑度，应：
+        #   1) 将模型切换为自回归语言模型（如 GPT 类），或
+        #   2) 使用 `AutoModelForMaskedLM` 并基于 mask 目标计算近似指标，且明确定义口径。
+        """
         try:
             import torch
             import json
@@ -443,8 +523,8 @@ class EvaluateCommand(BaseCommand):
                     if hasattr(outputs, 'last_hidden_state'):
                         # Simple approximation for perplexity calculation
                         total_tokens += inputs['input_ids'].size(1)
-                        # Use a simple loss approximation
-                        total_loss += 1.0  # Placeholder
+                        # Use a simple loss approximation（占位实现，非真实损失）
+                        total_loss += 1.0  # ERROR: 占位损失，需替换为基于 logits 的交叉熵损失
             
             if total_tokens > 0:
                 avg_loss = total_loss / total_tokens
@@ -458,7 +538,12 @@ class EvaluateCommand(BaseCommand):
             return float('inf')
 
 class ConfigCommand(BaseCommand):
-    """Command for managing configurations"""
+    """管理国家级配置的命令
+
+    功能：创建、列出、校验、展示配置。
+
+    # TODO: `validate` 与 `show` 可支持按环境（dev/test/prod）或变体（模型/数据）进行细粒度过滤。
+    """
     
     def __init__(self):
         super().__init__("config", "Manage country configurations")
@@ -491,7 +576,7 @@ class ConfigCommand(BaseCommand):
         show_parser.add_argument("--country", required=True, help="Country code")
     
     def execute(self, args) -> bool:
-        """Execute configuration command"""
+        """执行配置相关命令"""
         from ..config import ConfigManager
         
         config_manager = ConfigManager(self.global_config['config_dir'])
@@ -555,7 +640,20 @@ class ConfigCommand(BaseCommand):
         return True
 
 class DataCommand(BaseCommand):
-    """Command for data processing operations"""
+    """数据处理相关命令
+
+    子命令：
+    - validate: 数据合法性校验
+    - process: 预处理与切分
+    - stats: 数据统计
+
+    注意：
+    - 当前实现中，`execute` 会无条件按 `args.country` 去加载国家配置；但 `validate/stats` 的 `--country` 是可选的，
+      当未提供时将导致根据 `None` 尝试加载配置并失败。
+
+      # ERROR: 参数定义与实现不一致。若 `--country` 为可选，需在未提供时使用最小化配置或调整为必填。
+      # TODO: 若 `--country` 未提供，构造最小化配置以支持通用检查；或在解析器层将 `--country` 设为必选。
+    """
     
     def __init__(self):
         super().__init__("data", "Process and validate training data")
@@ -588,7 +686,7 @@ class DataCommand(BaseCommand):
         stats_parser.add_argument("--country", help="Country code")
     
     def execute(self, args) -> bool:
-        """Execute data command"""
+        """执行数据处理命令"""
         from ..data import DataProcessor
         from ..config import ConfigManager
         
@@ -617,7 +715,7 @@ class DataCommand(BaseCommand):
             return False
     
     def _validate_data(self, processor, args) -> bool:
-        """Validate data file"""
+        """校验数据文件的结构与内容"""
         # Load data first if input file is specified
         if hasattr(args, 'input_file') and args.input_file:
             if not processor.load_data(args.input_file):
@@ -643,7 +741,7 @@ class DataCommand(BaseCommand):
         return validation_result["valid"]
     
     def _process_data(self, processor, args) -> bool:
-        """Process data file"""
+        """处理数据文件并进行切分/导出"""
         result = processor.process_data(
             input_file=args.input_file,
             output_file=args.output_file,
@@ -657,14 +755,19 @@ class DataCommand(BaseCommand):
         return bool(result)
     
     def _show_stats(self, processor, args) -> bool:
-        """Show data statistics"""
+        """展示数据统计信息（基础指标）"""
         stats = processor.get_data_stats(args.input_file, country=args.country)
         print("Data Statistics:")
         print(json.dumps(stats, indent=2))
         return True
 
 class ModelCommand(BaseCommand):
-    """Command for model management operations"""
+    """模型管理相关命令
+
+    功能：列出/导出/信息/删除 模型。
+
+    # TODO: `delete` 操作在非交互环境中默认安全拒绝，可考虑支持 `--yes` 简化自动化流程。
+    """
     
     def __init__(self):
         super().__init__("model", "Manage trained models")
@@ -698,7 +801,7 @@ class ModelCommand(BaseCommand):
         delete_parser.add_argument("--force", action="store_true", help="Force deletion without confirmation")
     
     def execute(self, args) -> bool:
-        """Execute model command"""
+        """执行模型相关命令"""
         from ..models import ModelManager
         from ..config import ConfigManager
         
@@ -734,7 +837,7 @@ class ModelCommand(BaseCommand):
             return False
     
     def _list_models(self, model_manager, args) -> bool:
-        """List available models"""
+        """列出可用模型"""
         models = model_manager.list_models(country=args.country)
         print("Available models:")
         for model in models:
@@ -742,7 +845,7 @@ class ModelCommand(BaseCommand):
         return True
     
     def _export_model(self, model_manager, args) -> bool:
-        """Export model"""
+        """导出模型（pytorch/onnx/huggingface）"""
         result = model_manager.export_model(
             model_path=args.model,
             format=args.format,
@@ -753,14 +856,14 @@ class ModelCommand(BaseCommand):
         return bool(result)
     
     def _show_model_info(self, model_manager, args) -> bool:
-        """Show model information"""
+        """展示模型元信息"""
         info = model_manager.get_model_info(args.model)
         print(f"Model Information for {args.model}:")
         print(json.dumps(info, indent=2))
         return True
     
     def _delete_model(self, model_manager, args) -> bool:
-        """Delete model"""
+        """删除模型"""
         if not args.force:
             confirm = input(f"Are you sure you want to delete model '{args.model}'? (y/N): ")
             if confirm.lower() != 'y':
@@ -773,7 +876,15 @@ class ModelCommand(BaseCommand):
         return success
 
 class StatusCommand(BaseCommand):
-    """Command for checking training status and logs"""
+    """查看训练状态与日志的命令
+
+    功能：
+    - 列出训练会话（支持过滤活跃/按国家）
+    - 查看指定会话的状态详情
+    - 可选输出最近日志并控制 tail 行数
+
+    # TODO: 支持流式实时追踪（类似 `tail -f`）。
+    """
     
     def __init__(self):
         super().__init__("status", "Check training status and logs")
@@ -811,7 +922,7 @@ class StatusCommand(BaseCommand):
         )
     
     def execute(self, args) -> bool:
-        """Execute status command"""
+        """执行状态查询命令"""
         from ..utils import DAPTLogger
         
         logger = DAPTLogger(self.global_config['log_dir'])

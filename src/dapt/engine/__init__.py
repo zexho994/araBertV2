@@ -1,9 +1,11 @@
-"""DAPT Training Engine Module
+"""DAPT 训练引擎模块
 
-Core training engine components for Domain Adaptive Pre-Training:
-- DAPTTrainingEngine: Main training orchestrator
-- TrainingScheduler: Job scheduling and queue management
-- TrainingMonitor: Real-time monitoring and metrics collection
+包含 DAPT（领域自适应预训练）的核心组件：
+- `DAPTTrainingEngine`: 训练流程的核心编排器
+- `TrainingScheduler`: 训练任务的调度与队列管理
+- `TrainingMonitor`: 训练过程监控与系统/训练指标采集
+
+# TODO: 提供统一的类型注解与公共异常类型，便于调用方做细粒度异常处理。
 """
 
 from .trainer import DAPTTrainingEngine

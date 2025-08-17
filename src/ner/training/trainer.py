@@ -1,7 +1,24 @@
-"""NER Trainer
+"""NER 训练器（Trainer）
 
-Implements training logic for NER models including training loop,
-validation, checkpointing, and logging.
+实现 NER 模型训练的完整流程，包括：
+- 数据准备（数据加载与 DataLoader 构建）
+- 模型构建与设备选择
+- 优化器与学习率调度器
+- 训练与验证循环
+- 检查点（checkpoint）保存与恢复
+- 最终模型导出与训练元信息记录
+
+使用约定（配置结构关键点）：
+- `config['country']`: 包含 `code`/`name` 等基础信息
+- `config['data']`: 包含 `train_file`/`val_file`/`max_length` 等
+- `config['labels']`: 包含 `num_labels`/`label_names`/`label_mapping` 或 `entities`
+- `config['model']`: 包含 `type`/`pretrained_model`/`dropout` 等
+- `config['training']`: 包含 `epochs`/`batch_size`/`learning_rate` 等
+- `config['output']`: 包含 `model_dir`/`results_dir`/`logs_dir` 等
+- `config['hardware']`: 包含 `device`/`num_workers` 等
+- `config['logging']`: 包含 `log_file` 等
+
+# TODO: 提供统一的配置 Schema 校验（或复用上层 `ConfigManager` 的校验），并在构造时早失败。
 """
 
 import os
@@ -27,15 +44,19 @@ class NERTrainer:
     
     def __init__(self, config: Dict[str, Any], global_config: Dict[str, Any]):
         """
-        Initialize NER Trainer
+        初始化 NER 训练器
         
         Args:
-            config: Training configuration
-            global_config: Global configuration
+            config: 训练配置（国家/模型/数据/训练超参等）
+            global_config: 全局配置（如日志/配置根路径等）
         """
         self.config = config
         self.global_config = global_config
         
+        # 初始化日志
+        # ERROR: 这里从 `config.get('logs_dir')` 读取日志目录，但规范位置通常在 `config['output']['logs_dir']`
+        # 或 `config['logging']` 下，容易与项目其余部分不一致。
+        # TODO: 统一日志目录的读取来源，例如优先：config['output']['logs_dir'] -> global_config['log_dir'] -> 默认路径。
         self.logger = NERLogger(
             name=f"{config.get('country', {}).get('code', 'unknown')}_training",
             log_dir=config.get('logs_dir', 'data/ner/logs')
@@ -74,7 +95,16 @@ class NERTrainer:
         self.logger.info(f"Initialized trainer for {country_display} on device: {self.device}")
     
     def _setup_device(self) -> torch.device:
-        """Setup training device"""
+        """设置训练设备（GPU/CPU/指定 CUDA 设备）
+
+        规则：
+        - hardware.device == 'auto'：若可用则优先 CUDA，否则 CPU
+        - hardware.device == 'cuda'：强制使用 GPU，否则回退 CPU 并告警
+        - hardware.device == 'cpu'：强制使用 CPU
+        - 支持形如 'cuda:0' 的特定设备
+
+        # TODO: 支持混合精度（fp16/bf16）与 GradScaler，并在此处根据硬件能力初始化策略。
+        """
         hardware_config = self.config.get('hardware', {})
         device_config = hardware_config.get('device', 'auto')
         
@@ -111,7 +141,20 @@ class NERTrainer:
         return device
     
     def prepare_data(self):
-        """Prepare training data"""
+        """准备训练/验证数据
+
+        步骤：
+        - 加载训练与验证文件
+        - 解析标签定义，支持两种格式：`entities` 或完整的 BIO `label_names`
+        - 基于标签构建 `label2id`/`id2label`
+        - 构建 `NERDataLoader` 并生成 DataLoader 集合
+
+        注意：
+        - 若配置由上游校验强制要求 `label_names/num_labels/label_mapping`，此处的 `entities` 分支与之存在冗余。
+          两者需要在规范上统一，避免训练时与评估/导出阶段的标签不一致。
+          
+          # TODO: 统一标签来源：优先从 `labels.label_names` 读取；如不存在再基于 `entities` 派生 BIO 标签。
+        """
         self.logger.info("Preparing training data...")
         
         data_config = self.config['data']
@@ -177,7 +220,11 @@ class NERTrainer:
         self.logger.info(f"Created data loaders with {self.num_labels} labels")
     
     def prepare_model(self):
-        """Prepare model for training"""
+        """准备模型（根据配置加载预训练模型并适配标签数）
+
+        目前仅支持 `bert` 类型。
+        # TODO: 支持 `roberta`/`xlm-roberta` 等等；当包含 CRF 时需在预测与验证处适配解码流程。
+        """
         self.logger.info("Preparing model...")
         
         model_config = self.config['model']
@@ -198,7 +245,14 @@ class NERTrainer:
         self.logger.info(f"Initialized {model_config['type']} model with {self.num_labels} labels")
     
     def prepare_optimizer(self):
-        """Prepare optimizer and scheduler"""
+        """准备优化器与学习率调度器
+
+        - 优化器：默认 AdamW
+        - 调度器：linear（基于总步数与 warmup_ratio）或 cosine（按总步数退火）
+
+        # TODO: 按参数类型做权重衰减分组（bias/LayerNorm 不衰减），提升优化效果。
+        # TODO: 支持梯度累积（gradient_accumulation_steps）以增大等效 batch size。
+        """
         training_config = self.config['training']
         
         # Prepare optimizer
@@ -238,13 +292,16 @@ class NERTrainer:
         self.logger.info(f"Initialized {optimizer_name} optimizer with {scheduler_name} scheduler")
     
     def train_epoch(self, epoch: int) -> float:
-        """Train for one epoch
+        """单轮训练
         
         Args:
-            epoch: Current epoch number
+            epoch: 当前轮次编号（从 0 开始）
             
         Returns:
-            Average training loss
+            本轮平均训练损失
+
+        # TODO: 支持 AMP 混合精度（torch.cuda.amp.autocast + GradScaler）降低显存/提升吞吐。
+        # TODO: 支持梯度累积，在大 batch 受限的设备上稳定训练。
         """
         self.model.train()
         total_loss = 0.0
@@ -268,7 +325,7 @@ class NERTrainer:
             self.optimizer.zero_grad()
             loss.backward()
             
-            # Gradient clipping
+            # Gradient clipping（梯度裁剪，防止梯度爆炸）
             max_grad_norm = self.config['training'].get('max_grad_norm', 1.0)
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
             
@@ -280,7 +337,7 @@ class NERTrainer:
             # Update metrics
             total_loss += loss.item()
             
-            # Update progress bar
+            # Update progress bar（进度条显示当前 loss 与 lr）
             current_lr = self.optimizer.param_groups[0]['lr']
             progress_bar.set_postfix({
                 'loss': f"{loss.item():.4f}",
@@ -298,10 +355,17 @@ class NERTrainer:
         return avg_loss
     
     def validate(self) -> Dict[str, float]:
-        """Validate model
+        """验证评估
         
         Returns:
-            Validation metrics
+            验证指标字典（实体级与 token 级）
+
+        说明：
+        - 忽略标签中的 padding（-100）再进行评估。
+        - 构建每样本的标签序列，交由 `SeqevalNERMetrics` 计算实体级与 token 级指标。
+
+        # TODO: 若模型包含 CRF 层，应替换为 CRF 解码的预测结果。
+        # TODO: 支持输出分类报告或混淆矩阵到文件。
         """
         if 'val' not in self.data_loaders:
             return {}
@@ -374,12 +438,15 @@ class NERTrainer:
         return metrics
     
     def save_checkpoint(self, epoch: int, metrics: Dict[str, float], is_best: bool = False):
-        """Save training checkpoint
+        """保存训练检查点（checkpoint）
         
         Args:
-            epoch: Current epoch
-            metrics: Current metrics
-            is_best: Whether this is the best checkpoint
+            epoch: 当前轮次编号
+            metrics: 当前验证指标
+            is_best: 是否为当前最佳
+
+        # TODO: 使用 `safetensors` 或分片保存以降低风险与单文件体积。
+        # TODO: 控制检查点保留数量，仅保留最近 N 个与 `best`，节省磁盘空间。
         """
         checkpoint = {
             'epoch': epoch,
@@ -408,7 +475,15 @@ class NERTrainer:
         torch.save(checkpoint, latest_path)
     
     def save_final_model(self):
-        """Save final trained model"""
+        """保存最终训练完成的模型与元数据
+
+        - 保存 HF 兼容的模型权重与 tokenizer
+        - 基于 `base_model_name` 生成 config.json，并注入 NER 相关字段
+        - 另存训练元信息（便于部署/对比/复现实验）
+
+        # TODO: 采用 `safe_serialization=True`（如适用）提高健壮性。
+        # TODO: 导出 `label_mapping` 与版本信息，便于推理侧复盘。
+        """
         model_dir = self.output_dir / f"{self.config['country']['code']}_model"
         model_dir.mkdir(parents=True, exist_ok=True)
         
@@ -450,7 +525,11 @@ class NERTrainer:
         self.logger.info(f"Saved training metadata to {metadata_path}")
     
     def train(self):
-        """Main training loop"""
+        """主训练循环
+
+        # TODO: 将关键指标写入 TensorBoard/CSV，以便可视化对比与复盘。
+        # TODO: 在无验证集的情况下，支持按训练损失或学习率策略做早停的替代策略。
+        """
         self.logger.info("Starting training...")
         start_time = time.time()
         
@@ -509,7 +588,7 @@ class NERTrainer:
             
             self.logger.info(log_msg)
             
-            # Early stopping
+            # Early stopping（基于验证集 F1 触发）
             if self.patience_counter >= self.early_stopping_patience:
                 self.logger.info(f"Early stopping triggered after {epoch + 1} epochs")
                 break
@@ -523,10 +602,13 @@ class NERTrainer:
         self.logger.info(f"Best validation F1: {self.best_val_f1:.4f}")
     
     def resume_from_checkpoint(self, checkpoint_path: str):
-        """Resume training from checkpoint
+        """从检查点恢复训练
         
         Args:
-            checkpoint_path: Path to checkpoint file
+            checkpoint_path: 检查点文件路径
+
+        # TODO: 处理跨设备恢复（如 CPU 上加载 GPU 保存的状态），并提供自动映射策略。
+        # TODO: 校验优化器/调度器状态与当前配置是否兼容，不兼容时给出告警与降级方案。
         """
         self.logger.info(f"Resuming training from {checkpoint_path}")
         
@@ -545,7 +627,15 @@ class NERTrainer:
         self.logger.info(f"Resumed from epoch {checkpoint['epoch'] + 1}")
 
 class TrainingEngine:
-    """High-level training engine"""
+    """高层训练引擎（封装配置加载与训练启动）
+
+    责任：
+    - 按国家代码加载配置
+    - 应用外部覆盖配置
+    - 构造 `NERTrainer` 并启动训练
+
+    # TODO: 覆盖合并应为深度合并（deep merge），避免嵌套字段被整体覆盖。
+    """
     
     def __init__(self, global_config: Dict[str, Any]):
         self.global_config = global_config
@@ -555,14 +645,14 @@ class TrainingEngine:
         )
     
     def train_model(self, country: str, config_override: Optional[Dict[str, Any]] = None) -> bool:
-        """Train model for specific country
+        """针对指定国家训练模型
         
         Args:
-            country: Country code
-            config_override: Configuration overrides
+            country: 国家代码
+            config_override: 配置覆盖（浅合并）
             
         Returns:
-            True if training successful
+            训练是否成功
         """
         try:
             # Load configuration
@@ -573,6 +663,7 @@ class TrainingEngine:
             
             # Apply overrides
             if config_override:
+                # TODO: 深度合并，避免覆盖嵌套结构；并记录被覆盖项用于追踪。
                 config.update(config_override)
             
             # Initialize trainer

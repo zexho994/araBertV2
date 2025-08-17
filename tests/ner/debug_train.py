@@ -1,25 +1,36 @@
 #!/usr/bin/env python3
 """
-简单的调试脚本 - 用于在IDE中调试 NER CLI 训练命令
+简单的调试脚本 - 用于在 IDE 中调试 NER CLI 的训练与评估命令
 
 使用方法：
-1. 在IDE中打开此文件
+1. 在 IDE 中打开此文件
 2. 在需要调试的地方设置断点
 3. 运行此脚本进行调试
 
-模拟命令：python .\ner_cli.py train --country uae_xml_roberta_base
+示例命令：
+- 训练：python .\ner_cli.py train --country uae_xml_roberta_base
+- 评估：python .\ner_cli.py evaluate --country uae_xml_roberta_base --model-path <path> --data-path <path>
+
+# TODO: 从 `@configs` 自动解析默认数据/模型路径，减少硬编码依赖。
 """
 
 import sys
 import os
 from pathlib import Path
 
-# 添加项目根目录到 Python 路径
+# 将项目根目录添加到 Python 路径，便于在 IDE 直接导入包
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 def debug_train_command():
-    """调试训练命令"""
+    """调试训练命令
+
+    说明：
+    - 通过直接设置 `sys.argv` 模拟命令行参数，便于在 IDE 中断点调试。
+    - 会切换到项目根目录，确保相对路径解析与实际运行一致。
+
+    # TODO: 支持从环境变量或配置文件中读取待调试的参数，避免改动源码。
+    """
     
     # 模拟命令行参数
     # 原命令: python .\ner_cli.py train --country uae_xml_roberta_base
@@ -34,7 +45,7 @@ def debug_train_command():
     print(f"当前工作目录: {os.getcwd()}")
     print(f"项目根目录: {project_root}")
     
-    # 切换到项目根目录
+    # 切换到项目根目录，确保相对路径与 CLI 一致
     os.chdir(project_root)
     
     try:
@@ -59,7 +70,14 @@ def debug_train_command():
         return 1
 
 def debug_evaluate_command():
-    """调试评估命令"""
+    """调试评估命令
+
+    说明：
+    - 同样通过设置 `sys.argv` 模拟评估子命令。
+    - 默认提供示例模型与数据路径，实际使用请按需修改。
+
+    # TODO: 验证 `--data-path` 的默认行为是否与 CLI 说明一致，并在缺省时从配置中解析。
+    """
     sys.argv = [
         'ner_cli.py',
         'evaluate',
@@ -98,6 +116,8 @@ if __name__ == '__main__':
     print("=" * 30)
     
     # 执行调试
+    # 默认调试评估命令，若需训练请改为调用 `debug_train_command()`
+    # TODO: 通过命令行/环境变量选择调试目标（train/evaluate）。
     # exit_code = debug_train_command()
     exit_code = debug_evaluate_command()
     
