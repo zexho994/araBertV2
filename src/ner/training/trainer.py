@@ -246,18 +246,21 @@ class NERTrainer:
     def prepare_model(self):
         """准备模型（根据配置加载预训练模型并适配标签数）
 
-        目前仅支持 `bert` 类型。
-        # TODO: 支持 `roberta`/`xlm-roberta` 等等；当包含 CRF 时需在预测与验证处适配解码流程。
+        # TODO: 添加支持使用 CRF, 在预测与验证处适配解码流程。
         """
         self.logger.info("Preparing model...")
         
         model_config = self.config['model']
-        
-        if model_config['type'] == 'bert':
+
+        model_type = model_config['type']
+        self.logger.debug(f"Preparing {model_type} model...")
+        if model_type == 'bert' or model_type == 'roberta':
             self.model = BertNERModel.from_pretrained(
                 pretrained_model_name_or_path=model_config['pretrained_model'],
                 num_labels=self.num_labels,
-                dropout=model_config.get('dropout', 0.1)
+                dropout=model_config.get('dropout', 0.1),
+                label2id=self.label2id,
+                id2label=self.id2label
             )
         else:
             raise ValueError(f"Unsupported model type: {model_config['type']}")
@@ -282,6 +285,8 @@ class NERTrainer:
         optimizer_name = training_config.get('optimizer', 'adamw')
         learning_rate = training_config['learning_rate']
         weight_decay = training_config.get('weight_decay', 0.01)
+
+        self.logger.debug(f"Preparing {optimizer_name} optimizer with learning rate {learning_rate} and weight decay {weight_decay}")
         
         if optimizer_name.lower() == 'adamw':
             self.optimizer = AdamW(

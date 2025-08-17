@@ -6,7 +6,6 @@
 - 提示：推理阶段对置信度的阈值化仅作简单筛选，具体阈值应依据校准结果调整。
 """
 
-from ner.utils.logger import NERLogger
 import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss
@@ -26,8 +25,6 @@ class NERModelConfig(PretrainedConfig):
     注意：
     - label2id 与 id2label 的键类型（int 或 str）在下游使用时可能混用，应尽量统一。
     """
-    
-    model_type = "ner"
     
     def __init__(
         self,
@@ -313,6 +310,8 @@ class BertNERModel(NERModel):
             model_name=pretrained_model_name_or_path,
             **kwargs
         )
+
+        print(f"=> bert ner config: {config}")
         
         # 再次确保标签数
         config.num_labels = num_labels

@@ -77,11 +77,11 @@ class NERDataset(Dataset):
             return_tensors='pt'
         )
 
-        # ERROR：在部分 transformers 版本中，BatchEncoding.word_ids 需要传入 batch_index=0；
-        # 这里未显式传参可能导致运行时错误（TypeError）。建议做兼容处理或统一传入 batch_index=0。
-        # 参考：tokenized_inputs.word_ids(batch_index=0)
-        # TODO：增加健壮性：try/except 捕获并回退到 batch_index=0 调用
-        word_ids = tokenized_inputs.word_ids()
+        # 兼容不同 transformers 版本对 BatchEncoding.word_ids 的签名差异
+        try:
+            word_ids = tokenized_inputs.word_ids(batch_index=0)
+        except TypeError:
+            word_ids = tokenized_inputs.word_ids()
 
         # 将标签按照分词后的子词对齐
         aligned_labels: List[int] = []
@@ -131,8 +131,11 @@ class NERDataset(Dataset):
         aligned_labels: List[int]
     ) -> None:
         """当 DEBUG_ALIGNMENT=1 时打印对齐表，便于快速人工核验。"""
-        # ERROR：与上文一致，若使用批量编码，word_ids 可能需要 batch_index=0
-        word_ids = tokenized_inputs.word_ids()
+        # 兼容不同 transformers 版本对 BatchEncoding.word_ids 的签名差异
+        try:
+            word_ids = tokenized_inputs.word_ids(batch_index=0)
+        except TypeError:
+            word_ids = tokenized_inputs.word_ids()
         input_ids = tokenized_inputs['input_ids'][0]
         sub_tokens = self.tokenizer.convert_ids_to_tokens(input_ids.tolist())
 
@@ -323,8 +326,11 @@ class NERTokenizer:
             return_tensors='pt'
         )
         
-        # ERROR：同样可能需要 batch_index=0，建议做兼容处理
-        word_ids = tokenized.word_ids()
+        # 兼容不同 transformers 版本对 BatchEncoding.word_ids 的签名差异
+        try:
+            word_ids = tokenized.word_ids(batch_index=0)
+        except TypeError:
+            word_ids = tokenized.word_ids()
         
         return {
             'input_ids': tokenized['input_ids'],
