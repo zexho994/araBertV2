@@ -58,9 +58,9 @@
         "logging_steps": 100
     },
     "data": {
-        "train_file": "data/ner/data/uae_xml_roberta_base/train.jsonl",
-        "val_file": "data/ner/data/uae_xml_roberta_base/val.jsonl",
-        "test_file": "data/ner/data/uae_xml_roberta_base/test.jsonl",
+        "train_file": "data/ner/data/uae_xml_roberta_base/train_50000.jsonl",
+        "val_file": "data/ner/data/uae_xml_roberta_base/evaluate_50000.jsonl",
+        "test_file": "data/ner/data/uae_xml_roberta_base/evaluate_50000.jsonl",
         "max_length": 512,
         "doc_stride": 128,
         "preprocessing": {
