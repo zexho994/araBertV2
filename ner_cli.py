@@ -206,6 +206,47 @@ For more information on each command, use:
         help='Evaluation batch size'
     )
     
+    # Evaluate (predict) command
+    eval_predict_parser = subparsers.add_parser(
+        'evaluate-predict',
+        help='Evaluate a trained model using predict() decoding',
+        description='Evaluate a trained NER model with serving-like predict() + thresholding'
+    )
+    eval_predict_parser.add_argument(
+        '--model-path', '-m',
+        type=str,
+        required=True,
+        help='Path to trained model'
+    )
+    eval_predict_parser.add_argument(
+        '--data-path', '-d',
+        type=str,
+        required=True,
+        help='Path to evaluation data file'
+    )
+    eval_predict_parser.add_argument(
+        '--country',
+        type=str,
+        required=True,
+        help='Country configuration to use (ensures consistent labels and processing)'
+    )
+    eval_predict_parser.add_argument(
+        '--output-dir', '-o',
+        type=str,
+        help='Output directory for evaluation results'
+    )
+    eval_predict_parser.add_argument(
+        '--confidence-threshold',
+        type=float,
+        default=0.5,
+        help='Confidence threshold for predict() decoding (default: 0.5)'
+    )
+    eval_predict_parser.add_argument(
+        '--limit',
+        type=int,
+        help='Limit number of samples for quick evaluation'
+    )
+    
     # Predict command
     predict_parser = subparsers.add_parser(
         'predict',

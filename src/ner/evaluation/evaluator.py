@@ -323,14 +323,21 @@ class NEREvaluator:
         """
         predictions = []
         
-        for text in texts:
-            result = self.model.predict(
-                text,
-                self.tokenizer,
+        for text, true_seq in zip(texts, true_labels):
+            # 使用真实 tokens 进行预测以避免与空白切词策略不一致
+            words = text.split()
+            # 若文本与标签长度不一致，优先使用标签长度截断文本
+            if len(words) != len(true_seq):
+                words = words[:len(true_seq)]
+            result = self.model.predict_tokens(
+                words,
+                tokenizer=self.tokenizer,
                 confidence_threshold=confidence_threshold,
                 device=self.device
             )
-            predictions.append(result['labels'])
+            # 同步裁剪，确保与 true_seq 对齐
+            pred_labels = result['labels'][:len(true_seq)]
+            predictions.append(pred_labels)
         
         token_metrics = self.metrics_calculator.compute_token_metrics(
             true_labels, predictions

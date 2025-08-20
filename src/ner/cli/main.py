@@ -11,6 +11,7 @@ from pathlib import Path
 from .commands import (
     TrainCommand,
     EvaluateCommand,
+    EvaluatePredictCommand,
     PredictCommand,
     ConfigCommand,
     DataCommand,
@@ -65,6 +66,7 @@ class NERCLIManager:
         commands = [
             TrainCommand(),
             EvaluateCommand(),
+            EvaluatePredictCommand(),
             PredictCommand(),
             ConfigCommand(),
             DataCommand(),
