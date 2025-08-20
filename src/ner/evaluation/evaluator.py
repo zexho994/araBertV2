@@ -31,8 +31,6 @@ from sklearn.metrics import (
 
 from ..utils import NERLogger
 
-
-
 class NERMetrics:
     """NER 评估指标计算器
 
@@ -41,7 +39,6 @@ class NERMetrics:
     - 计算实体级指标（基于 seqeval 严格模式 IOB2）
     - 计算逐实体类别指标（基于实体跨度集合的集合运算）
 
-    # TODO: `ignore_labels` 默认忽略 'O'；应允许按需扩展/关闭忽略机制。
     """
 
     label_list = [] # 标签列表
