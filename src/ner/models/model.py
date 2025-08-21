@@ -89,93 +89,75 @@ class NERModel(PreTrainedModel):
         confidence_threshold: float = 0.5,
         device: Optional[torch.device] = None
     ) -> Dict[str, Any]:
-        """对输入文本进行预测
+        """对输入文本进行预测（基于空白切词）"""
+        if text is None:
+            raise ValueError("text is required")
+        words = text.split()
+        return self.predict_tokens(words, tokenizer=tokenizer, confidence_threshold=confidence_threshold, device=device)
+
+    def predict_tokens(
+        self,
+        words: List[str],
+        tokenizer=None,
+        confidence_threshold: float = 0.5,
+        device: Optional[torch.device] = None
+    ) -> Dict[str, Any]:
+        """对输入的词序列进行预测（避免二次切词导致的对齐偏差）
         
         参数：
-            text: 输入文本
-            tokenizer: 分词器（必须为 fast 分词器以支持 word_ids 对齐）
-            confidence_threshold: 置信度阈值，低于该值的 token 将被置为 'O'
-            device: 推理设备；默认沿用模型参数所在设备
-        
-        返回：
-            预测结果字典，包含 tokens/labels/confidences 以及抽取的实体列表
+            words: 词序列（与标注对齐）
+            tokenizer: fast 分词器
+            confidence_threshold: 概率阈值（低于则置为 'O'）
+            device: 推理设备
         """
         if tokenizer is None:
             raise ValueError("Tokenizer is required for prediction")
-        
         if device is None:
             device = next(self.parameters()).device
         
         self.eval()
         
-        # 将文本按空白切词；若文本并非空白分词语种，可在外部提供更合适的分词方式
-        words = text.split()
         tokenized = tokenizer(
-            words, # 输入文本
-            is_split_into_words=True,  # 输入已分词，无需再切词
-            return_tensors="pt", # 转换为 PyTorch 张量
+            words,
+            is_split_into_words=True,
+            return_tensors="pt",
             padding=True,
             truncation=True,
             max_length=512
         )
         
-        # 重要：对齐信息需在迁移到设备前获取
-        # ERROR：若 tokenizer 非 fast 实现，可能不支持 word_ids，需在外层校验或提供回退策略
-        word_ids = tokenized.word_ids(batch_index=0) # ex.[None, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 4, 5, 5, 6, 6, 7, 8, 9, 10, 11, 12, 13, 13, None]
+        try:
+            word_ids = tokenized.word_ids(batch_index=0)
+        except TypeError:
+            word_ids = tokenized.word_ids()
         
-        # 迁移到设备
         tokenized = {k: v.to(device) for k, v in tokenized.items()}
         
-        # 前向推理
         with torch.no_grad():
-            # outputs 是 dict 类型, 包含 logits, hidden_states, attentions
             outputs = self(**tokenized)
-            # 兼容 dict 与对象风格输出
-            if isinstance(outputs, dict):
-                logits = outputs['logits'] # 兼容旧版本
-            else:
-                logits = outputs.logits # 兼容新版本
-
-            # 对每个 token 计算每个标签的概率
+            logits = outputs['logits'] if isinstance(outputs, dict) else outputs.logits
             probabilities = torch.softmax(logits, dim=-1)
-            # 对每个 token 计算每个标签的预测
             predictions = torch.argmax(logits, dim=-1)
         
-        # 将 token 级预测对齐到词级（仅保留每个词的首个子词）
-        word_predictions = []
-        word_confidences = []
+        word_predictions: List[str] = []
+        word_confidences: List[float] = []
         previous_word_idx = None
-        
         for i, word_idx in enumerate(word_ids):
-            # 如果 word_idx 不为 None 且 word_idx 不等于 previous_word_idx, 则表示这是一个新的词
             if word_idx is not None and word_idx != previous_word_idx:
-                # 如果 word_idx 小于 words 的长度, 则表示这是一个有效的词
                 if word_idx < len(words):
-                    # 获取预测的标签 id, 预测结果是 tensor 类型, 需要转换为 int 类型
-                    pred_id = predictions[0][i].item()
-                    # 获取预测的标签概率, 概率结果是 tensor 类型, 需要转换为 float 类型
-                    confidence = probabilities[0][i][pred_id].item()
-                    
+                    pred_id = int(predictions[0][i].item())
+                    confidence = float(probabilities[0][i][pred_id].item())
                     if confidence >= confidence_threshold:
-                        # 兼容 id2label 键为 str 或 int 的两种情况
                         label = self.config.id2label.get(str(pred_id), self.config.id2label.get(pred_id, 'O'))
                     else:
                         label = 'O'
-                    
                     word_predictions.append(label)
                     word_confidences.append(confidence)
-                
                 previous_word_idx = word_idx
         
-        # 抽取实体（基于 BIO 标签）
         entities = self._extract_entities(words, word_predictions, word_confidences)
-        
-        # TODO：
-        # - 支持批量预测接口，避免逐条文本前向
-        # - 支持更丰富的解码（BIOES、CRF 解码等）
-        # - 置信度可做温度缩放/阈值自动化选择
         return {
-            'text': text,
+            'text': ' '.join(words),
             'tokens': words,
             'labels': word_predictions,
             'confidences': word_confidences,
