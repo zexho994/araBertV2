@@ -1,73 +1,75 @@
 {
     "country": {
-        "code": "uae",
-        "name": "United Arab Emirates",
-        "language": "ar",
-        "description": "Configuration for UAE address parsing with comprehensive entity recognition"
+        "code": "uae_xml_roberta_base",
+        "name": "UAE_XML_ROBERTA_BASE",
+        "language": "",
+        "description": "desc for Uae Xml Roberta Base"
     },
     "model": {
-        "name": "uae_address_ner",
+        "name": "XLM-RoBERTa",
         "type": "bert",
-        "pretrained_model": "aubmindlab/bert-base-arabertv2",
+        "pretrained_model": "zexho/uae_address_roberta_v1.0",
         "max_length": 512,
-        "dropout": 0.1,
         "hidden_size": 768,
         "num_attention_heads": 12,
-        "num_hidden_layers": 12
+        "num_hidden_layers": 12,
+        "dropout": 0.1,
+        "config": {
+            "hidden_dropout_prob": 0.1,
+            "attention_probs_dropout_prob": 0.1
+        },
+        "transformers_config": {
+            "architectures": ["XLMRobertaForTokenClassification"],
+            "attention_probs_dropout_prob": 0.1,
+            "bos_token_id": 0,
+            "classifier_dropout": null,
+            "eos_token_id": 2,
+            "hidden_act": "gelu",
+            "hidden_dropout_prob": 0.1,
+            "hidden_size": 768,
+            "initializer_range": 0.02,
+            "intermediate_size": 3072,
+            "layer_norm_eps": 1e-05,
+            "max_position_embeddings": 514,
+            "model_type": "xlm-roberta",
+            "num_attention_heads": 12,
+            "num_hidden_layers": 12,
+            "pad_token_id": 1,
+            "position_embedding_type": "absolute",
+            "transformers_version": "4.21.0",
+            "type_vocab_size": 1,
+            "use_cache": true,
+            "vocab_size": 250002
+        }
     },
     "training": {
-        "epochs": 4,
-        "batch_size": 32,
-        "learning_rate": 3e-5,
+        "epochs": 2,
+        "batch_size": 16,
+        "learning_rate": 2e-05,
+        "weight_decay": 0.01,
+        "warmup_steps": 500,
+        "warmup_ratio": 0.1,
         "optimizer": "adamw",
         "scheduler": "linear",
-        "warmup_steps": 1000,
-        "weight_decay": 0.01,
-        "gradient_accumulation_steps": 1,
+        "early_stopping_patience": 3,
         "max_grad_norm": 1.0,
-        "early_stopping": {
-            "enabled": true,
-            "patience": 5,
-            "min_delta": 0.001
-        },
-        "validation_steps": 500,
+        "save_steps": 1000,
+        "eval_steps": 500,
         "logging_steps": 100
     },
     "data": {
-        "train_file": "uae_train.jsonl",
-        "val_file": "uae_val.jsonl",
-        "test_file": "uae_test.jsonl",
-        "data_format": "jsonl",
-        "text_column": "text",
-        "labels_column": "labels",
+        "train_file": "data/ner/data/uae_xml_roberta_base/train.jsonl",
+        "val_file": "data/ner/data/uae_xml_roberta_base/val.jsonl",
+        "test_file": "data/ner/data/uae_xml_roberta_base/test.jsonl",
+        "max_length": 512,
+        "doc_stride": 128,
         "preprocessing": {
             "lowercase": false,
-            "remove_diacritics": true,
-            "normalize_whitespace": true,
-            "remove_special_chars": false
-        },
-        "augmentation": {
-            "enabled": false,
-            "techniques": []
+            "remove_accents": false,
+            "tokenize_chinese_chars": true
         }
     },
-    "transformers_config": {
-        "architectures": ["BertForTokenClassification"],
-        "attention_probs_dropout_prob": 0.1,
-        "hidden_act": "gelu",
-        "hidden_dropout_prob": 0.1,
-        "initializer_range": 0.02,
-        "intermediate_size": 3072,
-        "layer_norm_eps": 1e-12,
-        "max_position_embeddings": 512,
-        "model_type": "bert",
-        "pad_token_id": 0,
-        "position_embedding_type": "absolute",
-        "transformers_version": "4.21.0",
-        "type_vocab_size": 2,
-        "use_cache": true,
-        "vocab_size": 30522
-    },
+
     "labels": {
         "num_labels": 17,
         "label_names": [
@@ -100,61 +102,52 @@
             "B-HOUSE_NUMBER": 15,
             "I-HOUSE_NUMBER": 16
         },
-        "label_descriptions": {
-            "O": "Outside any entity",
-            "B-COUNTRY": "Beginning of country name (الإمارات العربية المتحدة)",
-            "I-COUNTRY": "Inside country name",
-            "B-EMIRATE": "Beginning of emirate name (دبي، أبوظبي، الشارقة، etc.)",
-            "I-EMIRATE": "Inside emirate name",
-            "B-CITY": "Beginning of city name (دبي، أبوظبي، العين، etc.)",
-            "I-CITY": "Inside city name",
-            "B-SUB_AREA": "Beginning of sub-area/district (منطقة فرعية)",
-            "I-SUB_AREA": "Inside sub-area/district",
-            "B-COMPOUND": "Beginning of compound/community name (مجمع سكني)",
-            "I-COMPOUND": "Inside compound/community name",
-            "B-STREET": "Beginning of street name (شارع الشيخ زايد، etc.)",
-            "I-STREET": "Inside street name",
-            "B-BUILDING": "Beginning of building name (برج خليفة، etc.)",
-            "I-BUILDING": "Inside building name",
-            "B-HOUSE_NUMBER": "Beginning of house/unit number (رقم المنزل/الوحدة)",
-            "I-HOUSE_NUMBER": "Inside house/unit number"
-        }
+        "ignore_index": -100
     },
     "evaluation": {
-        "metrics": ["precision", "recall", "f1", "accuracy", "entity_f1"],
-        "save_predictions": true,
-        "save_detailed_report": true,
-        "compute_per_label_metrics": true,
-        "confusion_matrix": true
+        "metrics": [
+            "precision",
+            "recall",
+            "f1",
+            "accuracy"
+        ],
+        "average": "weighted",
+        "return_entity_level_metrics": true,
+        "classification_report": true
     },
     "output": {
-        "model_dir": "data/ner/models/uae",
-        "save_steps": 1000,
+        "model_dir": "data/ner/models/uae_xml_roberta_base",
+        "results_dir": "data/ner/result/uae_xml_roberta_base",
+        "logs_dir": "data/ner/logs/uae_xml_roberta_base",
+        "predictions_file": "predictions.json",
         "save_total_limit": 3,
-        "overwrite_output_dir": true,
-        "save_best_model": true,
-        "load_best_model_at_end": true
+        "overwrite_output_dir": true
     },
     "hardware": {
         "device": "auto",
-        "mixed_precision": true,
-        "dataloader_num_workers": 4,
+        "num_workers": 0,
         "pin_memory": true,
-        "gradient_checkpointing": false
+        "fp16": true,
+        "dataloader_drop_last": false
     },
     "logging": {
         "level": "INFO",
-        "log_file": "uae_training.log",
-        "error_log_file": "uae_errors.log",
+        "log_file": "data/ner/logs/uae_xml_roberta_base/example.log",
+        "console_output": true,
         "wandb": {
             "enabled": false,
-            "project": "uae-address-ner",
+            "project": "ner-example",
             "entity": null,
-            "tags": ["uae", "address", "ner", "arabic"]
+            "tags": [
+                "ner",
+                "bert",
+                "example"
+            ]
         },
         "tensorboard": {
             "enabled": true,
-            "log_dir": "data/ner/logs/tensorboard/uae"
+            "log_dir": "runs/example"
         }
     }
+
 }
