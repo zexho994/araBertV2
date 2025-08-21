@@ -536,10 +536,6 @@ class PredictCommand(BaseCommand):
             help="File to save predictions"
         )
         parser.add_argument(
-            "--country",
-            help="Country code for configuration"
-        )
-        parser.add_argument(
             "--output-format",
             choices=["json", "text", "conll"],
             default="json",
@@ -554,6 +550,10 @@ class PredictCommand(BaseCommand):
     
     def execute(self, args) -> bool:
         try:
+            # Suppress transformers warnings
+            import logging
+            logging.getLogger("transformers").setLevel(logging.ERROR)
+            
             # Import required modules
             from ..models import NERModelManager
             

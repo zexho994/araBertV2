@@ -509,7 +509,12 @@ def main():
     log_level = 'DEBUG' if args.verbose else args.log_level
     
     # 日志文件名, {country.code}
-    log_file = args.log_file or f'data/ner/logs/{args.country}/ner_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
+    if args.log_file:
+        log_file = args.log_file
+    elif hasattr(args, 'country') and args.country:
+        log_file = f'data/ner/logs/{args.country}/ner_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
+    else:
+        log_file = f'data/ner/logs/ner_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
     
     logger = setup_logging(
         level=log_level,

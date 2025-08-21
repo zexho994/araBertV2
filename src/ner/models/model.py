@@ -301,8 +301,6 @@ class BertNERModel(NERModel):
             **kwargs
         )
 
-        print(f"=> bert ner config: {config}")
-        
         # 再次确保标签数
         config.num_labels = num_labels
         
