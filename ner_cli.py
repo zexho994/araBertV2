@@ -247,18 +247,20 @@ For more information on each command, use:
     predict_parser.add_argument(
         '--model-path', '-m',
         type=str,
-        required=True,
+        required=False,
         help='Path to trained model'
     )
-    predict_group = predict_parser.add_mutually_exclusive_group(required=True)
+    predict_group = predict_parser.add_mutually_exclusive_group(required=False)
     predict_group.add_argument(
         '--text', '-t',
         type=str,
+        required=False,
         help='Text to analyze'
     )
     predict_group.add_argument(
         '--file', '-f',
         type=str,
+        required=False,
         help='File containing text to analyze'
     )
     predict_parser.add_argument(

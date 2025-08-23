@@ -520,19 +520,22 @@ class PredictCommand(BaseCommand):
     def setup_parser(self, parser):
         parser.add_argument(
             "--model-path",
-            required=True,
+            required=False,
             help="Model name or path for prediction"
         )
         parser.add_argument(
             "--text",
+            required=False,
             help="Text to predict (single prediction)"
         )
         parser.add_argument(
             "--file",
+            required=False,
             help="File containing texts to predict"
         )
         parser.add_argument(
             "--output-file",
+            required=False,
             help="File to save predictions"
         )
         parser.add_argument(
@@ -550,19 +553,34 @@ class PredictCommand(BaseCommand):
     
     def execute(self, args) -> bool:
         try:
-            # Suppress transformers warnings
+            # 若既未提供 --text 也未提供 --file，则进入交互式 REPL
+            if not getattr(args, 'text', None) and not getattr(args, 'file', None):
+                from .repl_predict import PredictREPL
+                repl = PredictREPL(logger=self.logger)
+                # 继承一次性参数作为默认会话配置
+                if getattr(args, 'output_format', None):
+                    repl.output_format = args.output_format
+                if getattr(args, 'confidence_threshold', None) is not None:
+                    repl.confidence_threshold = args.confidence_threshold
+                repl.run()
+                return True
+
+            # 执行一次性预测路径：需要提供 model_path
+            if not getattr(args, 'model_path', None):
+                self.logger.error("--model-path is required when using --text or --file")
+                return False
+
+            # 抑制 transformers 警告（仅在执行一次性预测时才导入重库）
             import logging
             logging.getLogger("transformers").setLevel(logging.ERROR)
-            
-            # Import required modules
+
+            # 懒加载重依赖
             from ..models import NERModelManager
-            
-            # Load model
+            from transformers import AutoTokenizer
+
+            # 加载模型与分词器
             model_manager = NERModelManager(self.global_config.get('model_dir'), logger=self.logger)
             model = model_manager.load_model(args.model_path)
-            
-            # Load tokenizer
-            from transformers import AutoTokenizer
             tokenizer = AutoTokenizer.from_pretrained(args.model_path)
 
             # Single text prediction
