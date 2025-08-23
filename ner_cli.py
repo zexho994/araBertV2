@@ -32,21 +32,12 @@ Examples:
 
 from datetime import datetime
 import sys
-import os
 import argparse
 from pathlib import Path
 
 # Add src directory to Python path
 src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
-
-try:
-    from ner.cli.main import NERCLIManager
-    from ner.utils.logger import setup_logging
-except ImportError as e:
-    print(f"Error importing NER modules: {e}")
-    print("Please ensure the src/ner module is properly installed.")
-    sys.exit(1)
 
 def create_parser() -> argparse.ArgumentParser:
     """Create the main argument parser"""
@@ -500,7 +491,6 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
     
-    # Show help if no command provided
     if not args.command:
         parser.print_help()
         return 0
@@ -516,6 +506,13 @@ def main():
     else:
         log_file = f'data/ner/logs/ner_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
     
+    try:
+        from ner.utils.logger import setup_logging
+        from ner.cli.main import NERCLIManager
+    except ImportError as e:
+        print(f"Error importing NER modules: {e}")
+        return 1
+
     logger = setup_logging(
         level=log_level,
         log_dir= Path(log_file).parent,
@@ -536,10 +533,8 @@ def main():
         
         if result:
             logger.info(f"Command '{args.command}' completed successfully")
-            return 0
         else:
             logger.error(f"Command '{args.command}' failed")
-            return 1
     
     except KeyboardInterrupt:
         logger.info("Operation cancelled by user")
@@ -555,9 +550,10 @@ def main():
     finally:
         # Cleanup
         try:
-            cli_manager.cleanup()
-        except:
-            pass
+            if 'cli_manager' in locals() and hasattr(cli_manager, 'shutdown'):
+                cli_manager.shutdown()
+        except Exception as e:
+            logger.error(f"Error during shutdown: {e}")
 
 if __name__ == '__main__':
     sys.exit(main())

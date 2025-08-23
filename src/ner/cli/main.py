@@ -4,7 +4,6 @@ Main CLI manager that coordinates all NER commands and provides
 a unified interface for the command-line operations.
 """
 
-import sys
 from typing import Dict, Any, Optional
 from pathlib import Path
 
@@ -18,7 +17,7 @@ from .commands import (
     ModelCommand,
     StatusCommand
 )
-from ..utils import NERLogger, setup_logging
+from ..utils.logger import setup_logging
 
 class NERCLIManager:
     """Manages NER CLI commands and global configuration"""
