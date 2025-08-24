@@ -74,6 +74,21 @@ def test_punctuation_filter_preserves_alignment():
     t2, l2 = p.apply_tokens(tokens, labels)
     # 标点过滤后，除了保留的标点外，其他标点应该被移除；过滤步骤不应该改变token数量
     assert len(t2) == len(tokens)
+    assert t2 == ["Road", "Dubai"]
     assert l2 == labels
 
+
+def test_punctuation_filter_default_categories():
+    """
+    测试标点过滤步骤的默认类别
+    默认保留的标点类别：PunctuationFilterStep.DEFAULT_KEEP_PUNCTUATION_CATEGORIES
+    默认移除的标点类别：PunctuationFilterStep.DEFAULT_REMOVE_PUNCTUATION_CATEGORIES
+    """
+    p = Preprocessor([PunctuationFilterStep()])
+    tokens = ["Road,", "Dubai.", "Hello, world!"]
+    labels = ["O", "B-CITY", "O"]
+    t2, l2 = p.apply_tokens(tokens, labels)
+    assert len(t2) == 3
+    assert t2 == ["Road", "Dubai", "Hello world"]
+    assert l2 == ["O", "B-CITY", "O"]
 

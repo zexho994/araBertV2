@@ -206,9 +206,17 @@ class PunctuationFilterStep(BaseStep):
     name = PUNCTUATION_FILTER_STEP
     is_label_safe = True
 
+    # 默认保留的标点类别
+    # 这些类别通常是可见字符，如括号、引号、连字符等
+    DEFAULT_KEEP_PUNCTUATION_CATEGORIES = []
+
+    # 默认移除的标点类别
+    # 这些类别通常是控制字符或不可见字符，如换行符、制表符等
+    DEFAULT_REMOVE_PUNCTUATION_CATEGORIES = []
+
     def __init__(self, keep: Optional[List[str]] = None, remove: Optional[List[str]] = None) -> None:
-        self.keep = set(keep or [])
-        self.remove = set(remove or [])
+        self.keep = set(keep or self.DEFAULT_KEEP_PUNCTUATION_CATEGORIES)
+        self.remove = set(remove or self.DEFAULT_REMOVE_PUNCTUATION_CATEGORIES)
 
     def _filter(self, s: str) -> str:
         """过滤标点
