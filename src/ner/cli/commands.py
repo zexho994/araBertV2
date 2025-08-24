@@ -36,6 +36,9 @@ class BaseCommand(ABC):
 
     # TODO: 支持注入统一的 logger，并在各子命令中复用。
     """
+
+    global_config: Dict[str, Any]
+    country_config: Dict[str, Any]
     
     def __init__(self):
         self.global_config = {}
@@ -66,6 +69,18 @@ class BaseCommand(ABC):
     def set_global_config(self, config: Dict[str, Any]):
         """Set global configuration"""
         self.global_config = config
+
+    def get_global_config(self) -> Dict[str, Any]:
+        """Get global configuration"""
+        if not self.global_config:
+            self.global_config = ConfigManager(self.global_config.get('config_dir'))
+        return self.global_config
+
+    def get_country_config(self, country: str) -> Dict[str, Any]:
+        """Get country configuration"""
+        if not self.country_config:
+            self.country_config = self.get_global_config().load_country_config(country)
+        return self.country_config
     
     def set_logger(self, logger):
         """Inject a shared logger instance"""
@@ -140,16 +155,13 @@ class TrainCommand(BaseCommand):
     
     def execute(self, args) -> bool:
         try:
-            # 加载配置
-            config_manager = ConfigManager(self.global_config.get('config_dir'))
-
             # 优先使用命令行参数指定的配置文件
             config_arg = getattr(args, 'config', None)
             if config_arg:
                 with open(config_arg, 'r', encoding='utf-8') as f:
                     config = json.load(f)
             else:
-                config = config_manager.load_country_config(args.country)
+                config = self.get_country_config(args.country)
             
             # 覆盖配置
             if getattr(args, 'epochs', None):
@@ -290,8 +302,7 @@ class EvaluateCommand(BaseCommand):
             # 加载国家配置（用于数据与标签一致性）
             if not getattr(args, 'country', None):
                 raise ValueError("--country is required for evaluate to ensure consistent data processing")
-            config_manager = ConfigManager(self.global_config.get('config_dir'))
-            config = config_manager.load_country_config(args.country)
+            config = self.get_country_config(args.country)
 
             # 准备数据（与训练流程一致）
             processor = NERDataProcessor(config, logger=self.logger)
@@ -439,12 +450,11 @@ class EvaluatePredictCommand(BaseCommand):
                 raise ValueError("Model configuration does not contain label mappings.")
             
             # 加载国家配置与数据
-            config_manager = ConfigManager(self.global_config.get('config_dir'))
-            config = config_manager.load_country_config(args.country)
+            config = self.get_country_config(args.country)
             processor = NERDataProcessor(config, logger=self.logger)
             dataset = processor.load_data_file(args.data_path)
 
-            # Build preprocessor from config for consistent cleaning
+            # 构建预处理器
             preprocessor = build_preprocessor_from_config(config)
             
             # 构造 texts 与 true_labels
@@ -455,7 +465,7 @@ class EvaluatePredictCommand(BaseCommand):
                 labels = ex.get('labels')
                 if tokens is None or labels is None:
                     continue
-                # Apply label-safe preprocessing on tokens for alignment
+                # 使用token-safe预处理，确保标签安全
                 proc_tokens, proc_labels = preprocessor.apply_tokens(tokens, labels, allow_non_label_safe=False)
                 if not proc_tokens or not proc_labels:
                     continue
@@ -590,19 +600,18 @@ class PredictCommand(BaseCommand):
             model = model_manager.load_model(args.model_path)
             tokenizer = AutoTokenizer.from_pretrained(args.model_path)
 
-            # Build preprocessor (text mode) from a minimal config if available in model dir is not desired
+            # 构建预处理器
             preprocessor = None
             try:
-                # Prefer using a country config if present in global_config
-                if getattr(self, 'global_config', None) and self.global_config.get('config_dir'):
-                    # No country param in predict; fall back to empty config
-                    preprocessor = build_preprocessor_from_config({})
+                if self.get_country_config(args.country):
+                    preprocessor = build_preprocessor_from_config(self.get_country_config(args.country))
                 else:
+                    # 兜底：使用空配置
                     preprocessor = build_preprocessor_from_config({})
             except Exception:
                 preprocessor = None
 
-            # Single text prediction
+            # 单条文本预测
             if args.text:
                 input_text = args.text
                 if preprocessor:
@@ -702,32 +711,30 @@ class ConfigCommand(BaseCommand):
     
     def execute(self, args) -> bool:
         try:
-            config_manager = ConfigManager(self.global_config.get('config_dir'))
-            
             if args.config_action == "list":
                 if args.templates:
-                    templates = config_manager.list_templates()
+                    templates = self.get_global_config().list_templates()
                     self.logger.info("Available templates:")
                     for template in templates:
                         self.logger.info(f"  {template}")
                 else:
-                    countries = config_manager.list_countries()
+                    countries = self.get_global_config().list_countries()
                     self.logger.info("Available country configurations:")
                     for country in countries:
                         self.logger.info(f"  {country}")
                 
             elif args.config_action == "show":
-                config = config_manager.load_country_config(args.country)
+                config = self.get_country_config(args.country)
                 self.logger.info(f"Configuration for {args.country}:")
                 self.logger.info(json.dumps(config, indent=2, ensure_ascii=False))
                 
             elif args.config_action == "create":
-                if config_manager.country_exists(args.country):
+                if self.get_global_config().country_exists(args.country):
                     self.logger.error(f"Configuration for '{args.country}' already exists")
                     return False
 
             elif args.config_action == "validate":
-                config = config_manager.load_country_config(args.country)
+                config = self.get_country_config(args.country)
                 validator = ConfigValidator()
                 
                 if validator.validate_config(config, args.country):
@@ -744,7 +751,7 @@ class ConfigCommand(BaseCommand):
                     return False
                 
             elif args.config_action == "delete":
-                if not config_manager.country_exists(args.country):
+                if not self.get_global_config().country_exists(args.country):
                     self.logger.error(f"Configuration for '{args.country}' does not exist")
                     return False
                 
@@ -754,7 +761,7 @@ class ConfigCommand(BaseCommand):
                         self.logger.info("Deletion cancelled")
                         return True
                 
-                config_manager.delete_country_config(args.country)
+                self.get_global_config().delete_country_config(args.country)
                 self.logger.info(f"Deleted configuration for '{args.country}'")
             
             else:
@@ -813,8 +820,7 @@ class DataCommand(BaseCommand):
             from ..data import NERDataProcessor
             
             if args.data_action == "validate":
-                config_manager = ConfigManager(self.global_config.get('config_dir'))
-                config = config_manager.load_country_config(args.country)
+                config = self.get_country_config(args.country)
                 
                 processor = NERDataProcessor(config, logger=self.logger)
                 is_valid = processor.validate_data_file(args.input_file)
@@ -826,8 +832,7 @@ class DataCommand(BaseCommand):
                     return False
                 
             elif args.data_action == "process":
-                config_manager = ConfigManager(self.global_config.get('config_dir'))
-                config = config_manager.load_country_config(args.country)
+                config = self.get_country_config(args.country)
                 
                 processor = NERDataProcessor(config, logger=self.logger)
                 processor.process_file(args.input_file, args.output_file)

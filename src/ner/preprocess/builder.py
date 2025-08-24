@@ -48,7 +48,6 @@ def build_preprocessor_from_config(config: Dict[str, Any]) -> Preprocessor:
     2) data.preprocessing (布尔开关)
     """
     data_cfg = (config or {}).get("data", {})
-
     pipeline_spec = data_cfg.get("preprocessing_pipeline")
     if isinstance(pipeline_spec, list) and pipeline_spec:
         steps: List[BaseStep] = [_instantiate_step(item) for item in pipeline_spec]
