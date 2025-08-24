@@ -50,6 +50,9 @@ class Preprocessor:
     def __init__(self, steps: Optional[Iterable[BaseStep]] = None):
         self.steps: List[BaseStep] = list(steps) if steps else []
 
+    def __str__(self) -> str:
+        return f"Preprocessor(steps={', '.join(step.name for step in self.steps)})"
+
     def add_step(self, step: BaseStep) -> None:
         """添加预处理步骤
         

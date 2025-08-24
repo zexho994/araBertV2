@@ -14,7 +14,6 @@
 """
 
 import json
-import os
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from copy import deepcopy
@@ -27,6 +26,11 @@ except ImportError:
     json5 = None
     HAS_JSON5 = False
 
+# 默认配置根目录
+DEFAULT_CONFIG_DIR = "data/ner/configs"
+DEFAULT_COUNTRY_CONFIG_DIR = DEFAULT_CONFIG_DIR + "/countries"
+DEFAULT_TEMPLATE_CONFIG_DIR = DEFAULT_CONFIG_DIR + "/templates"
+
 class ConfigManager:
     """NER 配置文件与设置的统一管理入口
 
@@ -37,7 +41,7 @@ class ConfigManager:
     # TODO: 支持按环境（dev/test/prod）或版本管理配置（如带有 `version` 字段）。
     """
     
-    def __init__(self, config_dir: str = "data/ner/configs"):
+    def __init__(self, config_dir: str = DEFAULT_CONFIG_DIR):
         """初始化配置管理器
         
         Args:
@@ -50,8 +54,8 @@ class ConfigManager:
         # TODO: 若在只读环境下应避免自动创建目录，或提供显式开关。
         """
         self.config_dir = Path(config_dir)
-        self.countries_dir = self.config_dir / "countries"
-        self.templates_dir = self.config_dir / "templates"
+        self.countries_dir = Path(DEFAULT_COUNTRY_CONFIG_DIR)
+        self.templates_dir = Path(DEFAULT_TEMPLATE_CONFIG_DIR)
         self._config_cache = {}
         
         # Ensure directories exist

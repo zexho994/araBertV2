@@ -21,7 +21,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Dict, Any
 
 
 class PredictREPL:
@@ -38,12 +38,9 @@ class PredictREPL:
         self.model_path: Optional[str] = None
         self.output_format: str = "json"
         self.confidence_threshold: float = 0.5
-        # optional text preprocessor
-        try:
-            from ner.preprocess import build_preprocessor_from_config  # type: ignore
-            self.preprocessor = build_preprocessor_from_config({})
-        except Exception:
-            self.preprocessor = None
+        self.country: Optional[str] = None
+        # text preprocessor (built from country config when设置)
+        self.preprocessor = None
 
     # -------------------------- 公共入口 --------------------------
     def run(self) -> None:
@@ -75,6 +72,11 @@ class PredictREPL:
                 self._print_help()
             elif cmd == "info":
                 self._print_info()
+            elif cmd == "country":
+                if not arg:
+                    self._log_error("用法: country <code>")
+                    continue
+                self._handle_country(arg)
             elif cmd == "load":
                 if not arg:
                     self._log_error("用法: load <model_path>")
@@ -115,6 +117,21 @@ class PredictREPL:
             self._log_info(f"模型已加载: {model_path}")
         except Exception as e:
             self._log_error(f"加载模型失败: {e}")
+
+    def _handle_country(self, country_code: str) -> None:
+        """设置国家代码并从配置构建预处理器。"""
+        try:
+            from ner.preprocess import build_preprocessor_from_config  # type: ignore
+            from ner.config import ConfigManager  # type: ignore
+
+            manager = ConfigManager()
+            config = manager.load_country_config(country_code)
+            self.preprocessor = build_preprocessor_from_config(config)
+            self._log_info(f'加载国家配置成功，预处理已启用：{self.preprocessor}')
+            self.country = country_code
+            self._log_info(f"已设置国家: {country_code}，预处理已启用")
+        except Exception as e:
+            self._log_error(f"设置国家失败: {e}")
 
     def _handle_predict(self, text: str) -> None:
         """对文本进行预测。"""
@@ -193,6 +210,7 @@ class PredictREPL:
         print(
             f"模型: {'已加载' if self.model is not None else '未加载'} | "
             f"路径: {self.model_path or '-'} | "
+            f"国家: {self.country or '-'} | "
             f"阈值: {self.confidence_threshold} | 格式: {self.output_format}"
         )
 
