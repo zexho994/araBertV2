@@ -14,6 +14,15 @@ from .pipeline import (
 
 
 def _instantiate_step(spec: Dict[str, Any]) -> BaseStep:
+    """
+    实例化预处理步骤
+    
+    Args:
+        spec: 步骤配置字典
+        
+    Returns:
+        BaseStep: 实例化的步骤对象
+    """
     name = spec.get("step") or spec.get("name")
     params = spec.get("params", {})
 
@@ -32,11 +41,11 @@ def _instantiate_step(spec: Dict[str, Any]) -> BaseStep:
 
 
 def build_preprocessor_from_config(config: Dict[str, Any]) -> Preprocessor:
-    """Build a Preprocessor from config with backward compatibility.
+    """ 从配置构建 Preprocessor，支持向后兼容
 
-    Priority:
-    1) data.preprocessing_pipeline (list of steps)
-    2) data.preprocessing (legacy booleans)
+    优先级：
+    1) data.preprocessing_pipeline (步骤列表)
+    2) data.preprocessing (布尔开关)
     """
     data_cfg = (config or {}).get("data", {})
 
@@ -45,26 +54,28 @@ def build_preprocessor_from_config(config: Dict[str, Any]) -> Preprocessor:
         steps: List[BaseStep] = [_instantiate_step(item) for item in pipeline_spec]
         return Preprocessor(steps)
 
-    # Fallback to legacy booleans
+    # 兜底：布尔开关
     legacy = data_cfg.get("preprocessing", {}) or {}
     steps: List[BaseStep] = []
 
-    # order: unicode -> arabic diacritics -> whitespace -> lowercase -> punctuation
-    # clean_text implies unicode + whitespace trim/collapse
+    # 顺序：unicode -> arabic diacritics -> whitespace -> lowercase -> punctuation
+    # clean_text 意味着 unicode + whitespace trim/collapse
     if legacy.get("clean_text", False):
+        # 兜底：使用去重音作为安全归一化的基础
         steps.append(UnicodeNormalizeStep())
         steps.append(WhitespaceNormalizeStep(collapse=True, trim=True))
 
     if legacy.get("normalize_arabic", False):
-        # placeholder: use diacritics removal as safe normalization baseline
+        # 占位符：使用去重音作为安全归一化的基础
         steps.append(ArabicRemoveDiacriticsStep())
 
     if legacy.get("remove_diacritics", False):
+        # 兜底：使用去重音作为安全归一化的基础
         steps.append(ArabicRemoveDiacriticsStep())
 
-    # Mixed script normalize is not implemented as a separate step yet.
+    # 混合文字系统归一化未实现为单独的步骤
 
-    # Lowercase only if explicitly requested in legacy (not common for Arabic)
+    # 仅在 legacy 中显式请求小写化（阿拉伯语中不常见）
     if legacy.get("lowercase", False):
         steps.append(LowercaseStep())
 
