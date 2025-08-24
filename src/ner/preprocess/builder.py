@@ -10,6 +10,9 @@ from .pipeline import (
     LowercaseStep,
     ArabicRemoveDiacriticsStep,
     PunctuationFilterStep,
+    DigitNormalizeStep,
+    PunctuationUnifyStep,
+    SpecialPunctuationSpacingStep,
 )
 
 
@@ -36,6 +39,12 @@ def _instantiate_step(spec: Dict[str, Any]) -> BaseStep:
         return ArabicRemoveDiacriticsStep(**params)
     if name == "punctuation_filter":
         return PunctuationFilterStep(**params)
+    if name == "digit_normalize":
+        return DigitNormalizeStep(**params)
+    if name == "punctuation_unify":
+        return PunctuationUnifyStep(**params)
+    if name == "special_punct_spacing":
+        return SpecialPunctuationSpacingStep(**params)
 
     raise ValueError(f"Unknown preprocessing step: {name}")
 
@@ -57,26 +66,17 @@ def build_preprocessor_from_config(config: Dict[str, Any]) -> Preprocessor:
         legacy = data_cfg.get("preprocessing", {}) or {}
         steps: List[BaseStep] = []
 
-        # 顺序：
-        # 1. unicode
-        # 2. arabic diacritics
-        # 3. whitespace
-        # 4. lowercase
-        # 5. punctuation
-        # 6. remove_special_chars
-
-        # clean_text 意味着 unicode + whitespace trim/collapse
         if legacy.get("clean_text", False):
-            # 兜底：使用去重音作为安全归一化的基础
+            # 使用去重音作为安全归一化的基础
             steps.append(UnicodeNormalizeStep())
             steps.append(WhitespaceNormalizeStep(collapse=True, trim=True))
 
         if legacy.get("normalize_arabic", False):
-            # 占位符：使用去重音作为安全归一化的基础
+            # 使用去重音作为安全归一化的基础
             steps.append(ArabicRemoveDiacriticsStep())
 
         if legacy.get("remove_diacritics", False):
-            # 兜底：使用去重音作为安全归一化的基础
+            # 使用去重音作为安全归一化的基础
             steps.append(ArabicRemoveDiacriticsStep())
 
         # 混合文字系统归一化未实现为单独的步骤

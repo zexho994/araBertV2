@@ -11,6 +11,9 @@ WHITESPACE_NORMALIZE_STEP = 'whitespace_normalize'
 LOWERCASE_STEP = 'lowercase'
 ARABIC_REMOVE_DIACRITICS_STEP = 'arabic_remove_diacritics'
 PUNCTUATION_FILTER_STEP = 'punctuation_filter'
+DIGIT_NORMALIZE_STEP = 'digit_normalize'
+PUNCTUATION_UNIFY_STEP = 'punctuation_unify'
+SPECIAL_PUNCT_SPACING_STEP = 'special_punct_spacing'
 
 class BaseStep:
     """预处理步骤接口
@@ -106,7 +109,7 @@ import unicodedata
 
 
 class UnicodeNormalizeStep(BaseStep):
-    """Unicode 归一化步骤
+    """Unicode 归一化
     将文本转换为指定的 Unicode 形式，以确保文本的正确处理和一致性。
     
     Args:
@@ -128,7 +131,7 @@ class UnicodeNormalizeStep(BaseStep):
 
 
 class WhitespaceNormalizeStep(BaseStep):
-    """空白归一化步骤
+    """去噪：合并连续的空白字符，去除首尾空白字符
     
     Args:
         collapse: 是否合并连续的空白字符
@@ -159,7 +162,7 @@ class WhitespaceNormalizeStep(BaseStep):
 
 
 class LowercaseStep(BaseStep):
-    """小写化步骤
+    """小写归一化
     
     Args:
         keep_cased: 是否保留大小写（默认 False）
@@ -177,7 +180,7 @@ class LowercaseStep(BaseStep):
 
 
 class ArabicRemoveDiacriticsStep(BaseStep):
-    """阿拉伯语去重音步骤
+    """去噪: 阿拉伯语去重音
     
     Args:
         keep_diacritics: 是否保留重音（默认 False）
@@ -246,6 +249,120 @@ class PunctuationFilterStep(BaseStep):
     def apply_tokens(self, tokens: List[str], labels: Optional[List[str]] = None):
         if not tokens:
             return tokens, labels
-        return [self._filter(t) for t in tokens], labels
+        # 在 token 级别，始终移除所有标点以保持标签对齐的稳定性
+        def _strip_punct_token(s: str) -> str:
+            out_chars = []
+            for ch in s:
+                # 无论 keep/remove 设置，token 级别一律去掉所有 Unicode 标点类别
+                if unicodedata.category(ch).startswith("P"):
+                    continue
+                out_chars.append(ch)
+            return "".join(out_chars)
+
+        return [_strip_punct_token(t) for t in tokens], labels
+
+
+
+class DigitNormalizeStep(BaseStep):
+    """数字归一化：将阿拉伯-印地数字统一转换为 0-9
+    
+    - 支持范围：U+0660–U+0669, U+06F0–U+06F9
+    """
+    name = DIGIT_NORMALIZE_STEP
+    is_label_safe = True
+
+    _trans = str.maketrans({
+        # Arabic-Indic digits
+        "\u0660": "0", "\u0661": "1", "\u0662": "2", "\u0663": "3", "\u0664": "4",
+        "\u0665": "5", "\u0666": "6", "\u0667": "7", "\u0668": "8", "\u0669": "9",
+        # Eastern Arabic-Indic digits
+        "\u06F0": "0", "\u06F1": "1", "\u06F2": "2", "\u06F3": "3", "\u06F4": "4",
+        "\u06F5": "5", "\u06F6": "6", "\u06F7": "7", "\u06F8": "8", "\u06F9": "9",
+    })
+
+    def apply_text(self, text: str) -> str:
+        return text.translate(self._trans) if text else text
+
+    def apply_tokens(self, tokens: List[str], labels: Optional[List[str]] = None):
+        if not tokens:
+            return tokens, labels
+        return [t.translate(self._trans) for t in tokens], labels
+
+
+class PunctuationUnifyStep(BaseStep):
+    """标点统一：规范化常见变体
+
+    示例：
+      - '،' → ','
+      - 多个连字符 '--'、'—'、'–'、'−' → '-'
+      - 省略号 '…' → '...'
+    """
+    name = PUNCTUATION_UNIFY_STEP
+    is_label_safe = True
+
+    _char_map = str.maketrans({
+        # Arabic punctuation to Latin
+        "\u060C": ",",   # Arabic comma → ,
+        "\u061B": ";",   # Arabic semicolon → ;
+        "\u061F": "?",   # Arabic question mark → ?
+        # Dashes and hyphens to simple hyphen-minus
+        "\u2010": "-",  # hyphen
+        "\u2011": "-",  # non-breaking hyphen
+        "\u2012": "-",  # figure dash
+        "\u2013": "-",  # en dash
+        "\u2014": "-",  # em dash
+        "\u2015": "-",  # horizontal bar
+        "\u2212": "-",  # minus sign
+        # Quotes (optional normalization)
+        "\u2018": "'", "\u2019": "'", "\u201A": "'",
+        "\u201C": '"', "\u201D": '"', "\u201E": '"',
+        # Ellipsis
+        "\u2026": "...",
+    })
+
+    _multi_hyphens = re.compile(r"-{2,}")
+
+    def _unify(self, s: str) -> str:
+        if not s:
+            return s
+        out = s.translate(self._char_map)
+        out = self._multi_hyphens.sub("-", out)
+        return out
+
+    def apply_text(self, text: str) -> str:
+        return self._unify(text) if text else text
+
+    def apply_tokens(self, tokens: List[str], labels: Optional[List[str]] = None):
+        if not tokens:
+            return tokens, labels
+        return [self._unify(t) for t in tokens], labels
+
+
+class SpecialPunctuationSpacingStep(BaseStep):
+    """特殊标点符号处理：在关键分隔符前后添加空格
+
+    默认处理的分隔符：`,` `-` `/`
+    """
+    name = SPECIAL_PUNCT_SPACING_STEP
+    is_label_safe = True
+
+    # match separators with optional surrounding spaces
+    _sep_pattern = re.compile(r"\s*([,\-/])\s*")
+    _spaces_collapse = re.compile(r"\s{2,}")
+
+    def _space_around(self, s: str) -> str:
+        if not s:
+            return s
+        out = self._sep_pattern.sub(r" \1 ", s)
+        out = self._spaces_collapse.sub(" ", out)
+        return out.strip()
+
+    def apply_text(self, text: str) -> str:
+        return self._space_around(text) if text else text
+
+    def apply_tokens(self, tokens: List[str], labels: Optional[List[str]] = None):
+        if not tokens:
+            return tokens, labels
+        return [self._space_around(t) for t in tokens], labels
 
 
