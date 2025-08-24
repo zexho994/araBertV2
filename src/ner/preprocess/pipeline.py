@@ -2,6 +2,15 @@ from __future__ import annotations
 
 from typing import List, Tuple, Optional, Iterable
 
+# 默认的 Unicode 归一化形式
+DEFAULT_UNICODE_NORMALIZE_FORM = "NFC"
+
+# 预处理步骤名称
+UNICODE_NORMALIZE_STEP = 'unicode_normalize'
+WHITESPACE_NORMALIZE_STEP = 'whitespace_normalize'
+LOWERCASE_STEP = 'lowercase'
+ARABIC_REMOVE_DIACRITICS_STEP = 'arabic_remove_diacritics'
+PUNCTUATION_FILTER_STEP = 'punctuation_filter'
 
 class BaseStep:
     """预处理步骤接口
@@ -100,10 +109,10 @@ class UnicodeNormalizeStep(BaseStep):
     Args:
         form: 归一化形式，可选 "NFC" 或 "NFKC"
     """
-    name = "unicode_normalize"
+    name = UNICODE_NORMALIZE_STEP
     is_label_safe = True
 
-    def __init__(self, form: str = "NFC") -> None:
+    def __init__(self, form: str = DEFAULT_UNICODE_NORMALIZE_FORM) -> None:
         self.form = form
 
     def apply_text(self, text: str) -> str:
@@ -122,7 +131,7 @@ class WhitespaceNormalizeStep(BaseStep):
         collapse: 是否合并连续的空白字符
         trim: 是否去除首尾空白字符
     """
-    name = "whitespace_normalize"
+    name = WHITESPACE_NORMALIZE_STEP
     is_label_safe = True
 
     def __init__(self, collapse: bool = True, trim: bool = True) -> None:
@@ -152,7 +161,7 @@ class LowercaseStep(BaseStep):
     Args:
         keep_cased: 是否保留大小写（默认 False）
     """
-    name = "lowercase"
+    name = LOWERCASE_STEP
     is_label_safe = True
 
     def apply_text(self, text: str) -> str:
@@ -170,7 +179,7 @@ class ArabicRemoveDiacriticsStep(BaseStep):
     Args:
         keep_diacritics: 是否保留重音（默认 False）
     """
-    name = "arabic_remove_diacritics"
+    name = ARABIC_REMOVE_DIACRITICS_STEP
     is_label_safe = True
 
     _diacritics = re.compile(r"[\u064B-\u0652\u0670\u0640]")
@@ -191,7 +200,7 @@ class PunctuationFilterStep(BaseStep):
         keep: 保留的标点列表
         remove: 移除的标点列表
     """
-    name = "punctuation_filter"
+    name = PUNCTUATION_FILTER_STEP
     is_label_safe = True
 
     def __init__(self, keep: Optional[List[str]] = None, remove: Optional[List[str]] = None) -> None:

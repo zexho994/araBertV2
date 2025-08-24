@@ -52,35 +52,42 @@ def build_preprocessor_from_config(config: Dict[str, Any]) -> Preprocessor:
     if isinstance(pipeline_spec, list) and pipeline_spec:
         steps: List[BaseStep] = [_instantiate_step(item) for item in pipeline_spec]
         return Preprocessor(steps)
+    else:
+        # 兜底：布尔开关
+        legacy = data_cfg.get("preprocessing", {}) or {}
+        steps: List[BaseStep] = []
 
-    # 兜底：布尔开关
-    legacy = data_cfg.get("preprocessing", {}) or {}
-    steps: List[BaseStep] = []
+        # 顺序：
+        # 1. unicode
+        # 2. arabic diacritics
+        # 3. whitespace
+        # 4. lowercase
+        # 5. punctuation
+        # 6. remove_special_chars
 
-    # 顺序：unicode -> arabic diacritics -> whitespace -> lowercase -> punctuation
-    # clean_text 意味着 unicode + whitespace trim/collapse
-    if legacy.get("clean_text", False):
-        # 兜底：使用去重音作为安全归一化的基础
-        steps.append(UnicodeNormalizeStep())
-        steps.append(WhitespaceNormalizeStep(collapse=True, trim=True))
+        # clean_text 意味着 unicode + whitespace trim/collapse
+        if legacy.get("clean_text", False):
+            # 兜底：使用去重音作为安全归一化的基础
+            steps.append(UnicodeNormalizeStep())
+            steps.append(WhitespaceNormalizeStep(collapse=True, trim=True))
 
-    if legacy.get("normalize_arabic", False):
-        # 占位符：使用去重音作为安全归一化的基础
-        steps.append(ArabicRemoveDiacriticsStep())
+        if legacy.get("normalize_arabic", False):
+            # 占位符：使用去重音作为安全归一化的基础
+            steps.append(ArabicRemoveDiacriticsStep())
 
-    if legacy.get("remove_diacritics", False):
-        # 兜底：使用去重音作为安全归一化的基础
-        steps.append(ArabicRemoveDiacriticsStep())
+        if legacy.get("remove_diacritics", False):
+            # 兜底：使用去重音作为安全归一化的基础
+            steps.append(ArabicRemoveDiacriticsStep())
 
-    # 混合文字系统归一化未实现为单独的步骤
+        # 混合文字系统归一化未实现为单独的步骤
 
-    # 仅在 legacy 中显式请求小写化（阿拉伯语中不常见）
-    if legacy.get("lowercase", False):
-        steps.append(LowercaseStep())
+        # 仅在 legacy 中显式请求小写化（阿拉伯语中不常见）
+        if legacy.get("lowercase", False):
+            steps.append(LowercaseStep())
 
-    if legacy.get("remove_special_chars", False):
-        steps.append(PunctuationFilterStep())
+        if legacy.get("remove_special_chars", False):
+            steps.append(PunctuationFilterStep())
 
-    return Preprocessor(steps)
+        return Preprocessor(steps)
 
 
