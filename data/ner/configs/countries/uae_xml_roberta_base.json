@@ -67,7 +67,12 @@
             "lowercase": false,
             "remove_accents": false,
             "tokenize_chinese_chars": true
-        }
+        },
+        "preprocessing_pipeline": [
+            { "step": "unicode_normalize", "params": { "form": "NFC" } },
+            { "step": "arabic_remove_diacritics" },
+            { "step": "whitespace_normalize", "params": { "collapse": true, "trim": true } }
+        ]
     },
 
     "labels": {

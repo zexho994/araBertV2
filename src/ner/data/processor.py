@@ -8,9 +8,9 @@ import json
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 import pandas as pd
-from sklearn.model_selection import train_test_split
 
 from ..utils import NERLogger
+from ..preprocess import build_preprocessor_from_config, Preprocessor
 
 class NERDataProcessor:
     """Main data processor for NER tasks"""
@@ -37,6 +37,13 @@ class NERDataProcessor:
         self.logger.debug(f"Processor config: max_length={self.max_length}, encoding={self.encoding}")
         
         self._init_label_mappings()
+        # Build preprocessing pipeline (label-safe by default for tokens flow)
+        try:
+            self.preprocessor: Preprocessor = build_preprocessor_from_config(self.config)
+            self.logger.info("Preprocessor initialized from config")
+        except Exception as e:
+            self.logger.warning(f"Failed to build preprocessor from config, fallback to no-op: {e}")
+            self.preprocessor = Preprocessor([])
     
     def _init_label_mappings(self):
         """初始化标签到ID的映射关系
@@ -351,24 +358,25 @@ class NERDataProcessor:
         if len(tokens) == 0:
             return None
         
-        # Clean tokens
-        cleaned_tokens = []
-        cleaned_labels = []
-        
-        for token, label in zip(tokens, labels):
-            # Basic cleaning
-            token = token.strip()
-            if token:
-                cleaned_tokens.append(token)
-                cleaned_labels.append(label)
-        
-        if not cleaned_tokens:
+        # Apply configured preprocessing steps in tokens mode (label-safe only)
+        cleaned_tokens, cleaned_labels = self.preprocessor.apply_tokens(tokens, labels, allow_non_label_safe=False)
+
+        # Basic trimming of empty tokens post-processing
+        final_tokens = []
+        final_labels = []
+        for t, l in zip(cleaned_tokens, cleaned_labels or []):
+            tt = t.strip()
+            if tt:
+                final_tokens.append(tt)
+                final_labels.append(l)
+
+        if not final_tokens:
             return None
         
         return {
-            'tokens': cleaned_tokens,
-            'labels': cleaned_labels,
-            'text': ' '.join(cleaned_tokens)
+            'tokens': final_tokens,
+            'labels': final_labels,
+            'text': ' '.join(final_tokens)
         }
     
     def _save_examples(self, examples: List[Dict[str, Any]], output_file: str, format: str = 'json'):

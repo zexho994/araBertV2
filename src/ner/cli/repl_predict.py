@@ -38,6 +38,12 @@ class PredictREPL:
         self.model_path: Optional[str] = None
         self.output_format: str = "json"
         self.confidence_threshold: float = 0.5
+        # optional text preprocessor
+        try:
+            from ner.preprocess import build_preprocessor_from_config  # type: ignore
+            self.preprocessor = build_preprocessor_from_config({})
+        except Exception:
+            self.preprocessor = None
 
     # -------------------------- 公共入口 --------------------------
     def run(self) -> None:
@@ -117,8 +123,11 @@ class PredictREPL:
             return
 
         try:
+            input_text = text
+            if getattr(self, 'preprocessor', None):
+                input_text = self.preprocessor.apply_text(input_text)
             prediction = self.model.predict(
-                text,
+                input_text,
                 tokenizer=self.tokenizer,
                 confidence_threshold=self.confidence_threshold,
             )

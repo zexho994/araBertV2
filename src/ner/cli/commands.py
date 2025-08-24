@@ -24,6 +24,7 @@ from typing import Dict, Any
 from pathlib import Path
 
 from ..config import ConfigManager, ConfigValidator
+from ..preprocess import build_preprocessor_from_config
 
 class BaseCommand(ABC):
     """所有 NER CLI 子命令的抽象基类
@@ -442,6 +443,9 @@ class EvaluatePredictCommand(BaseCommand):
             config = config_manager.load_country_config(args.country)
             processor = NERDataProcessor(config, logger=self.logger)
             dataset = processor.load_data_file(args.data_path)
+
+            # Build preprocessor from config for consistent cleaning
+            preprocessor = build_preprocessor_from_config(config)
             
             # 构造 texts 与 true_labels
             texts = []
@@ -449,11 +453,14 @@ class EvaluatePredictCommand(BaseCommand):
             for ex in dataset[: (args.limit if getattr(args, 'limit', None) else None)]:
                 tokens = ex.get('tokens')
                 labels = ex.get('labels')
-                text = ex.get('text') or (' '.join(tokens) if tokens else None)
-                if tokens is None or labels is None or text is None:
+                if tokens is None or labels is None:
                     continue
-                texts.append(text)
-                true_labels.append(labels)
+                # Apply label-safe preprocessing on tokens for alignment
+                proc_tokens, proc_labels = preprocessor.apply_tokens(tokens, labels, allow_non_label_safe=False)
+                if not proc_tokens or not proc_labels:
+                    continue
+                texts.append(' '.join(proc_tokens))
+                true_labels.append(proc_labels)
             
             if not texts:
                 raise ValueError("No valid examples found for evaluation")
@@ -583,9 +590,24 @@ class PredictCommand(BaseCommand):
             model = model_manager.load_model(args.model_path)
             tokenizer = AutoTokenizer.from_pretrained(args.model_path)
 
+            # Build preprocessor (text mode) from a minimal config if available in model dir is not desired
+            preprocessor = None
+            try:
+                # Prefer using a country config if present in global_config
+                if getattr(self, 'global_config', None) and self.global_config.get('config_dir'):
+                    # No country param in predict; fall back to empty config
+                    preprocessor = build_preprocessor_from_config({})
+                else:
+                    preprocessor = build_preprocessor_from_config({})
+            except Exception:
+                preprocessor = None
+
             # Single text prediction
             if args.text:
-                prediction = model.predict(args.text, tokenizer=tokenizer, confidence_threshold=args.confidence_threshold)
+                input_text = args.text
+                if preprocessor:
+                    input_text = preprocessor.apply_text(input_text)
+                prediction = model.predict(input_text, tokenizer=tokenizer, confidence_threshold=args.confidence_threshold)
                 
                 if args.output_format == "json":
                     self.logger.info(json.dumps(prediction, indent=2, ensure_ascii=False))
@@ -603,6 +625,8 @@ class PredictCommand(BaseCommand):
                     for line in f:
                         text = line.strip()
                         if text:
+                            if preprocessor:
+                                text = preprocessor.apply_text(text)
                             prediction = model.predict(text, tokenizer=tokenizer, confidence_threshold=args.confidence_threshold)
                             predictions.append(prediction)
                 
