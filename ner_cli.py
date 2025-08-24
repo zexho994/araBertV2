@@ -25,6 +25,8 @@ Examples:
     
     # Make predictions
     python ner.py predict --model-path ./models/uae_model --text "123 Sheikh Zayed Road, Dubai"
+    or
+    python ner.py predict # enter interactive mode
     
     # Create a new country configuration
     python ner.py config create --country egypt --template address_ner
