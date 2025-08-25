@@ -277,6 +277,26 @@ For more information on each command, use:
         default=0.5,
         help='Confidence threshold for predictions (default: 0.5)'
     )
+
+    # Preprocess command
+    preprocess_parser = subparsers.add_parser(
+        'preprocess',
+        help='Run preprocessing pipeline on text or start REPL',
+        description='Apply country-specific preprocessing pipeline to text'
+    )
+    preprocess_parser.add_argument(
+        '--country',
+        type=str,
+        required=False,
+        help='Country configuration to use (e.g., uae)'
+    )
+    preprocess_group = preprocess_parser.add_mutually_exclusive_group(required=False)
+    preprocess_group.add_argument(
+        '--text', '-t',
+        type=str,
+        required=False,
+        help='Text to preprocess (if omitted, starts interactive REPL)'
+    )
     
     # Config command
     config_parser = subparsers.add_parser(

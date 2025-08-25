@@ -211,7 +211,7 @@ class PunctuationFilterStep(BaseStep):
 
     # 默认保留的标点类别
     # 这些类别通常是可见字符，如括号、引号、连字符等
-    DEFAULT_KEEP_PUNCTUATION_CATEGORIES = []
+    DEFAULT_KEEP_PUNCTUATION_CATEGORIES = [',','.','-','/','(',')','[',']','|','\\','\'']
 
     # 默认移除的标点类别
     # 这些类别通常是控制字符或不可见字符，如换行符、制表符等
@@ -341,13 +341,13 @@ class PunctuationUnifyStep(BaseStep):
 class SpecialPunctuationSpacingStep(BaseStep):
     """特殊标点符号处理：在关键分隔符前后添加空格
 
-    默认处理的分隔符：`,` `-` `/`
+    默认处理的分隔符：`,`
     """
     name = SPECIAL_PUNCT_SPACING_STEP
     is_label_safe = True
 
     # match separators with optional surrounding spaces
-    _sep_pattern = re.compile(r"\s*([,\-/])\s*")
+    _sep_pattern = re.compile(r"\s*([,])\s*")
     _spaces_collapse = re.compile(r"\s{2,}")
 
     def _space_around(self, s: str) -> str:
