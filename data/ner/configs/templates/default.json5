@@ -58,7 +58,7 @@
         // 4) lowercase：小写化（英文/大小写敏感任务酌情启用）
         // 5) punctuation_filter：标点过滤（支持保留/移除列表）
         // 6) digit_normalize：数字归一（阿拉伯-印地数字 → 0-9）
-        // 7) punctuation_unify：标点统一（如 --/—/– → -，‘’ → '，“” → "，… → ...，، → , 等）
+        // 7) punctuation_normalize：标点统一（如 --/—/– → -，‘’ → '，“” → "，… → ...，، → , 等）
         // 8) special_punct_spacing：特殊分隔符空格化（在 , - / 前后添加空格，便于分词）
         // 其它可扩展步骤（示例，默认未实现或建议仅用于预测）：
         // - abbrev_synonym_map：缩写/同义映射（可能影响分词边界，训练默认禁用）
@@ -71,7 +71,7 @@
             // { "step": "lowercase" },                                       // 4) 小写化（按需启用）
             // { "step": "punctuation_filter", "params": { "keep": [",", "."] } }, // 5) 标点过滤示例
             // { "step": "digit_normalize" },                                 // 6) 数字归一（示例）
-            // { "step": "punctuation_unify" },                               // 7) 标点统一（示例）
+            // { "step": "punctuation_normalize" },                               // 7) 标点统一（示例）
             // { "step": "special_punct_spacing" },                           // 8) 分隔符空格化（示例）
             // 以下步骤示例仅供参考，默认不启用：
             // { "step": "abbrev_synonym_map", "params": { "map": { "st": "street", "rd": "road" } } },

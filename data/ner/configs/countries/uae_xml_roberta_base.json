@@ -71,7 +71,7 @@
         "preprocessing_pipeline": [
             { "step": "unicode_normalize", "params": { "form": "NFC" } },
             { "step": "digit_normalize" },
-            { "step": "punctuation_unify" },
+            { "step": "punctuation_normalize" },
             { "step": "arabic_remove_diacritics" },
             { "step": "punctuation_filter"},
             { "step": "special_punct_spacing"},

@@ -11,8 +11,16 @@ from .pipeline import (
     ArabicRemoveDiacriticsStep,
     PunctuationFilterStep,
     DigitNormalizeStep,
-    PunctuationUnifyStep,
+    PunctuationNormalizeStep,
     SpecialPunctuationSpacingStep,
+    UNICODE_NORMALIZE_STEP,
+    WHITESPACE_NORMALIZE_STEP,
+    LOWERCASE_STEP,
+    ARABIC_REMOVE_DIACRITICS_STEP,
+    PUNCTUATION_FILTER_STEP,
+    DIGIT_NORMALIZE_STEP,
+    PUNCTUATION_NORMALIZE_STEP,
+    SPECIAL_PUNCT_SPACING_STEP
 )
 
 
@@ -29,21 +37,22 @@ def _instantiate_step(spec: Dict[str, Any]) -> BaseStep:
     name = spec.get("step") or spec.get("name")
     params = spec.get("params", {})
 
-    if name == "unicode_normalize":
+
+    if name == UNICODE_NORMALIZE_STEP:
         return UnicodeNormalizeStep(**params)
-    if name == "whitespace_normalize":
+    if name == WHITESPACE_NORMALIZE_STEP:
         return WhitespaceNormalizeStep(**params)
-    if name == "lowercase":
+    if name == LOWERCASE_STEP:
         return LowercaseStep(**params)
-    if name == "arabic_remove_diacritics":
+    if name == ARABIC_REMOVE_DIACRITICS_STEP:
         return ArabicRemoveDiacriticsStep(**params)
-    if name == "punctuation_filter":
+    if name == PUNCTUATION_FILTER_STEP:
         return PunctuationFilterStep(**params)
-    if name == "digit_normalize":
+    if name == DIGIT_NORMALIZE_STEP:
         return DigitNormalizeStep(**params)
-    if name == "punctuation_unify":
-        return PunctuationUnifyStep(**params)
-    if name == "special_punct_spacing":
+    if name == PUNCTUATION_NORMALIZE_STEP:
+        return PunctuationNormalizeStep(**params)
+    if name == SPECIAL_PUNCT_SPACING_STEP:
         return SpecialPunctuationSpacingStep(**params)
 
     raise ValueError(f"Unknown preprocessing step: {name}")

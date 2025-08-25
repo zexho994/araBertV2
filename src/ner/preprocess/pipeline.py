@@ -12,7 +12,7 @@ LOWERCASE_STEP = 'lowercase'
 ARABIC_REMOVE_DIACRITICS_STEP = 'arabic_remove_diacritics'
 PUNCTUATION_FILTER_STEP = 'punctuation_filter'
 DIGIT_NORMALIZE_STEP = 'digit_normalize'
-PUNCTUATION_UNIFY_STEP = 'punctuation_unify'
+PUNCTUATION_NORMALIZE_STEP = 'punctuation_normalize'
 SPECIAL_PUNCT_SPACING_STEP = 'special_punct_spacing'
 
 class BaseStep:
@@ -289,7 +289,7 @@ class DigitNormalizeStep(BaseStep):
         return [t.translate(self._trans) for t in tokens], labels
 
 
-class PunctuationUnifyStep(BaseStep):
+class PunctuationNormalizeStep(BaseStep):
     """标点统一：规范化常见变体
 
     示例：
@@ -297,7 +297,7 @@ class PunctuationUnifyStep(BaseStep):
       - 多个连字符 '--'、'—'、'–'、'−' → '-'
       - 省略号 '…' → '...'
     """
-    name = PUNCTUATION_UNIFY_STEP
+    name = PUNCTUATION_NORMALIZE_STEP
     is_label_safe = True
 
     _char_map = str.maketrans({
