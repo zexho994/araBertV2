@@ -14,7 +14,7 @@ def _minimal_config_with_pipeline():
             "preprocessing_pipeline": [
                 {"step": "unicode_normalize", "params": {"form": "NFC"}},
                 {"step": "whitespace_normalize", "params": {"collapse": True, "trim": True}},
-                {"step": "arabic_remove_diacritics"},
+                {"step": "arabic_diacritics_filter"},
             ],
             "encoding": "utf-8",
         },

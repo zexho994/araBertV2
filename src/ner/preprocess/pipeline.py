@@ -9,7 +9,7 @@ DEFAULT_UNICODE_NORMALIZE_FORM = "NFC"
 UNICODE_NORMALIZE_STEP = 'unicode_normalize'
 WHITESPACE_NORMALIZE_STEP = 'whitespace_normalize'
 LOWERCASE_STEP = 'lowercase'
-ARABIC_REMOVE_DIACRITICS_STEP = 'arabic_remove_diacritics'
+ARABIC_DIACRITICS_FILTER_STEP = 'arabic_diacritics_filter'
 PUNCTUATION_FILTER_STEP = 'punctuation_filter'
 DIGIT_NORMALIZE_STEP = 'digit_normalize'
 PUNCTUATION_NORMALIZE_STEP = 'punctuation_normalize'
@@ -179,13 +179,13 @@ class LowercaseStep(BaseStep):
         return [t.lower() for t in tokens], labels
 
 
-class ArabicRemoveDiacriticsStep(BaseStep):
+class ArabicDiacriticsFilterStep(BaseStep):
     """去噪: 阿拉伯语去重音
     
     Args:
         keep_diacritics: 是否保留重音（默认 False）
     """
-    name = ARABIC_REMOVE_DIACRITICS_STEP
+    name = ARABIC_DIACRITICS_FILTER_STEP
     is_label_safe = True
 
     _diacritics = re.compile(r"[\u064B-\u0652\u0670\u0640]")
@@ -364,5 +364,3 @@ class SpecialPunctuationSpacingStep(BaseStep):
         if not tokens:
             return tokens, labels
         return [self._space_around(t) for t in tokens], labels
-
-

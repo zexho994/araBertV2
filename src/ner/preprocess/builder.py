@@ -8,7 +8,7 @@ from .pipeline import (
     UnicodeNormalizeStep,
     WhitespaceNormalizeStep,
     LowercaseStep,
-    ArabicRemoveDiacriticsStep,
+    ArabicDiacriticsFilterStep,
     PunctuationFilterStep,
     DigitNormalizeStep,
     PunctuationNormalizeStep,
@@ -16,11 +16,11 @@ from .pipeline import (
     UNICODE_NORMALIZE_STEP,
     WHITESPACE_NORMALIZE_STEP,
     LOWERCASE_STEP,
-    ARABIC_REMOVE_DIACRITICS_STEP,
+    ARABIC_DIACRITICS_FILTER_STEP,
     PUNCTUATION_FILTER_STEP,
     DIGIT_NORMALIZE_STEP,
     PUNCTUATION_NORMALIZE_STEP,
-    SPECIAL_PUNCT_SPACING_STEP
+    SPECIAL_PUNCT_SPACING_STEP,
 )
 
 
@@ -44,8 +44,8 @@ def _instantiate_step(spec: Dict[str, Any]) -> BaseStep:
         return WhitespaceNormalizeStep(**params)
     if name == LOWERCASE_STEP:
         return LowercaseStep(**params)
-    if name == ARABIC_REMOVE_DIACRITICS_STEP:
-        return ArabicRemoveDiacriticsStep(**params)
+    if name == ARABIC_DIACRITICS_FILTER_STEP:
+        return ArabicDiacriticsFilterStep(**params)
     if name == PUNCTUATION_FILTER_STEP:
         return PunctuationFilterStep(**params)
     if name == DIGIT_NORMALIZE_STEP:

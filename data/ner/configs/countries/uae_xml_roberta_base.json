@@ -72,7 +72,7 @@
             { "step": "unicode_normalize", "params": { "form": "NFC" } },
             { "step": "digit_normalize" },
             { "step": "punctuation_normalize" },
-            { "step": "arabic_remove_diacritics" },
+            { "step": "arabic_diacritics_filter" },
             { "step": "punctuation_filter"},
             { "step": "special_punct_spacing"},
             { "step": "whitespace_normalize", "params": { "collapse": true, "trim": true } }

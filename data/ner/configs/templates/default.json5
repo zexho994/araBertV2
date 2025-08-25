@@ -53,7 +53,7 @@
         // 说明：按顺序执行；训练/评估阶段默认仅启用 label-safe 步骤
         // 可选常用步骤（均为 label-safe）：
         // 1) unicode_normalize：Unicode 归一（推荐 NFC/NFKC）
-        // 2) arabic_remove_diacritics：阿语去重音/延音符
+        // 2) arabic_diacritics_filter：阿语去重音/延音符
         // 3) whitespace_normalize：空白归一（合并多空格、首尾裁剪）
         // 4) lowercase：小写化（英文/大小写敏感任务酌情启用）
         // 5) punctuation_filter：标点过滤（支持保留/移除列表）
@@ -66,7 +66,7 @@
         // - mixed_script_normalize：混合文字系统统一
         "preprocessing_pipeline": [
             { "step": "unicode_normalize", "params": { "form": "NFC" } }, // 1) Unicode 归一
-            { "step": "arabic_remove_diacritics" },                           // 2) 去重音
+            { "step": "arabic_diacritics_filter" },                           // 2) 去重音
             { "step": "whitespace_normalize", "params": { "collapse": true, "trim": true } }, // 3) 空白归一
             // { "step": "lowercase" },                                       // 4) 小写化（按需启用）
             // { "step": "punctuation_filter", "params": { "keep": [",", "."] } }, // 5) 标点过滤示例

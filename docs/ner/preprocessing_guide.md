@@ -87,7 +87,7 @@
   "data": {
     "preprocessing_pipeline": [
       { "step": "unicode_normalize", "params": { "form": "NFC" } },
-      { "step": "arabic_remove_diacritics" },
+      { "step": "arabic_diacritics_filter" },
       { "step": "whitespace_normalize", "params": { "collapse": true } },
       { "step": "lowercase" },
       { "step": "punctuation_filter", "params": { "keep": [",", "."] } }
@@ -107,7 +107,7 @@
 
 - `clean_text` → `unicode_normalize` + 基础字符清洗
 - `normalize_arabic` → `arabic_normalize`
-- `remove_diacritics` → `arabic_remove_diacritics`
+- `remove_diacritics` → `arabic_diacritics_filter`
 - `handle_mixed_script` → `mixed_script_normalize`
 - 其余 tokenizer 相关选项不属于预处理步骤
 
@@ -128,7 +128,7 @@
 - whitespace_normalize：空白归一（`collapse`: 是否合并多空格；`trim`: 是否首尾裁剪）
 - lowercase：小写化（对阿语等大小写不敏感语言可禁用）
 - punctuation_filter：过滤标点/特殊字符（`keep`: 保留列表；`remove`: 指定移除集）
-- arabic_remove_diacritics：移除阿语重音/元音符号
+- arabic_diacritics_filter：移除阿语重音/元音符号
 - arabic_tatweel_strip：去阿语延音符（ـ）
 - arabic_normalize：阿语字形归一（如不同 Hamza 形态统一）
 - number_normalize：数字标准化（阿拉伯数字 ↔ 西文数字，千分位、空格统一）
@@ -189,7 +189,7 @@
 
 ### 是否有推荐的“预设方案”？
 
-- strict（训练/评估）：`unicode_normalize`、`arabic_remove_diacritics`、`whitespace_normalize`、`lowercase`、必要的 `arabic_normalize`。
+- strict（训练/评估）：`unicode_normalize`、`arabic_diacritics_filter`、`whitespace_normalize`、`lowercase`、必要的 `arabic_normalize`。
 - serving（线上预测）：在 strict 基础上，按需加入 `abbrev_synonym_map`、`number_normalize` 等显示归一。
 
 ## 与现有文档的关系
