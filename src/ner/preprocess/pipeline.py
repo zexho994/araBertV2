@@ -6,13 +6,18 @@ from typing import List, Tuple, Optional, Iterable
 DEFAULT_UNICODE_NORMALIZE_FORM = "NFC"
 
 # 预处理步骤名称
+## 归一
+LOWERCASE_STEP = 'lowercase'
 UNICODE_NORMALIZE_STEP = 'unicode_normalize'
 WHITESPACE_NORMALIZE_STEP = 'whitespace_normalize'
-LOWERCASE_STEP = 'lowercase'
-ARABIC_DIACRITICS_FILTER_STEP = 'arabic_diacritics_filter'
-PUNCTUATION_FILTER_STEP = 'punctuation_filter'
 DIGIT_NORMALIZE_STEP = 'digit_normalize'
 PUNCTUATION_NORMALIZE_STEP = 'punctuation_normalize'
+
+## 去噪
+ARABIC_DIACRITICS_FILTER_STEP = 'arabic_diacritics_filter'
+PUNCTUATION_FILTER_STEP = 'punctuation_filter'
+
+## 结构优化
 SPECIAL_PUNCT_SPACING_STEP = 'special_punct_spacing'
 
 class BaseStep:
@@ -314,10 +319,10 @@ class PunctuationNormalizeStep(BaseStep):
         "\u2015": "-",  # horizontal bar
         "\u2212": "-",  # minus sign
         # Quotes (optional normalization)
-        "\u2018": "'", "\u2019": "'", "\u201A": "'",
-        "\u201C": '"', "\u201D": '"', "\u201E": '"',
+        # "\u2018": "'", "\u2019": "'", "\u201A": "'",
+        # "\u201C": '"', "\u201D": '"', "\u201E": '"',
         # Ellipsis
-        "\u2026": "...",
+        # "\u2026": "...",
     })
 
     _multi_hyphens = re.compile(r"-{2,}")
