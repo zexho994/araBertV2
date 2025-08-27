@@ -21,9 +21,7 @@ import pandas as pd
 # so that 'import ner' resolves to 'src/ner'
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
-from ner import DEFAULT_DATA_DIR
 from ner.config.manager import ConfigManager
-from ner.utils.text_utils import TextUtils
 
 
 @dataclass

@@ -813,7 +813,7 @@ class TrainingEngine:
                 config.update(config_override)
             
             # Initialize trainer
-            trainer = NERTrainer(config, self.global_config)
+            trainer = NERTrainer(config, self.global_config, self.logger)
             
             # Start training
             trainer.train()
