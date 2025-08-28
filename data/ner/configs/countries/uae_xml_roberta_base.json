@@ -80,7 +80,7 @@
     },
 
     "labels": {
-        "num_labels": 17,
+        "num_labels": 15,
         "label_names": [
             "O",
             "B-COUNTRY", "I-COUNTRY",
@@ -89,8 +89,7 @@
             "B-SUB_AREA", "I-SUB_AREA",
             "B-COMPOUND", "I-COMPOUND",
             "B-STREET", "I-STREET",
-            "B-BUILDING", "I-BUILDING",
-            "B-HOUSE_NUMBER", "I-HOUSE_NUMBER"
+            "B-BUILDING", "I-BUILDING"
         ],
         "label_mapping": {
             "O": 0,
@@ -107,9 +106,7 @@
             "B-STREET": 11,
             "I-STREET": 12,
             "B-BUILDING": 13,
-            "I-BUILDING": 14,
-            "B-HOUSE_NUMBER": 15,
-            "I-HOUSE_NUMBER": 16
+            "I-BUILDING": 14
         },
         "ignore_index": -100
     },
