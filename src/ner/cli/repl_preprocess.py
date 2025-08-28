@@ -17,6 +17,7 @@ class PreprocessREPL:
     命令：
     - country <code>   加载并启用对应国家的预处理管道
     - apply <text>     对文本执行预处理（已设置国家时生效）
+    - csv <in>         读取CSV的formatted_address列，生成preprocessed_address并写回原文件
     - info             显示当前状态
     - help             显示帮助
     - exit/quit        退出会话
@@ -61,6 +62,11 @@ class PreprocessREPL:
                     self._log_error("用法: apply <text>")
                     continue
                 self._handle_apply(arg)
+            elif cmd == "csv":
+                if not arg:
+                    self._log_error("用法: csv <input_csv>")
+                    continue
+                self._handle_csv(arg)
             else:
                 # 若已加载预处理器，则将整行作为文本处理
                 if self.preprocessor is not None:
@@ -92,6 +98,60 @@ class PreprocessREPL:
         except Exception as e:
             self._log_error(f"预处理失败: {e}")
 
+    def _handle_csv(self, arg: str) -> None:
+        if self.preprocessor is None:
+            self._log_error("尚未设置国家。请先执行: country <code>")
+            return
+        try:
+            import os
+            import pandas as pd  # type: ignore
+        except Exception as e:
+            self._log_error(f"依赖未就绪，请确保已安装 pandas。错误: {e}")
+            return
+
+        parts = [p for p in arg.split() if p]
+        if len(parts) < 1:
+            self._log_error("用法: csv <input_csv>")
+            return
+
+        input_csv = parts[0]
+        if not os.path.isfile(input_csv):
+            self._log_error(f"文件不存在: {input_csv}")
+            return
+
+        # 按需求：直接回写到输入文件
+        output_csv = input_csv
+
+        try:
+            df = pd.read_csv(input_csv)
+        except Exception as e:
+            self._log_error(f"读取CSV失败: {e}")
+            return
+
+        if "formatted_address" not in df.columns:
+            self._log_error("CSV缺少列: formatted_address")
+            return
+
+        try:
+            def _safe_process(val):
+                if pd.isna(val):
+                    return ""
+                try:
+                    return self.preprocessor.apply_text(str(val))
+                except Exception:
+                    return ""
+
+            df["preprocessed_address"] = df["formatted_address"].apply(_safe_process)
+        except Exception as e:
+            self._log_error(f"批量预处理失败: {e}")
+            return
+
+        try:
+            df.to_csv(output_csv, index=False)
+            self._log_info(f"处理完成，已保存至: {output_csv}")
+        except Exception as e:
+            self._log_error(f"保存CSV失败: {e}")
+
     # -------------------------- 辅助输出 --------------------------
     def _print_banner(self) -> None:
         print("NER 交互式预处理会话 (REPL)")
@@ -103,6 +163,7 @@ class PreprocessREPL:
 可用命令：
   country <code>   加载并启用对应国家的预处理管道
   apply <text>     对文本执行预处理；已加载管道时直接输入文本也可处理
+  csv <in>         读取CSV formatted_address，生成 preprocessed_address 并写回原文件
   info             显示当前状态
   help             显示帮助
   exit | quit      退出会话
