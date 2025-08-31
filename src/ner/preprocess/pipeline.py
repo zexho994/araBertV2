@@ -220,11 +220,17 @@ class PunctuationFilterStep(BaseStep):
 
     # 默认移除的标点类别
     # 这些类别通常是控制字符或不可见字符，如换行符、制表符等
-    DEFAULT_REMOVE_PUNCTUATION_CATEGORIES = ['~']
+    DEFAULT_REMOVE_PUNCTUATION_CATEGORIES = ['~', '?', '!', ':']
+    
+    # 默认需要去重的重复标点符号
+    # 这些标点符号如果连续出现会被合并为单个字符
+    DEFAULT_REMOVE_REPEAT_PUNCTUATION = [',','-','.']
 
-    def __init__(self, keep: Optional[List[str]] = None, remove: Optional[List[str]] = None) -> None:
+    def __init__(self, keep: Optional[List[str]] = None, remove: Optional[List[str]] = None, 
+                 remove_repeat: Optional[List[str]] = None) -> None:
         self.keep = set(keep or self.DEFAULT_KEEP_PUNCTUATION_CATEGORIES)
         self.remove = set(remove or self.DEFAULT_REMOVE_PUNCTUATION_CATEGORIES)
+        self.remove_repeat = set(remove_repeat or self.DEFAULT_REMOVE_REPEAT_PUNCTUATION)
 
     def _filter(self, s: str) -> str:
         """过滤标点
@@ -246,7 +252,16 @@ class PunctuationFilterStep(BaseStep):
                 out_chars.append(" ")  # 用空格替换其他标点
             else:
                 out_chars.append(ch)
-        return "".join(out_chars)
+        
+        result = "".join(out_chars)
+        
+        # 处理重复标点符号
+        for punct in self.remove_repeat:
+            # 使用正则表达式将连续的重复标点替换为单个标点
+            pattern = re.escape(punct) + r"{2,}"
+            result = re.sub(pattern, punct, result)
+        
+        return result
 
     def apply_text(self, text: str) -> str:
         return self._filter(text) if text else text
@@ -263,7 +278,14 @@ class PunctuationFilterStep(BaseStep):
                     out_chars.append(" ")  # 用空格替换标点
                 else:
                     out_chars.append(ch)
-            return "".join(out_chars)
+            result = "".join(out_chars)
+            
+            # 处理重复标点符号（在token级别也应用去重逻辑）
+            for punct in self.remove_repeat:
+                pattern = re.escape(punct) + r"{2,}"
+                result = re.sub(pattern, punct, result)
+            
+            return result
 
         return [_strip_punct_token(t) for t in tokens], labels
 
