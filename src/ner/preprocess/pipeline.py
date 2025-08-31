@@ -220,7 +220,7 @@ class PunctuationFilterStep(BaseStep):
 
     # 默认移除的标点类别
     # 这些类别通常是控制字符或不可见字符，如换行符、制表符等
-    DEFAULT_REMOVE_PUNCTUATION_CATEGORIES = []
+    DEFAULT_REMOVE_PUNCTUATION_CATEGORIES = ['~']
 
     def __init__(self, keep: Optional[List[str]] = None, remove: Optional[List[str]] = None) -> None:
         self.keep = set(keep or self.DEFAULT_KEEP_PUNCTUATION_CATEGORIES)
@@ -241,9 +241,9 @@ class PunctuationFilterStep(BaseStep):
             if ch in self.keep:
                 out_chars.append(ch)
             elif self.remove and ch in self.remove:
-                continue
+                out_chars.append(" ")  # 用空格替换移除的标点
             elif cat.startswith("P"):
-                continue
+                out_chars.append(" ")  # 用空格替换其他标点
             else:
                 out_chars.append(ch)
         return "".join(out_chars)
@@ -254,14 +254,15 @@ class PunctuationFilterStep(BaseStep):
     def apply_tokens(self, tokens: List[str], labels: Optional[List[str]] = None):
         if not tokens:
             return tokens, labels
-        # 在 token 级别，始终移除所有标点以保持标签对齐的稳定性
+        # 在 token 级别，用空格替换所有标点以保持标签对齐的稳定性
         def _strip_punct_token(s: str) -> str:
             out_chars = []
             for ch in s:
-                # 无论 keep/remove 设置，token 级别一律去掉所有 Unicode 标点类别
+                # 无论 keep/remove 设置，token 级别一律用空格替换所有 Unicode 标点类别
                 if unicodedata.category(ch).startswith("P"):
-                    continue
-                out_chars.append(ch)
+                    out_chars.append(" ")  # 用空格替换标点
+                else:
+                    out_chars.append(ch)
             return "".join(out_chars)
 
         return [_strip_punct_token(t) for t in tokens], labels
