@@ -225,12 +225,17 @@ class PunctuationFilterStep(BaseStep):
     # 默认需要去重的重复标点符号
     # 这些标点符号如果连续出现会被合并为单个字符
     DEFAULT_REMOVE_REPEAT_PUNCTUATION = [',','-','.']
+    
+    # 默认在两边有空格时需要移除的标点符号
+    # 这些标点符号如果前后都有空格就会被移除
+    DEFAULT_REMOVE_IF_SPACED = ['-']
 
     def __init__(self, keep: Optional[List[str]] = None, remove: Optional[List[str]] = None, 
-                 remove_repeat: Optional[List[str]] = None) -> None:
+                 remove_repeat: Optional[List[str]] = None, remove_if_spaced: Optional[List[str]] = None) -> None:
         self.keep = set(keep or self.DEFAULT_KEEP_PUNCTUATION_CATEGORIES)
         self.remove = set(remove or self.DEFAULT_REMOVE_PUNCTUATION_CATEGORIES)
         self.remove_repeat = set(remove_repeat or self.DEFAULT_REMOVE_REPEAT_PUNCTUATION)
+        self.remove_if_spaced = set(remove_if_spaced or self.DEFAULT_REMOVE_IF_SPACED)
 
     def _filter(self, s: str) -> str:
         """过滤标点
@@ -261,6 +266,12 @@ class PunctuationFilterStep(BaseStep):
             pattern = re.escape(punct) + r"{2,}"
             result = re.sub(pattern, punct, result)
         
+        # 处理两边有空格的标点符号移除
+        for punct in self.remove_if_spaced:
+            # 使用正则表达式匹配前后都有空格的标点符号并移除
+            pattern = r"\s+" + re.escape(punct) + r"\s+"
+            result = re.sub(pattern, " ", result)
+        
         return result
 
     def apply_text(self, text: str) -> str:
@@ -284,6 +295,11 @@ class PunctuationFilterStep(BaseStep):
             for punct in self.remove_repeat:
                 pattern = re.escape(punct) + r"{2,}"
                 result = re.sub(pattern, punct, result)
+            
+            # 处理两边有空格的标点符号移除（在token级别也应用相同逻辑）
+            for punct in self.remove_if_spaced:
+                pattern = r"\s+" + re.escape(punct) + r"\s+"
+                result = re.sub(pattern, " ", result)
             
             return result
 
