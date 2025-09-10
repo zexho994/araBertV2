@@ -148,7 +148,7 @@ class PreprocessREPL:
                 df[preprocessed_col_name] = df[column].apply(_safe_process)
                 processed_columns.append(preprocessed_col_name)
             
-            self._log_info(f"已处理 {len(df.columns/2)} 列，生成了 {len(processed_columns)} 个预处理列")
+            self._log_info(f"已处理 {len(df.columns)/2} 列，生成了 {len(processed_columns)} 个预处理列")
         except Exception as e:
             self._log_error(f"批量预处理失败: {e}")
             return
