@@ -42,6 +42,7 @@ class BaseCommand(ABC):
     
     def __init__(self):
         self.global_config = {}
+        self.country_config = {}
         self.logger = None
     
     @property
@@ -72,14 +73,13 @@ class BaseCommand(ABC):
 
     def get_global_config(self) -> Dict[str, Any]:
         """Get global configuration"""
-        if not self.global_config:
-            self.global_config = ConfigManager(self.global_config.get('config_dir'))
         return self.global_config
 
     def get_country_config(self, country: str) -> Dict[str, Any]:
         """Get country configuration"""
         if not self.country_config:
-            self.country_config = self.get_global_config().load_country_config(country)
+            config_manager = ConfigManager(self.global_config.get('config_dir'))
+            self.country_config = config_manager.load_country_config(country)
         return self.country_config
     
     def set_logger(self, logger):
