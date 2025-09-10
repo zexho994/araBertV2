@@ -9,8 +9,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, NamedTuple
 
+import csv
 import json
 import re
 import sys
@@ -24,12 +25,32 @@ sys.path.append(str(Path(__file__).resolve().parents[2]))
 from ner.config.manager import ConfigManager
 
 
+class ValidationIssue(NamedTuple):
+    """表示单个校验问题"""
+    row_index: int
+    entity_column: str
+    entity_value: str
+    text_value: str
+    issue_type: str  # "not_found", "partial_match", "case_mismatch" 等
+
+
+class ValidationReport(NamedTuple):
+    """校验报告"""
+    total_rows: int
+    valid_rows: int
+    invalid_rows: int
+    issues: List[ValidationIssue]
+    success_rate: float
+
+
 @dataclass
 class CSVAnnotationGeneratorConfig:
     csv_path: str
     country_code: str
     output_file: Optional[str] = None  # If None, defaults to data dir / country / generated.json
     text_column: str = "formatted_address"
+    validate_text_contains_entities: bool = True  # 是否校验text_column包含实体列的文本
+    validation_mode: str = "strict"  # "strict" 或 "lenient"，严格模式会阻止生成，宽松模式只警告
 
 
 class CSVAnnotationGenerator:
@@ -53,7 +74,11 @@ class CSVAnnotationGenerator:
         # Keys should be lowercase canonical forms.
         self._abbrev_synonyms: Dict[str, List[str]] = {
             "street": ["street", "st", "st."],
+            "st": ["street", "st", "st."],
+
             "road": ["road", "rd", "rd."],
+            "rd": ["road", "rd", "rd."],
+
             "avenue": ["avenue", "ave", "ave."],
             "boulevard": ["boulevard", "blvd", "blvd."],
             "drive": ["drive", "dr", "dr."],
@@ -65,7 +90,8 @@ class CSVAnnotationGenerator:
             "highway": ["highway", "hwy", "hwy."],
             "parkway": ["parkway", "pkwy", "pkwy."],
             "building": ["building", "bldg", "bldg."],
-            "United Arab Emirates": ["UAE"]
+            "United Arab Emirates": ["UAE"],
+            "Mount": ["MT"]
         }
 
         # Entity priority (higher number = higher priority). Used to resolve overlaps.
@@ -115,6 +141,28 @@ class CSVAnnotationGenerator:
                 "CSV does not contain any expected entity columns. "
                 f"Expected any of: {sorted(entity_to_column.values())}. Columns: {list(df.columns)}"
             )
+
+        # 执行CSV校验（如果启用）
+        validation_report = None
+        if cfg.validate_text_contains_entities:
+            print("正在执行CSV校验...")
+            validation_report = self.validate_csv_text_contains_entities(
+                cfg, df, entity_to_actual_col, text_col_actual
+            )
+            # 生成校验报告CSV文件
+            csv_path = Path(cfg.csv_path)
+            report_csv_path = csv_path.parent / f"{csv_path.stem}_validation_report.csv"
+            self.print_validation_report(validation_report, str(report_csv_path), show_details=True)
+            
+            # 根据校验模式决定是否继续
+            if cfg.validation_mode == "strict" and validation_report.success_rate < 1.0:
+                raise ValueError(
+                    f"CSV校验失败: 成功率 {validation_report.success_rate:.2%} < 100%。"
+                    f"发现 {len(validation_report.issues)} 个问题。"
+                    "请修复数据问题或使用 validation_mode='lenient' 继续处理。"
+                )
+            elif cfg.validation_mode == "lenient" and validation_report.issues:
+                print(f"\n⚠️  警告: 发现 {len(validation_report.issues)} 个数据质量问题，但在宽松模式下继续处理。")
 
         # Create dynamic priority based on CSV column order
         # Higher column index = higher priority (rightmost columns have highest priority)
@@ -176,16 +224,246 @@ class CSVAnnotationGenerator:
 
         return output_path
 
+    def validate_csv_text_contains_entities(
+        self, 
+        cfg: CSVAnnotationGeneratorConfig, 
+        df: pd.DataFrame, 
+        entity_to_actual_col: Dict[str, str],
+        text_col_actual: str
+    ) -> ValidationReport:
+        """校验CSV中的text_column是否包含其他实体列中的文本
+        
+        Args:
+            cfg: 配置对象
+            df: CSV数据框
+            entity_to_actual_col: 实体名到实际列名的映射
+            text_col_actual: 实际的文本列名
+            
+        Returns:
+            ValidationReport: 校验报告
+        """
+        issues = []
+        valid_rows = 0
+        
+        for row_idx, row in df.iterrows():
+            text = str(row.get(text_col_actual, "")).strip()
+            if not text:
+                continue
+                
+            row_has_issues = False
+            
+            # 检查每个实体列
+            for entity, actual_col in entity_to_actual_col.items():
+                if actual_col not in row or pd.isna(row[actual_col]):
+                    continue
+                    
+                entity_value = str(row[actual_col]).strip()
+                if not entity_value:
+                    continue
+                
+                # 支持多个值用 | 分隔
+                parts = [p.strip() for p in re.split(r"\s*\|\s*", entity_value) if p.strip()]
+                
+                for part in parts:
+                    # 使用现有的模糊匹配方法来查找实体
+                    char_spans = self._find_all_char_spans(text, part)
+                    
+                    if not char_spans:
+                        # 未找到匹配
+                        issues.append(ValidationIssue(
+                            row_index=int(row_idx),
+                            entity_column=actual_col,
+                            entity_value=part,
+                            text_value=text,
+                            issue_type="not_found"
+                        ))
+                        row_has_issues = True
+                    else:
+                        # 检查是否为部分匹配或大小写不匹配
+                        found_exact = False
+                        for start_c, end_c in char_spans:
+                            matched_text = text[start_c:end_c]
+                            if matched_text == part:
+                                found_exact = True
+                                break
+                            elif matched_text.lower() == part.lower():
+                                # 大小写不匹配
+                                issues.append(ValidationIssue(
+                                    row_index=int(row_idx),
+                                    entity_column=actual_col,
+                                    entity_value=part,
+                                    text_value=text,
+                                    issue_type="case_mismatch"
+                                ))
+                                break
+                        
+                        if not found_exact and not any(
+                            issue.row_index == row_idx and issue.entity_value == part 
+                            for issue in issues[-5:]  # 检查最近几个issues
+                        ):
+                            # 部分匹配
+                            issues.append(ValidationIssue(
+                                row_index=int(row_idx),
+                                entity_column=actual_col,
+                                entity_value=part,
+                                text_value=text,
+                                issue_type="partial_match"
+                            ))
+            
+            if not row_has_issues:
+                valid_rows += 1
+        
+        total_rows = len(df)
+        invalid_rows = total_rows - valid_rows
+        success_rate = valid_rows / total_rows if total_rows > 0 else 0.0
+        
+        return ValidationReport(
+            total_rows=total_rows,
+            valid_rows=valid_rows,
+            invalid_rows=invalid_rows,
+            issues=issues,
+            success_rate=success_rate
+        )
+
+    def print_validation_report(self, report: ValidationReport, csv_file_path: str, show_details: bool = True):
+        """生成CSV格式的校验报告
+        
+        Args:
+            report: 校验报告对象
+            csv_file_path: CSV文件输出路径
+            show_details: 是否包含详细问题信息
+        """
+        # 确保输出目录存在
+        output_path = Path(csv_file_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # 准备CSV数据
+        csv_data = []
+        
+        # 添加汇总信息作为CSV的前几行
+        csv_data.append(['报告类型', '数值', '说明'])
+        csv_data.append(['总行数', report.total_rows, '输入CSV文件的总行数'])
+        csv_data.append(['有效行数', report.valid_rows, '通过校验的行数'])
+        csv_data.append(['问题行数', report.invalid_rows, '存在问题的行数'])
+        csv_data.append(['成功率', f"{report.success_rate:.2%}", '有效行数/总行数'])
+        csv_data.append(['问题总数', len(report.issues), '发现的问题总数'])
+        csv_data.append(['', '', ''])  # 空行分隔
+        
+        if show_details and report.issues:
+            # 添加详细问题列表
+            csv_data.append(['问题序号', '行索引', '实体列名', '实体值', '问题类型', '文本内容'])
+            
+            # 按问题类型分组并排序
+            issues_by_type = {}
+            for issue in report.issues:
+                if issue.issue_type not in issues_by_type:
+                    issues_by_type[issue.issue_type] = []
+                issues_by_type[issue.issue_type].append(issue)
+            
+            problem_count = 1
+            for issue_type in sorted(issues_by_type.keys()):
+                type_issues = issues_by_type[issue_type]
+                
+                # 添加问题类型分隔行
+                csv_data.append([f"=== {issue_type.upper()} ({len(type_issues)} 个问题) ===", '', '', '', '', ''])
+                
+                for issue in type_issues:
+                    # 截断过长的文本以便在CSV中查看
+                    text_content = issue.text_value
+                    if len(text_content) > 200:
+                        text_content = text_content[:200] + "..."
+                    
+                    csv_data.append([
+                        problem_count,
+                        issue.row_index+2,
+                        issue.entity_column,
+                        issue.entity_value,
+                        issue.issue_type,
+                        text_content
+                    ])
+                    problem_count += 1
+                
+                # 问题类型之间添加空行
+                csv_data.append(['', '', '', '', '', ''])
+        
+        # 写入CSV文件
+        with open(csv_file_path, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(csv_data)
+        
+        print(f"校验报告已生成: {csv_file_path}")
+        print(f"总行数: {report.total_rows}, 有效行数: {report.valid_rows}, 成功率: {report.success_rate:.2%}")
+        
+        if report.issues:
+            print(f"发现 {len(report.issues)} 个问题，详细信息请查看CSV文件")
+
     # Convenience helper for direct invocation without constructing config objects
     def generate_from_csv(self, csv_path: str, country_code: str, *, output_file: Optional[str] = None,
-                          text_column: str = "formatted_address") -> Path:
+                          text_column: str = "formatted_address", 
+                          validate_text_contains_entities: bool = True,
+                          validation_mode: str = "strict") -> Path:
         cfg = CSVAnnotationGeneratorConfig(
             csv_path=csv_path,
             country_code=country_code,
             output_file=output_file,
             text_column=text_column,
+            validate_text_contains_entities=validate_text_contains_entities,
+            validation_mode=validation_mode,
         )
         return self.generate(cfg)
+
+    def validate_csv_only(self, csv_path: str, country_code: str, *, 
+                         text_column: str = "formatted_address") -> ValidationReport:
+        """仅执行CSV校验，不生成注释文件
+        
+        Args:
+            csv_path: CSV文件路径
+            country_code: 国家代码
+            text_column: 文本列名
+            
+        Returns:
+            ValidationReport: 校验报告
+        """
+        # Load country config and derive entity set
+        country_cfg = self.config_manager.load_country_config(country_code)
+        entity_names = self._derive_entity_names_from_config(country_cfg)
+        entity_to_column = {e: e.lower() for e in entity_names}
+
+        # Read CSV with delimiter auto-detection and clean headers
+        df = pd.read_csv(csv_path, sep=None, engine="python")
+        df.columns = [str(c).lstrip("\ufeff").strip() for c in df.columns]
+        norm_to_actual = {self._normalize_colname(c): c for c in df.columns}
+
+        # Validate columns
+        norm_text_col = self._normalize_colname(text_column)
+        if norm_text_col not in norm_to_actual:
+            raise ValueError(
+                f"CSV missing required text column '{text_column}'. Columns: {list(df.columns)}"
+            )
+        text_col_actual = norm_to_actual[norm_text_col]
+
+        # Map expected entity lower names to actual present column names
+        entity_to_actual_col: Dict[str, str] = {}
+        for entity, expected_col in entity_to_column.items():
+            norm_expected = self._normalize_colname(expected_col)
+            if norm_expected in norm_to_actual:
+                entity_to_actual_col[entity] = norm_to_actual[norm_expected]
+
+        if not entity_to_actual_col:
+            raise ValueError(
+                "CSV does not contain any expected entity columns. "
+                f"Expected any of: {sorted(entity_to_column.values())}. Columns: {list(df.columns)}"
+            )
+
+        # Create a dummy config for validation
+        cfg = CSVAnnotationGeneratorConfig(
+            csv_path=csv_path,
+            country_code=country_code,
+            text_column=text_column,
+        )
+
+        # Execute validation
+        return self.validate_csv_text_contains_entities(cfg, df, entity_to_actual_col, text_col_actual)
 
     @staticmethod
     def _derive_entity_names_from_config(country_cfg: Dict[str, Any]) -> List[str]:
@@ -447,19 +725,65 @@ class CSVAnnotationGenerator:
 
 def main():
     gen = CSVAnnotationGenerator(config_dir="data/ner/configs")
-    out_path = gen.generate_from_csv(
-        # csv_path="src/ner/utils/uae_address.csv",
-        # csv_path="src/ner/utils/train_dataset.csv",
-        # csv_path="src/ner/utils/validation.csv",
-        # csv_path="src/ner/utils/test_uae_train.csv",
-        csv_path="src/ner/utils/uae_train_0910.csv",
+    
+    csv_path = "src/ner/utils/uae_eval_0910.csv"
+    out_path = "data/ner/data/uae_xml_roberta_base/eval_250910.jsonl"
 
+    # 示例1: 仅执行校验
+    print("=== 示例1: 仅执行CSV校验 ===")
+    validation_report = gen.validate_csv_only(
+        csv_path=csv_path,
         country_code="uae_xml_roberta_base",
-        output_file="data/ner/data/uae_xml_roberta_base/train_250910.jsonl",  # 可省略→默认 data/ner/training_data/uae/generated.json
-        # output_file="data/ner/data/uae_xml_roberta_base/evaluate_250910.jsonl",  # 可省略→默认 data/ner/training_data/uae/generated.json
-        # text_column="formatted_address",  # 如不同可自定义
+        text_column="formatted_address"
     )
-    print(out_path)
+    # 生成校验报告CSV文件
+    csv_input_path = Path(csv_path)
+    report_csv_path = csv_input_path.parent / f"{csv_input_path.stem}_validation_report.csv"
+    gen.print_validation_report(validation_report, str(report_csv_path), show_details=False)
+
+    out_path = gen.generate_from_csv(
+        csv_path=csv_path,
+        country_code="uae_xml_roberta_base",
+        output_file=out_path,
+        validate_text_contains_entities=True,
+        validation_mode="strict"  # 严格模式：如果校验失败会抛出异常
+    )
+    print(f"生成成功: {out_path}")
+
+    # 示例2: 生成注释文件（带校验）
+    # print("\n=== 示例2: 生成注释文件（严格模式校验） ===")
+    # try:
+    #     out_path = gen.generate_from_csv(
+    #         csv_path=csv_path,
+    #         country_code="uae_xml_roberta_base",
+    #         output_file="data/ner/data/uae_xml_roberta_base/train_250910.jsonl",
+    #         validate_text_contains_entities=True,
+    #         validation_mode="strict"  # 严格模式：如果校验失败会抛出异常
+    #     )
+    #     print(f"生成成功: {out_path}")
+    # except ValueError as e:
+    #     print(f"严格模式校验失败: {e}")
+        
+    #     # 示例3: 宽松模式继续生成
+    #     print("\n=== 示例3: 宽松模式继续生成 ===")
+    #     out_path = gen.generate_from_csv(
+    #         csv_path=csv_path,
+    #         country_code="uae_xml_roberta_base",
+    #         output_file="data/ner/data/uae_xml_roberta_base/train_250910_lenient.jsonl",
+    #         validate_text_contains_entities=True,
+    #         validation_mode="lenient"  # 宽松模式：即使校验失败也继续生成
+    #     )
+    #     print(f"宽松模式生成成功: {out_path}")
+    
+    # 示例4: 跳过校验
+    # print("\n=== 示例4: 跳过校验直接生成 ===")
+    # out_path = gen.generate_from_csv(
+    #     csv_path=csv_path,
+    #     country_code="uae_xml_roberta_base",
+    #     output_file="data/ner/data/uae_xml_roberta_base/train_250910_no_validation.jsonl",
+    #     validate_text_contains_entities=False  # 跳过校验
+    # )
+    # print(f"跳过校验生成成功: {out_path}")
 
 if __name__ == "__main__":
     main()
