@@ -450,11 +450,13 @@ def main():
     out_path = gen.generate_from_csv(
         # csv_path="src/ner/utils/uae_address.csv",
         # csv_path="src/ner/utils/train_dataset.csv",
-        csv_path="src/ner/utils/evaluate_dataset.csv",
         # csv_path="src/ner/utils/validation.csv",
         # csv_path="src/ner/utils/test_uae_train.csv",
+        csv_path="src/ner/utils/uae_train_0910.csv",
+
         country_code="uae_xml_roberta_base",
-        output_file="data/ner/data/uae_xml_roberta_base/evaluate_50000.jsonl",  # 可省略→默认 data/ner/training_data/uae/generated.json
+        output_file="data/ner/data/uae_xml_roberta_base/train_250910.jsonl",  # 可省略→默认 data/ner/training_data/uae/generated.json
+        # output_file="data/ner/data/uae_xml_roberta_base/evaluate_250910.jsonl",  # 可省略→默认 data/ner/training_data/uae/generated.json
         # text_column="formatted_address",  # 如不同可自定义
     )
     print(out_path)
