@@ -71,32 +71,6 @@ def build_preprocessor_from_config(config: Dict[str, Any]) -> Preprocessor:
         steps: List[BaseStep] = [_instantiate_step(item) for item in pipeline_spec]
         return Preprocessor(steps)
     else:
-        # 兜底：布尔开关
-        legacy = data_cfg.get("preprocessing", {}) or {}
-        steps: List[BaseStep] = []
-
-        if legacy.get("clean_text", False):
-            # 使用去重音作为安全归一化的基础
-            steps.append(UnicodeNormalizeStep())
-            steps.append(WhitespaceNormalizeStep(collapse=True, trim=True))
-
-        if legacy.get("normalize_arabic", False):
-            # 使用去重音作为安全归一化的基础
-            steps.append(ArabicRemoveDiacriticsStep())
-
-        if legacy.get("remove_diacritics", False):
-            # 使用去重音作为安全归一化的基础
-            steps.append(ArabicRemoveDiacriticsStep())
-
-        # 混合文字系统归一化未实现为单独的步骤
-
-        # 仅在 legacy 中显式请求小写化（阿拉伯语中不常见）
-        if legacy.get("lowercase", False):
-            steps.append(LowercaseStep())
-
-        if legacy.get("remove_special_chars", False):
-            steps.append(PunctuationFilterStep())
-
-        return Preprocessor(steps)
+        raise ValueError("No preprocessing pipeline found in config")
 
 
