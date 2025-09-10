@@ -17,7 +17,7 @@ class PreprocessREPL:
     命令：
     - country <code>   加载并启用对应国家的预处理管道
     - apply <text>     对文本执行预处理（已设置国家时生效）
-    - csv <in>         读取CSV的formatted_address列，生成preprocessed_address并写回原文件
+    - csv <in>         读取CSV的所有列，为每列生成preprocessed_{列名}并写回原文件
     - info             显示当前状态
     - help             显示帮助
     - exit/quit        退出会话
@@ -128,8 +128,8 @@ class PreprocessREPL:
             self._log_error(f"读取CSV失败: {e}")
             return
 
-        if "formatted_address" not in df.columns:
-            self._log_error("CSV缺少列: formatted_address")
+        if df.empty:
+            self._log_error("CSV文件为空")
             return
 
         try:
@@ -141,7 +141,14 @@ class PreprocessREPL:
                 except Exception:
                     return ""
 
-            df["preprocessed_address"] = df["formatted_address"].apply(_safe_process)
+            # 处理所有列，为每个列创建对应的 preprocessed_ 列
+            processed_columns = []
+            for column in df.columns:
+                preprocessed_col_name = f"preprocessed_{column}"
+                df[preprocessed_col_name] = df[column].apply(_safe_process)
+                processed_columns.append(preprocessed_col_name)
+            
+            self._log_info(f"已处理 {len(df.columns/2)} 列，生成了 {len(processed_columns)} 个预处理列")
         except Exception as e:
             self._log_error(f"批量预处理失败: {e}")
             return
@@ -163,7 +170,7 @@ class PreprocessREPL:
 可用命令：
   country <code>   加载并启用对应国家的预处理管道
   apply <text>     对文本执行预处理；已加载管道时直接输入文本也可处理
-  csv <in>         读取CSV formatted_address，生成 preprocessed_address 并写回原文件
+  csv <in>         读取CSV所有列，为每列生成 preprocessed_{列名} 并写回原文件
   info             显示当前状态
   help             显示帮助
   exit | quit      退出会话
