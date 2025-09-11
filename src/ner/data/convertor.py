@@ -14,16 +14,10 @@ from typing import Dict, List, Any, Optional, Tuple, NamedTuple
 import csv
 import json
 import re
-import sys
 
 import pandas as pd
 
-# Ensure running this file directly works by adding the project 'src' to sys.path
-# so that 'import ner' resolves to 'src/ner'
-sys.path.append(str(Path(__file__).resolve().parents[2]))
-
-from ner.config.manager import ConfigManager
-
+from ..config.manager import ConfigManager
 
 class ValidationIssue(NamedTuple):
     """表示单个校验问题"""
@@ -53,7 +47,7 @@ class CSVAnnotationGeneratorConfig:
     validation_mode: str = "strict"  # "strict" 或 "lenient"，严格模式会阻止生成，宽松模式只警告
 
 
-class CSVAnnotationGenerator:
+class CSVAnnotationConvert:
     """Generate NER annotations from a CSV using country-specific labels.
 
     CSV requirements:
@@ -342,7 +336,7 @@ class CSVAnnotationGenerator:
             print(f"原始行数: {len(df)}, 处理后行数: {len(df_cleaned)}, 删除行数: {len(not_found_rows)}")
             
             # 重新执行校验
-            updated_cfg = CSVAnnotationGeneratorConfig(
+            CSVAnnotationGeneratorConfig(
                 csv_path=str(processed_csv_path),
                 country_code=cfg.country_code,
                 text_column=cfg.text_column,
@@ -770,10 +764,10 @@ class CSVAnnotationGenerator:
 
 
 def main():
-    gen = CSVAnnotationGenerator(config_dir="data/ner/configs")
+    gen = CSVAnnotationConvert(config_dir="data/ner/configs")
     
-    csv_path = "src/ner/utils/uae_train_0910.csv"
-    out_path = "data/ner/data/uae_xml_roberta_base/train_250910.jsonl"
+    # csv_path = "src/ner/utils/uae_train_0910.csv"
+    # out_path = "data/ner/data/uae_xml_roberta_base/train_250910.jsonl"
 
     # csv_path = "src/ner/utils/uae_eval_0910.csv"
     # out_path = "data/ner/data/uae_xml_roberta_base/eval_250910.jsonl"
@@ -791,18 +785,18 @@ def main():
     # gen.print_validation_report(validation_report, str(report_csv_path), show_details=True)
 
     # 示例2: 生成训练文件（带校验）
-    print("\n=== 示例2: 生成注释文件（严格模式校验） ===")
-    try:
-        output = gen.generate_from_csv(
-            csv_path=csv_path,
-            country_code="uae_xml_roberta_base",
-            output_file=out_path,
-            validate_text_contains_entities=True,
-            validation_mode="strict"  # 严格模式：如果校验失败会抛出异常
-        )
-        print(f"生成成功: {output}")
-    except ValueError as e:
-        print(f"严格模式校验失败: {e}")
+    # print("\n=== 示例2: 生成注释文件（严格模式校验） ===")
+    # try:
+    #     output = gen.generate_from_csv(
+    #         csv_path=csv_path,
+    #         country_code="uae_xml_roberta_base",
+    #         output_file=out_path,
+    #         validate_text_contains_entities=True,
+    #         validation_mode="strict"  # 严格模式：如果校验失败会抛出异常
+    #     )
+    #     print(f"生成成功: {output}")
+    # except ValueError as e:
+    #     print(f"严格模式校验失败: {e}")
         
 
 if __name__ == "__main__":

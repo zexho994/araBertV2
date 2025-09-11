@@ -918,10 +918,10 @@ class DataCommand(BaseCommand):
                 self.logger.info(f"Processed data saved to '{args.output_file}'")
                 
             elif args.data_action == "convert":
-                from ..utils.csv_annotation_generator import CSVAnnotationGenerator
+                from ..data.convertor import CSVAnnotationConvert
                 
                 # Initialize CSV annotation generator
-                generator = CSVAnnotationGenerator(config_dir=self.global_config.get('config_dir', 'data/ner/configs'))
+                generator = CSVAnnotationConvert(config_dir=self.global_config.get('config_dir', 'data/ner/configs'))
                 
                 # Check if only validation is requested
                 if getattr(args, 'only_validate', False):
