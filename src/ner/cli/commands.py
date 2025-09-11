@@ -957,7 +957,6 @@ class DataCommand(BaseCommand):
                         return False
                         
                 else:
-                    # Convert CSV to JSONL using generate_from_csv
                     if not getattr(args, 'output_path', None):
                         self.logger.error("--output-path is required when not using -ov (only validate) mode")
                         return False
@@ -970,7 +969,6 @@ class DataCommand(BaseCommand):
                             text_column=args.text_column,
                             validate_text_contains_entities=True,
                             validation_mode=args.validation_mode
-                            
                         )
                         
                         self.logger.info(f"Successfully converted CSV to JSONL: {output_path}")

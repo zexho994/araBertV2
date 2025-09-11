@@ -25,7 +25,7 @@ class ValidationIssue(NamedTuple):
     entity_column: str
     entity_value: str
     text_value: str
-    issue_type: str  # "not_found", "partial_match", "case_mismatch" 等
+    issue_type: str
 
 
 class ValidationReport(NamedTuple):
@@ -38,14 +38,25 @@ class ValidationReport(NamedTuple):
 
 
 @dataclass
-class CSVAnnotationGeneratorConfig:
+class CSVConvertConfig:
+    """
+    转换配置
+    Args:
+        csv_path: CSV文件路径
+        country_code: 国家代码
+        output_file: 输出文件路径
+        text_column: 文本列名
+        validate_text_contains_entities: 是否校验text_column包含实体列的文本
+        validation_mode: 校验模式
+        auto_process: 是否处理异常数据（删除异常数据行）
+    """
     csv_path: str
     country_code: str
     output_file: Optional[str] = None  # If None, defaults to data dir / country / generated.json
     text_column: str = "formatted_address"
     validate_text_contains_entities: bool = True  # 是否校验text_column包含实体列的文本
     validation_mode: str = "strict"  # "strict" 或 "lenient"，严格模式会阻止生成，宽松模式只警告
-
+    auto_process: bool = False
 
 class CSVAnnotationConvert:
     """Generate NER annotations from a CSV using country-specific labels.
@@ -64,8 +75,6 @@ class CSVAnnotationConvert:
 
     def __init__(self, config_dir: str = "data/ner/configs") -> None:
         self.config_manager = ConfigManager(config_dir=config_dir)
-        # Abbreviation/synonym mapping for fuzzy matching on last tokens like Street/St, Road/Rd, etc.
-        # Keys should be lowercase canonical forms.
         self._abbrev_synonyms: Dict[str, List[str]] = {
             "street": ["st", "st."],
             "st": ["st", "st."],
@@ -99,8 +108,6 @@ class CSVAnnotationConvert:
             "ajman": ["ajman", ""] #ajman en , arabic
         }
 
-        # Entity priority (higher number = higher priority). Used to resolve overlaps.
-        # Tune as needed. Here EMIRATE outranks CITY to avoid city masking emirate in overlaps.
         self._entity_priority: Dict[str, int] = {
             "HOUSE_NUMBER": 100,
             "BUILDING": 90,
@@ -112,8 +119,15 @@ class CSVAnnotationConvert:
             "COUNTRY": 40,
         }
 
-    def generate(self, cfg: CSVAnnotationGeneratorConfig) -> Path:
-        # Load country config and derive entity set
+    def generate(self, cfg: CSVConvertConfig) -> Path:
+        """生成jsonl训练数据集
+        
+        Args:
+            cfg: 转换配置
+        
+        Returns:
+            Path: 输出文件路径
+        """
         country_cfg = self.config_manager.load_country_config(cfg.country_code)
         entity_names = self._derive_entity_names_from_config(country_cfg)
         entity_to_column = {e: e.lower() for e in entity_names}
@@ -125,7 +139,6 @@ class CSVAnnotationConvert:
         # Build normalized header map
         norm_to_actual = {self._normalize_colname(c): c for c in df.columns}
 
-        # Validate columns
         norm_text_col = self._normalize_colname(cfg.text_column)
         if norm_text_col not in norm_to_actual:
             raise ValueError(
@@ -133,7 +146,7 @@ class CSVAnnotationConvert:
             )
         text_col_actual = norm_to_actual[norm_text_col]
 
-        # Map expected entity lower names to actual present column names via normalized match
+        # 将期望的实体列名映射到实际的列名
         entity_to_actual_col: Dict[str, str] = {}
         for entity, expected_col in entity_to_column.items():
             norm_expected = self._normalize_colname(expected_col)
@@ -169,8 +182,6 @@ class CSVAnnotationConvert:
             elif cfg.validation_mode == "lenient" and validation_report.issues:
                 print(f"\n⚠️  警告: 发现 {len(validation_report.issues)} 个数据质量问题，但在宽松模式下继续处理。")
 
-        # Create dynamic priority based on CSV column order
-        # Higher column index = higher priority (rightmost columns have highest priority)
         dynamic_priority: Dict[str, int] = {}
         for entity, actual_col in entity_to_actual_col.items():
             try:
@@ -182,7 +193,6 @@ class CSVAnnotationConvert:
                 # Fallback to default priority if column not found
                 dynamic_priority[entity.upper()] = self._entity_priority.get(entity.upper(), 0)
 
-        # Build annotations
         examples: List[Dict[str, Any]] = []
         for _, row in df.iterrows():
             text = str(row.get(text_col_actual, "")).strip()
@@ -217,11 +227,7 @@ class CSVAnnotationConvert:
                 for ex in examples:
                     f.write(json.dumps(ex, ensure_ascii=False))
                     f.write("\n")
-        elif suffix == ".json":
-            with output_path.open("w", encoding="utf-8") as f:
-                json.dump(examples, f, ensure_ascii=False, indent=2)
         else:
-            # Fallback to JSONL if unknown extension
             with (output_path.with_suffix(".jsonl")).open("w", encoding="utf-8") as f:
                 for ex in examples:
                     f.write(json.dumps(ex, ensure_ascii=False))
@@ -299,7 +305,7 @@ class CSVAnnotationConvert:
         )
 
     def process_validation_data(self, csv_path: str, df: pd.DataFrame, validation_report: ValidationReport, 
-                               cfg: CSVAnnotationGeneratorConfig, entity_to_actual_col: Dict[str, str], 
+                               cfg: CSVConvertConfig, entity_to_actual_col: Dict[str, str], 
                                text_col_actual: str) -> ValidationReport:
         """处理异常数据
         
@@ -336,7 +342,7 @@ class CSVAnnotationConvert:
             print(f"原始行数: {len(df)}, 处理后行数: {len(df_cleaned)}, 删除行数: {len(not_found_rows)}")
             
             # 重新执行校验
-            CSVAnnotationGeneratorConfig(
+            CSVConvertConfig(
                 csv_path=str(processed_csv_path),
                 country_code=cfg.country_code,
                 text_column=cfg.text_column,
@@ -431,7 +437,7 @@ class CSVAnnotationConvert:
                           text_column: str = "formatted_address", 
                           validate_text_contains_entities: bool = True,
                           validation_mode: str = "strict") -> Path:
-        cfg = CSVAnnotationGeneratorConfig(
+        cfg = CSVConvertConfig(
             csv_path=csv_path,
             country_code=country_code,
             output_file=output_file,
@@ -487,7 +493,7 @@ class CSVAnnotationConvert:
             )
 
         # Create a dummy config for validation
-        cfg = CSVAnnotationGeneratorConfig(
+        cfg = CSVConvertConfig(
             csv_path=csv_path,
             country_code=country_code,
             text_column=text_column,
@@ -611,13 +617,19 @@ class CSVAnnotationConvert:
 
     @staticmethod
     def _normalize_colname(name: str) -> str:
-        """Normalize a column name for matching: strip, remove BOM, lowercase, unify separators."""
+        """
+        规范化列名
+        Args:
+            name: 列名
+        Returns:
+            str: 规范化后的列名
+        """
         if name is None:
             return ""
         s = str(name).lstrip("\ufeff").strip().lower()
-        # Replace whitespace and hyphens with underscores
+        # 替换空白和连字符为下划线
         s = re.sub(r"[\s\-]+", "_", s)
-        # Collapse multiple underscores
+        # 合并多个下划线
         s = re.sub(r"_+", "_", s)
         return s
 
