@@ -885,6 +885,7 @@ class DataCommand(BaseCommand):
         convert_parser.add_argument("--text-column", default="formatted_address", help="Text column name (default: formatted_address)")
         convert_parser.add_argument("--validation-mode", choices=["strict", "lenient"], default="strict", help="Validation mode (default: strict)")
         convert_parser.add_argument("-ov", "--only-validate", action="store_true", help="Only validate CSV data without conversion")
+        convert_parser.add_argument("-fix", "--fix", action="store_true", help="Automatically process anomalies (equivalent to auto_process=True)")
         
         # Split data
         split_parser = subparsers.add_parser("split", help="Split data into train/val/test")
@@ -925,13 +926,12 @@ class DataCommand(BaseCommand):
                 
                 # Check if only validation is requested
                 if getattr(args, 'only_validate', False):
-                    # Only validate CSV data without conversion
                     try:
                         validation_report = generator.validate_csv(
                             csv_path=args.input_path,
                             country_code=args.country,
                             text_column=args.text_column,
-                            auto_process=False
+                            auto_process=getattr(args, 'fix', False)
                         )
                         
                         # Generate validation report CSV
@@ -970,7 +970,9 @@ class DataCommand(BaseCommand):
                             text_column=args.text_column,
                             validate_text_contains_entities=True,
                             validation_mode=args.validation_mode
+                            
                         )
+                        
                         self.logger.info(f"Successfully converted CSV to JSONL: {output_path}")
                         
                     except ValueError as e:

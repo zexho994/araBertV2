@@ -437,6 +437,11 @@ For more information on each command, use:
         action='store_true',
         help='Only validate CSV data without conversion'
     )
+    data_convert_parser.add_argument(
+        '-fix', '--fix',
+        action='store_true',
+        help='Automatically process anomalies (equivalent to auto_process=True)'
+    )
     
     # Data split
     data_split_parser = data_subparsers.add_parser(
