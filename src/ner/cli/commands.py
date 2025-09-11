@@ -849,6 +849,7 @@ class DataCommand(BaseCommand):
     支持：
     - 数据校验（validate）
     - 数据预处理（process）
+    - 数据转换（convert）- CSV转JSONL格式
     - 数据划分（split，暂未实现）
 
     # TODO: 实现 `split`，并支持自定义随机种子与分层抽样。
@@ -865,16 +866,24 @@ class DataCommand(BaseCommand):
     def setup_parser(self, parser):
         subparsers = parser.add_subparsers(dest="data_action", help="Data actions")
         
-        # Validate data
-        validate_parser = subparsers.add_parser("validate", help="Validate training data")
+        # 验证训练数据
+        validate_parser = subparsers.add_parser("validate", help="Validate training/evaluation data")
         validate_parser.add_argument("--country", required=True, help="Country code")
         validate_parser.add_argument("--input-file", required=True, help="Data file to validate")
         
-        # Process data
+        # 处理训练数据
         process_parser = subparsers.add_parser("process", help="Process and prepare data")
         process_parser.add_argument("--country", required=True, help="Country code")
         process_parser.add_argument("--input-file", required=True, help="Input data file")
         process_parser.add_argument("--output-file", required=True, help="Output processed file")
+        
+        # Convert data
+        convert_parser = subparsers.add_parser("convert", help="Convert CSV to JSONL format")
+        convert_parser.add_argument("--input-path", required=True, help="Input CSV file path")
+        convert_parser.add_argument("--output-path", required=True, help="Output JSONL file path")
+        convert_parser.add_argument("--country", required=True, help="Country code for configuration")
+        convert_parser.add_argument("--text-column", default="formatted_address", help="Text column name (default: formatted_address)")
+        convert_parser.add_argument("--validation-mode", choices=["strict", "lenient"], default="strict", help="Validation mode (default: strict)")
         
         # Split data
         split_parser = subparsers.add_parser("split", help="Split data into train/val/test")
@@ -907,6 +916,30 @@ class DataCommand(BaseCommand):
                 processor.process_file(args.input_file, args.output_file)
                 self.logger.info(f"Processed data saved to '{args.output_file}'")
                 
+            elif args.data_action == "convert":
+                from ..utils.csv_annotation_generator import CSVAnnotationGenerator
+                
+                # Initialize CSV annotation generator
+                generator = CSVAnnotationGenerator(config_dir=self.global_config.get('config_dir', 'data/ner/configs'))
+                
+                # Convert CSV to JSONL using generate_from_csv
+                try:
+                    output_path = generator.generate_from_csv(
+                        csv_path=args.input_path,
+                        country_code=args.country,
+                        output_file=args.output_path,
+                        text_column=args.text_column,
+                        validate_text_contains_entities=True,
+                        validation_mode=args.validation_mode
+                    )
+                    self.logger.info(f"Successfully converted CSV to JSONL: {output_path}")
+                    
+                except ValueError as e:
+                    self.logger.error(f"CSV conversion failed: {e}")
+                    if args.validation_mode == "strict":
+                        self.logger.error("Use --validation-mode lenient to continue with data quality issues")
+                    return False
+                
             elif args.data_action == "split":
                 raise NotImplementedError("Data split not implemented")
 
@@ -926,7 +959,6 @@ class ModelCommand(BaseCommand):
     支持：
     - 列出/查询/删除 模型
 
-    # TODO: 支持导出（export）与转换（onnx、safetensors 等），并完善信息展示。
     """
     
     @property

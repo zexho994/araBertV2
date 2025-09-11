@@ -242,7 +242,7 @@ class NERDataProcessor:
         """
         try:
             examples = self.load_data_file(file_path)
-            valid = self._validate_examples(examples)
+            valid = self._validate_datasets(examples)
             if valid:
                 self.logger.info(f"Data file '{file_path}' validation passed: {len(examples)} examples")
             else:
@@ -252,7 +252,7 @@ class NERDataProcessor:
             self.logger.error(f"Validation error for '{file_path}': {e}")
             return False
     
-    def _validate_examples(self, examples: List[Dict[str, Any]]) -> bool:
+    def _validate_datasets(self, datasets: List[Dict[str, Any]]) -> bool:
         """Validate list of examples
         
         Args:
@@ -261,11 +261,11 @@ class NERDataProcessor:
         Returns:
             True if valid, False otherwise
         """
-        if not examples:
+        if not datasets:
             self.logger.warning("No examples found during validation")
             return False
         
-        for i, example in enumerate(examples):
+        for i, example in enumerate(datasets):
             # Check required fields
             if 'tokens' not in example or 'labels' not in example:
                 self.logger.warning(f"Example {i}: Missing required fields (tokens, labels)")

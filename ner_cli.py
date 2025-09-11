@@ -11,6 +11,7 @@ Commands:
     train       Train a new NER model
     evaluate    Evaluate a trained model
     predict     Make predictions on text
+    preprocess  Run preprocessing pipeline on text or start REPL
     config      Manage configurations
     data        Data processing utilities
     model       Model management utilities
@@ -239,7 +240,7 @@ For more information on each command, use:
         type=int,
         help='Limit number of samples for quick evaluation'
     )
-    
+
     # Predict command
     predict_parser = subparsers.add_parser(
         'predict',
@@ -277,6 +278,8 @@ For more information on each command, use:
         default=0.5,
         help='Confidence threshold for predictions (default: 0.5)'
     )
+
+    #----------preprocess command----------
 
     # Preprocess command
     preprocess_parser = subparsers.add_parser(
@@ -365,6 +368,8 @@ For more information on each command, use:
         help='Country configuration to validate'
     )
     
+    #----------data command----------
+    
     # Data command
     data_parser = subparsers.add_parser(
         'data',
@@ -396,30 +401,37 @@ For more information on each command, use:
     # Data convert
     data_convert_parser = data_subparsers.add_parser(
         'convert',
-        help='Convert data format'
+        help='Convert CSV to JSONL format'
     )
     data_convert_parser.add_argument(
         '--input-path',
         type=str,
         required=True,
-        help='Input data file path'
+        help='Input CSV file path'
     )
     data_convert_parser.add_argument(
         '--output-path',
         type=str,
         required=True,
-        help='Output data file path'
+        help='Output JSONL file path'
     )
     data_convert_parser.add_argument(
-        '--input-format',
-        choices=['json', 'conll', 'csv'],
-        help='Input format (auto-detected if not specified)'
-    )
-    data_convert_parser.add_argument(
-        '--output-format',
-        choices=['json', 'conll', 'csv'],
+        '--country',
+        type=str,
         required=True,
-        help='Output format'
+        help='Country code for configuration'
+    )
+    data_convert_parser.add_argument(
+        '--text-column',
+        type=str,
+        default='formatted_address',
+        help='Text column name (default: formatted_address)'
+    )
+    data_convert_parser.add_argument(
+        '--validation-mode',
+        choices=['strict', 'lenient'],
+        default='strict',
+        help='Validation mode (default: strict)'
     )
     
     # Data split
@@ -451,6 +463,8 @@ For more information on each command, use:
         default=0.1,
         help='Validation set ratio (default: 0.1)'
     )
+
+    #----------model command----------
     
     # Model command
     model_parser = subparsers.add_parser(
