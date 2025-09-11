@@ -401,7 +401,7 @@ For more information on each command, use:
     # Data convert
     data_convert_parser = data_subparsers.add_parser(
         'convert',
-        help='Convert CSV to JSONL format'
+        help='Convert CSV to JSONL format or validate CSV data'
     )
     data_convert_parser.add_argument(
         '--input-path',
@@ -412,8 +412,7 @@ For more information on each command, use:
     data_convert_parser.add_argument(
         '--output-path',
         type=str,
-        required=True,
-        help='Output JSONL file path'
+        help='Output JSONL file path (not required when using -ov)'
     )
     data_convert_parser.add_argument(
         '--country',
@@ -432,6 +431,11 @@ For more information on each command, use:
         choices=['strict', 'lenient'],
         default='strict',
         help='Validation mode (default: strict)'
+    )
+    data_convert_parser.add_argument(
+        '-ov', '--only-validate',
+        action='store_true',
+        help='Only validate CSV data without conversion'
     )
     
     # Data split

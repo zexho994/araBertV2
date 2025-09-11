@@ -880,10 +880,11 @@ class DataCommand(BaseCommand):
         # Convert data
         convert_parser = subparsers.add_parser("convert", help="Convert CSV to JSONL format")
         convert_parser.add_argument("--input-path", required=True, help="Input CSV file path")
-        convert_parser.add_argument("--output-path", required=True, help="Output JSONL file path")
+        convert_parser.add_argument("--output-path", help="Output JSONL file path (not required when using -ov)")
         convert_parser.add_argument("--country", required=True, help="Country code for configuration")
         convert_parser.add_argument("--text-column", default="formatted_address", help="Text column name (default: formatted_address)")
         convert_parser.add_argument("--validation-mode", choices=["strict", "lenient"], default="strict", help="Validation mode (default: strict)")
+        convert_parser.add_argument("-ov", "--only-validate", action="store_true", help="Only validate CSV data without conversion")
         
         # Split data
         split_parser = subparsers.add_parser("split", help="Split data into train/val/test")
@@ -922,23 +923,61 @@ class DataCommand(BaseCommand):
                 # Initialize CSV annotation generator
                 generator = CSVAnnotationGenerator(config_dir=self.global_config.get('config_dir', 'data/ner/configs'))
                 
-                # Convert CSV to JSONL using generate_from_csv
-                try:
-                    output_path = generator.generate_from_csv(
-                        csv_path=args.input_path,
-                        country_code=args.country,
-                        output_file=args.output_path,
-                        text_column=args.text_column,
-                        validate_text_contains_entities=True,
-                        validation_mode=args.validation_mode
-                    )
-                    self.logger.info(f"Successfully converted CSV to JSONL: {output_path}")
-                    
-                except ValueError as e:
-                    self.logger.error(f"CSV conversion failed: {e}")
-                    if args.validation_mode == "strict":
-                        self.logger.error("Use --validation-mode lenient to continue with data quality issues")
-                    return False
+                # Check if only validation is requested
+                if getattr(args, 'only_validate', False):
+                    # Only validate CSV data without conversion
+                    try:
+                        validation_report = generator.validate_csv(
+                            csv_path=args.input_path,
+                            country_code=args.country,
+                            text_column=args.text_column,
+                            auto_process=False
+                        )
+                        
+                        # Generate validation report CSV
+                        from pathlib import Path
+                        csv_path = Path(args.input_path)
+                        report_csv_path = csv_path.parent / f"{csv_path.stem}_validation_report.csv"
+                        generator.print_validation_report(validation_report, str(report_csv_path), show_details=True)
+                        
+                        self.logger.info(f"Validation completed. Success rate: {validation_report.success_rate:.2%}")
+                        self.logger.info(f"Total rows: {validation_report.total_rows}, Valid rows: {validation_report.valid_rows}")
+                        self.logger.info(f"Validation report saved to: {report_csv_path}")
+                        
+                        if validation_report.success_rate < 1.0:
+                            self.logger.warning(f"Found {len(validation_report.issues)} data quality issues")
+                            if args.validation_mode == "strict":
+                                self.logger.error("Validation failed in strict mode. Use --validation-mode lenient to continue with issues.")
+                                return False
+                        else:
+                            self.logger.info("All data passed validation successfully!")
+                            
+                    except Exception as e:
+                        self.logger.error(f"CSV validation failed: {e}")
+                        return False
+                        
+                else:
+                    # Convert CSV to JSONL using generate_from_csv
+                    if not getattr(args, 'output_path', None):
+                        self.logger.error("--output-path is required when not using -ov (only validate) mode")
+                        return False
+                        
+                    try:
+                        output_path = generator.generate_from_csv(
+                            csv_path=args.input_path,
+                            country_code=args.country,
+                            output_file=args.output_path,
+                            text_column=args.text_column,
+                            validate_text_contains_entities=True,
+                            validation_mode=args.validation_mode
+                        )
+                        self.logger.info(f"Successfully converted CSV to JSONL: {output_path}")
+                        
+                    except ValueError as e:
+                        self.logger.error(f"CSV conversion failed: {e}")
+                        if args.validation_mode == "strict":
+                            self.logger.error("Use --validation-mode lenient to continue with data quality issues")
+                        return False
                 
             elif args.data_action == "split":
                 raise NotImplementedError("Data split not implemented")
