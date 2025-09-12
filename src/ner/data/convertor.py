@@ -779,16 +779,16 @@ def main():
     gen = CSVAnnotationConvert(config_dir="data/ner/configs")
     
     # csv_path = "src/ner/utils/uae_train_0910.csv"
-    # out_path = "data/ner/data/uae_xml_roberta_base/train_250910.jsonl"
+    # out_path = "data/ner/data/uae/train_250910.jsonl"
 
     # csv_path = "src/ner/utils/uae_eval_0910.csv"
-    # out_path = "data/ner/data/uae_xml_roberta_base/eval_250910.jsonl"
+    # out_path = "data/ner/data/uae/eval_250910.jsonl"
 
     # 示例1: 仅执行校验
     # print("=== 示例1: 仅执行CSV校验 ===")
     # validation_report = gen.validate_csv(
     #     csv_path=csv_path,
-    #     country_code="uae_xml_roberta_base",
+    #     country_code="uae",
     #     text_column="formatted_address",
     #     auto_process=True #是否删除异常数据行
     # )
@@ -801,7 +801,7 @@ def main():
     # try:
     #     output = gen.generate_from_csv(
     #         csv_path=csv_path,
-    #         country_code="uae_xml_roberta_base",
+    #         country_code="uae",
     #         output_file=out_path,
     #         validate_text_contains_entities=True,
     #         validation_mode="strict"  # 严格模式：如果校验失败会抛出异常

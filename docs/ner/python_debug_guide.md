@@ -31,7 +31,7 @@ araBertV2/
 
 **训练命令示例**:
 ```bash
-python ner_cli.py train --country uae_xml_roberta_base
+python ner_cli.py train --country uae
 python ner_cli.py train --country uae --epochs 10 --batch-size 16
 ```
 
@@ -50,7 +50,7 @@ def debug_train_command():
         'ner_cli.py',
         'train', 
         '--country', 
-        'uae_xml_roberta_base'
+        'uae'
     ]
     # 执行训练逻辑
     
@@ -59,7 +59,7 @@ def debug_evaluate_command():
     sys.argv = [
         'ner_cli.py',
         'evaluate',
-        '--country', 'uae_xml_roberta_base',
+        '--country', 'uae',
         '--model-path', 'data/ner/models/...',
         '--data-path', 'data/ner/data/.../val.jsonl'
     ]
@@ -88,7 +88,7 @@ def debug_custom_train():
     sys.argv = [
         'ner_cli.py',
         'train',
-        '--country', 'uae_xml_roberta_base',
+        '--country', 'uae',
         '--epochs', '5',
         '--batch-size', '8',
         '--learning-rate', '2e-5'
@@ -111,7 +111,7 @@ def main():
     sys.argv = [
         'ner_cli.py',
         'train',
-        '--country', 'uae_xml_roberta_base'
+        '--country', 'uae'
     ]
     
     parser = create_parser()
@@ -146,7 +146,7 @@ def main():
    ```
    Name: NER Train Debug
    Script path: d:\IdeaProjects\araBertV2\ner_cli.py
-   Parameters: train --country uae_xml_roberta_base
+   Parameters: train --country uae
    Working directory: d:\IdeaProjects\araBertV2
    Python interpreter: 项目解释器
    ```
@@ -191,7 +191,7 @@ def main():
             "args": [
                 "train",
                 "--country",
-                "uae_xml_roberta_base"
+                "uae"
             ],
             "cwd": "${workspaceFolder}",
             "env": {
@@ -214,9 +214,9 @@ def main():
             "program": "${workspaceFolder}/ner_cli.py",
             "args": [
                 "evaluate",
-                "--country", "uae_xml_roberta_base",
-                "--model-path", "data/ner/models/uae_xml_roberta_base/uae_xml_roberta_base_model",
-                "--data-path", "data/ner/data/uae_xml_roberta_base/val.jsonl"
+                "--country", "uae",
+                "--model-path", "data/ner/models/uae/uae_model",
+                "--data-path", "data/ner/data/uae/val.jsonl"
             ],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
@@ -264,7 +264,7 @@ from ner.training import NERTrainer
 
 # 加载配置
 config_manager = ConfigManager('data/ner/configs')
-config = config_manager.load_country_config('uae_xml_roberta_base')
+config = config_manager.load_country_config('uae')
 
 # 初始化训练器
 trainer = NERTrainer(config, {})
@@ -377,7 +377,7 @@ os.environ['PYTHONPATH'] = 'src'
 print(f"Current working directory: {os.getcwd()}")
 
 # 检查配置文件是否存在
-config_path = Path('data/ner/configs/countries/uae_xml_roberta_base.json')
+config_path = Path('data/ner/configs/countries/uae.json')
 print(f"Config exists: {config_path.exists()}")
 ```
 

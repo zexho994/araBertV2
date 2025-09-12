@@ -8,8 +8,8 @@
 3. 运行此脚本进行调试
 
 示例命令：
-- 训练：python .\ner_cli.py train --country uae_xml_roberta_base
-- 评估：python .\ner_cli.py evaluate --country uae_xml_roberta_base --model-path <path> --data-path <path>
+- 训练：python .\ner_cli.py train --country uae
+- 评估：python .\ner_cli.py evaluate --country uae --model-path <path> --data-path <path>
 
 # TODO: 从 `@configs` 自动解析默认数据/模型路径，减少硬编码依赖。
 """
@@ -32,7 +32,7 @@ def exec_train_command(country : str):
     """
     
     # 模拟命令行参数
-    # 原命令: python .\ner_cli.py train --country uae_xml_roberta_base
+    # 原命令: python .\ner_cli.py train --country uae
     sys.argv = [
         'ner_cli.py',
         '--verbose',
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     print("NER CLI 训练命令调试脚本")
     print("=" * 30)
 
-    country = 'uae_xml_roberta_base'
+    country = 'uae'
     
     # 默认调试评估命令，若需训练请改为调用 `debug_train_command()`
     # TODO: 通过命令行/环境变量选择调试目标（train/evaluate）。

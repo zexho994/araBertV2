@@ -1,7 +1,7 @@
 {
     "country": {
-        "code": "uae_xml_roberta_base",
-        "name": "UAE_XML_ROBERTA_BASE",
+        "code": "uae",
+        "name": "UAE",
         "language": "",
         "description": "desc for Uae Xml Roberta Base"
     },
@@ -58,9 +58,9 @@
         "logging_steps": 100
     },
     "data": {
-        "train_file": "data/ner/datasets/uae_xml_roberta_base/train_250910.jsonl",
-        "val_file": "data/ner/datasets/uae_xml_roberta_base/eval_250910.jsonl",
-        "test_file": "data/ner/datasets/uae_xml_roberta_base/test_50000.jsonl",
+        "train_file": "data/ner/datasets/uae/train_250910.jsonl",
+        "val_file": "data/ner/datasets/uae/eval_250910.jsonl",
+        "test_file": "data/ner/datasets/uae/test_50000.jsonl",
         "max_length": 512,
         "doc_stride": 128,
         "preprocessing": {
@@ -122,9 +122,9 @@
         "classification_report": true
     },
     "output": {
-        "model_dir": "data/ner/models/uae_xml_roberta_base",
-        "results_dir": "data/ner/result/uae_xml_roberta_base",
-        "logs_dir": "data/ner/logs/uae_xml_roberta_base",
+        "model_dir": "data/ner/models/uae",
+        "results_dir": "data/ner/result/uae",
+        "logs_dir": "data/ner/logs/uae",
         "predictions_file": "predictions.json",
         "save_total_limit": 3,
         "overwrite_output_dir": true
@@ -138,7 +138,7 @@
     },
     "logging": {
         "level": "INFO",
-        "log_file": "data/ner/logs/uae_xml_roberta_base/example.log",
+        "log_file": "data/ner/logs/uae/example.log",
         "console_output": true,
         "wandb": {
             "enabled": false,
