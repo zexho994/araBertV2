@@ -117,11 +117,6 @@ class NERReportGenerator:
         entity_types: List[str]
     ) -> List[Dict[str, Any]]:
         """生成逐行详细结果"""
-        # 确保 entity_types 是列表
-        if isinstance(entity_types, dict):
-            entity_types = list(entity_types.keys())
-        elif not isinstance(entity_types, list):
-            entity_types = list(entity_types)
         
         detailed_results = []
         
@@ -129,15 +124,6 @@ class NERReportGenerator:
             # 提取实体信息
             true_entities = self._extract_entities_from_sequence(true_seq, text.split())
             pred_entities = self._extract_entities_from_sequence(pred_seq, text.split())
-            
-            # 调试信息
-            if len(detailed_results) < 3:  # 只打印前3个样本的调试信息
-                self.logger.debug(f"Sample {len(detailed_results) + 1}:")
-                self.logger.debug(f"  Text: {text}")
-                self.logger.debug(f"  True labels: {true_seq}")
-                self.logger.debug(f"  Pred labels: {pred_seq}")
-                self.logger.debug(f"  True entities: {true_entities}")
-                self.logger.debug(f"  Pred entities: {pred_entities}")
             
             # 生成每行的结果
             row_result = {

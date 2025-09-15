@@ -358,13 +358,6 @@ class EvaluateCommand(BaseCommand):
             elif config and 'output' in config and 'results_dir' in config['output']:
                 out_dir = Path(config['output']['results_dir'])
             
-            if out_dir is not None:
-                out_dir.mkdir(parents=True, exist_ok=True)
-                metrics_path = out_dir / 'metrics.json'
-                with open(metrics_path, 'w', encoding='utf-8') as f:
-                    json.dump(results, f, ensure_ascii=False, indent=2)
-                self.logger.info(f"\nSaved evaluation metrics to: {metrics_path}")
-            
             # 生成详细报告
             if getattr(args, 'detailed_report', False):
                 self._generate_detailed_report(
@@ -381,7 +374,9 @@ class EvaluateCommand(BaseCommand):
         """生成详细的评估报告"""
         try:
             from ..evaluation.report_generator import NERReportGenerator
-            from ..preprocess import build_preprocessor_from_config
+            from datetime import datetime
+
+            self.logger.info(f"Starting to generate detailed report to: {out_dir}")
             
             # 获取实体类型列表
             label_mapping = config.get('labels', {}).get('label_mapping', {})
@@ -397,14 +392,12 @@ class EvaluateCommand(BaseCommand):
                     entity_types.add(entity_type)
             entity_types = sorted(list(entity_types))
             
+            # 如果没有实体类型，则跳过详细报告
             if not entity_types:
                 self.logger.warning("No entity types found in label mapping, skipping detailed report")
                 return
             
             self.logger.info(f"Extracted entity types: {entity_types}")
-            
-            # 准备文本和标签数据
-            preprocessor = build_preprocessor_from_config(config)
             
             texts = []
             true_labels = []
@@ -416,15 +409,8 @@ class EvaluateCommand(BaseCommand):
                 if tokens is None or labels is None:
                     continue
                 
-                # 使用token-safe预处理
-                proc_tokens, proc_labels = preprocessor.apply_tokens(
-                    tokens, labels, allow_non_label_safe=False
-                )
-                if not proc_tokens or not proc_labels:
-                    continue
-                
-                texts.append(' '.join(proc_tokens))
-                true_labels.append(proc_labels)
+                texts.append(' '.join(tokens))
+                true_labels.append(labels)
             
             if not texts:
                 self.logger.warning("No valid examples found for detailed report")
@@ -432,21 +418,13 @@ class EvaluateCommand(BaseCommand):
             
             # 确保预测结果与文本数量一致
             if len(predictions) != len(texts):
-                self.logger.warning(f"Prediction count ({len(predictions)}) != text count ({len(texts)}), truncating")
-                min_len = min(len(predictions), len(texts))
-                predictions = predictions[:min_len]
-                texts = texts[:min_len]
-                true_labels = true_labels[:min_len]
+                self.logger.error(f"Prediction count ({len(predictions)}) != text count ({len(texts)}), truncating")
+                return
             
             # 生成报告文件路径
-            if getattr(args, 'report_file', None):
-                report_path = args.report_file
-            else:
-                # 生成带时间戳的文件名
-                from datetime import datetime
-                timestamp = datetime.now().strftime("%Y%m%d%H%M")
-                report_filename = f"eval_report_{timestamp}.xlsx"
-                report_path = out_dir / report_filename if out_dir else report_filename
+            timestamp = datetime.now().strftime("%Y%m%d%H%M")
+            report_filename = f"evaluation_report_{timestamp}.xlsx"
+            report_path = out_dir / report_filename if out_dir else report_filename
             
             # 生成Excel报告
             report_generator = NERReportGenerator(logger=self.logger)

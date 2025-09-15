@@ -85,9 +85,9 @@ def exec_evaluate_command(country : str = None):
         '--country',
         country,
         '--model-path',
-        f'data/ner/models/{country}/best_model',
+        f'data/ner/models/{country}',
         '--data-path',
-        f'data/ner/data/{country}/val.jsonl',
+        f'data/ner/raw_data/0915_uae_online.jsonl',
     ]
     print(f"模拟命令行参数: {' '.join(sys.argv)}")
     print(f"当前工作目录: {os.getcwd()}")
