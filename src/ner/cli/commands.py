@@ -268,6 +268,16 @@ class EvaluateCommand(BaseCommand):
             action="store_true",
             help="Generate detailed evaluation report"
         )
+        parser.add_argument(
+            "--report-format",
+            choices=["csv", "excel"],
+            default="csv",
+            help="Format for detailed report (default: csv)"
+        )
+        parser.add_argument(
+            "--report-file",
+            help="Path for detailed report file (default: auto-generated)"
+        )
     
     def execute(self, args) -> bool:
         try:
@@ -365,11 +375,112 @@ class EvaluateCommand(BaseCommand):
                     json.dump(results, f, ensure_ascii=False, indent=2)
                 self.logger.info(f"\nSaved evaluation metrics to: {metrics_path}")
             
+            # 生成详细报告
+            if getattr(args, 'detailed_report', False):
+                self._generate_detailed_report(
+                    results, val_dataset, config, out_dir, args
+                )
+            
             return True
             
         except Exception as e:
             self.logger.error(f"Evaluation failed: {e}")
             return False
+    
+    def _generate_detailed_report(self, results, val_dataset, config, out_dir, args):
+        """生成详细的评估报告"""
+        try:
+            from ..evaluation.report_generator import NERReportGenerator
+            from ..data import NERDataProcessor
+            from ..preprocess import build_preprocessor_from_config
+            
+            # 获取实体类型列表
+            label_mapping = config.get('labels', {}).get('label_mapping', {})
+            if not label_mapping:
+                self.logger.warning("No label mapping found in config, skipping detailed report")
+                return
+            
+            # 从BIO标签中提取实体类型（去掉B-/I-前缀）
+            entity_types = set()
+            for label in label_mapping.keys():
+                if label != 'O' and '-' in label:
+                    entity_type = label.split('-', 1)[1]  # 去掉B-/I-前缀
+                    entity_types.add(entity_type)
+            entity_types = sorted(list(entity_types))
+            
+            if not entity_types:
+                self.logger.warning("No entity types found in label mapping, skipping detailed report")
+                return
+            
+            self.logger.info(f"Extracted entity types: {entity_types}")
+            
+            # 准备文本和标签数据
+            preprocessor = build_preprocessor_from_config(config)
+            
+            texts = []
+            true_labels = []
+            predictions = results.get('predictions', [])
+            
+            for ex in val_dataset:
+                tokens = ex.get('tokens')
+                labels = ex.get('labels')
+                if tokens is None or labels is None:
+                    continue
+                
+                # 使用token-safe预处理
+                proc_tokens, proc_labels = preprocessor.apply_tokens(
+                    tokens, labels, allow_non_label_safe=False
+                )
+                if not proc_tokens or not proc_labels:
+                    continue
+                
+                texts.append(' '.join(proc_tokens))
+                true_labels.append(proc_labels)
+            
+            if not texts:
+                self.logger.warning("No valid examples found for detailed report")
+                return
+            
+            # 确保预测结果与文本数量一致
+            if len(predictions) != len(texts):
+                self.logger.warning(f"Prediction count ({len(predictions)}) != text count ({len(texts)}), truncating")
+                min_len = min(len(predictions), len(texts))
+                predictions = predictions[:min_len]
+                texts = texts[:min_len]
+                true_labels = true_labels[:min_len]
+            
+            # 生成报告文件路径
+            report_format = getattr(args, 'report_format', 'csv')
+            if getattr(args, 'report_file', None):
+                report_path = args.report_file
+            else:
+                # 根据格式设置正确的文件扩展名
+                if report_format.lower() == 'excel':
+                    file_extension = 'xlsx'
+                else:  # csv
+                    file_extension = 'csv'
+                report_filename = f"detailed_evaluation_report.{file_extension}"
+                report_path = out_dir / report_filename if out_dir else report_filename
+            
+            # 生成报告
+            report_generator = NERReportGenerator(logger=self.logger)
+            
+            if report_format.lower() == 'excel':
+                report_path = report_generator.generate_excel_report(
+                    texts, true_labels, predictions, results, entity_types, str(report_path)
+                )
+            else:  # csv
+                report_path = report_generator.generate_detailed_report(
+                    texts, true_labels, predictions, results, entity_types, str(report_path)
+                )
+            
+            if report_path:
+                self.logger.info(f"Detailed evaluation report generated: {report_path}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to generate detailed report: {e}")
+            import traceback
+            self.logger.debug(traceback.format_exc())
 
 class EvaluatePredictCommand(BaseCommand):
     """基于 predict/evaluate() 的评估命令

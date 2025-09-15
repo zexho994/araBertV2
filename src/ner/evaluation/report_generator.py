@@ -1,0 +1,496 @@
+"""NER 评估报告生成器
+
+提供详细的评估报告生成功能，包括：
+- CSV 格式的详细评估报告
+- 实体识别错误的高亮显示
+- 汇总统计信息
+- 逐行识别结果分析
+"""
+
+import csv
+from typing import Dict, List, Any, Optional
+from pathlib import Path
+from ..utils import NERLogger
+
+
+class NERReportGenerator:
+    """NER 评估报告生成器
+    
+    职责：
+    - 生成包含汇总信息和详细识别结果的 CSV 报告
+    - 支持实体识别错误的高亮显示
+    - 提供多种报告格式和选项
+    """
+    
+    def __init__(self, logger: Optional[NERLogger] = None):
+        self.logger = logger or NERLogger()
+    
+    def generate_detailed_report(
+        self,
+        texts: List[str],
+        true_labels: List[List[str]],
+        predictions: List[List[str]],
+        evaluation_results: Dict[str, Any],
+        entity_types: List[str],
+        output_path: str
+    ) -> str:
+        """生成详细的评估报告
+        
+        Args:
+            texts: 原始文本列表
+            true_labels: 真实标签序列
+            predictions: 预测标签序列
+            evaluation_results: 评估结果字典
+            entity_types: 实体类型列表
+            output_path: 输出文件路径
+            confidence_threshold: 置信度阈值
+            
+        Returns:
+            生成的报告文件路径
+        """
+        self.logger.info(f"Generating detailed evaluation report to: {output_path}")
+        
+        # 创建输出目录
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # 生成报告数据
+        report_data = self._prepare_report_data(
+            texts, true_labels, predictions, evaluation_results, entity_types
+        )
+        
+        # 写入 CSV 文件
+        self._write_csv_report(report_data, output_path)
+        
+        self.logger.info(f"Detailed evaluation report saved to: {output_path}")
+        return str(output_path)
+    
+    def _prepare_report_data(
+        self,
+        texts: List[str],
+        true_labels: List[List[str]],
+        predictions: List[List[str]],
+        evaluation_results: Dict[str, Any],
+        entity_types: List[str]
+    ) -> Dict[str, Any]:
+        """准备报告数据
+        
+        Returns:
+            包含汇总信息和详细结果的数据字典
+        """
+        # 提取汇总信息
+        summary = self._extract_summary(evaluation_results, entity_types)
+        
+        # 生成逐行详细结果
+        detailed_results = self._generate_detailed_results(
+            texts, true_labels, predictions, entity_types
+        )
+        
+        return {
+            'summary': summary,
+            'detailed_results': detailed_results
+        }
+    
+    def _extract_summary(
+        self,
+        evaluation_results: Dict[str, Any],
+        entity_types: List[str]
+    ) -> Dict[str, Any]:
+        """提取汇总信息"""
+        summary = {
+            'evaluation_summary': {
+                'total_samples': evaluation_results.get('num_samples', 0),
+                'token_metrics': evaluation_results.get('token_metrics', {}),
+                'entity_metrics': evaluation_results.get('entity_metrics', {}),
+                'per_entity_metrics': evaluation_results.get('per_entity_metrics', {})
+            },
+            'entity_types': entity_types,
+            'timestamp': self._get_timestamp()
+        }
+        return summary
+    
+    def _generate_detailed_results(
+        self,
+        texts: List[str],
+        true_labels: List[List[str]],
+        predictions: List[List[str]],
+        entity_types: List[str]
+    ) -> List[Dict[str, Any]]:
+        """生成逐行详细结果"""
+        # 确保 entity_types 是列表
+        if isinstance(entity_types, dict):
+            entity_types = list(entity_types.keys())
+        elif not isinstance(entity_types, list):
+            entity_types = list(entity_types)
+        
+        detailed_results = []
+        
+        for text, true_seq, pred_seq in zip(texts, true_labels, predictions):
+            # 提取实体信息
+            true_entities = self._extract_entities_from_sequence(true_seq, text.split())
+            pred_entities = self._extract_entities_from_sequence(pred_seq, text.split())
+            
+            # 调试信息
+            if len(detailed_results) < 3:  # 只打印前3个样本的调试信息
+                self.logger.debug(f"Sample {len(detailed_results) + 1}:")
+                self.logger.debug(f"  Text: {text}")
+                self.logger.debug(f"  True labels: {true_seq}")
+                self.logger.debug(f"  Pred labels: {pred_seq}")
+                self.logger.debug(f"  True entities: {true_entities}")
+                self.logger.debug(f"  Pred entities: {pred_entities}")
+            
+            # 生成每行的结果
+            row_result = {
+                'sample_id': len(detailed_results) + 1,
+                'text': text,
+                'tokens': text.split(),
+                'true_labels': true_seq,
+                'pred_labels': pred_seq,
+                'true_entities': true_entities,
+                'pred_entities': pred_entities,
+                'entity_columns': {}
+            }
+            
+            # 为每个实体类型生成列
+            for entity_type in entity_types:
+                true_entity_text = self._get_entity_text(true_entities, entity_type)
+                pred_entity_text = self._get_entity_text(pred_entities, entity_type)
+                
+                # 检查是否有识别错误
+                if true_entity_text != pred_entity_text:
+                    # 有错误，使用高亮格式
+                    if true_entity_text and pred_entity_text:
+                        # 都有值但不同
+                        cell_content = f"{true_entity_text}（{pred_entity_text}）"
+                        cell_style = "error"
+                    elif true_entity_text and not pred_entity_text:
+                        # 漏识别
+                        cell_content = f"{true_entity_text}（未识别）"
+                        cell_style = "error"
+                    else:
+                        # 误识别
+                        cell_content = f"（误识别：{pred_entity_text}）"
+                        cell_style = "error"
+                else:
+                    # 正确识别
+                    cell_content = true_entity_text or ""
+                    cell_style = "correct"
+                
+                row_result['entity_columns'][entity_type] = {
+                    'content': cell_content,
+                    'style': cell_style
+                }
+            
+            detailed_results.append(row_result)
+        
+        return detailed_results
+    
+    def _extract_entities_from_sequence(
+        self, 
+        labels: List[str], 
+        tokens: List[str]
+    ) -> Dict[str, str]:
+        """从标签序列中提取实体文本
+        
+        Args:
+            labels: 标签序列
+            tokens: 对应的词序列
+            
+        Returns:
+            实体类型到实体文本的映射
+        """
+        entities = {}
+        current_entity = None
+        current_tokens = []
+        
+        for token, label in zip(tokens, labels):
+            if label.startswith('B-'):
+                # 开始新实体
+                if current_entity:
+                    # 保存之前的实体
+                    entities[current_entity] = ' '.join(current_tokens)
+                current_entity = label[2:]  # 去掉 'B-' 前缀
+                current_tokens = [token]
+            elif label.startswith('I-') and current_entity == label[2:]:
+                # 继续当前实体
+                current_tokens.append(token)
+            else:
+                # 结束当前实体
+                if current_entity:
+                    entities[current_entity] = ' '.join(current_tokens)
+                    current_entity = None
+                    current_tokens = []
+        
+        # 处理最后一个实体
+        if current_entity:
+            entities[current_entity] = ' '.join(current_tokens)
+        
+        return entities
+    
+    def _get_entity_text(self, entities: Dict[str, str], entity_type: str) -> str:
+        """获取指定实体类型的文本"""
+        return entities.get(entity_type, "")
+    
+    def _write_csv_report(self, report_data: Dict[str, Any], output_path: Path):
+        """写入 CSV 报告文件"""
+        summary = report_data['summary']
+        detailed_results = report_data['detailed_results']
+        entity_types = summary['entity_types']
+        
+        # 创建 CSV 文件
+        with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            
+            # 写入汇总信息
+            self._write_summary_section(writer, summary)
+            
+            # 写入详细结果
+            self._write_detailed_section(writer, detailed_results, entity_types)
+    
+    def _write_summary_section(self, writer, summary: Dict[str, Any]):
+        """写入汇总信息部分"""
+        writer.writerow(['=== EVALUATION SUMMARY ==='])
+        writer.writerow([])
+        
+        # 基本信息
+        eval_summary = summary['evaluation_summary']
+        writer.writerow(['Total Samples', eval_summary['total_samples']])
+        writer.writerow(['Timestamp', summary['timestamp']])
+        writer.writerow([])
+        
+        # Token 级指标
+        writer.writerow(['=== TOKEN-LEVEL METRICS ==='])
+        token_metrics = eval_summary['token_metrics']
+        for metric, value in token_metrics.items():
+            writer.writerow([f'Token {metric.title()}', f'{value:.4f}'])
+        writer.writerow([])
+        
+        # 实体级指标
+        writer.writerow(['=== ENTITY-LEVEL METRICS ==='])
+        entity_metrics = eval_summary['entity_metrics']
+        for metric, value in entity_metrics.items():
+            writer.writerow([f'Entity {metric.title()}', f'{value:.4f}'])
+        writer.writerow([])
+        
+        # 逐实体指标
+        writer.writerow(['=== PER-ENTITY METRICS ==='])
+        per_entity_metrics = eval_summary['per_entity_metrics']
+        for entity, metrics in per_entity_metrics.items():
+            writer.writerow([f'Entity: {entity}'])
+            for metric, value in metrics.items():
+                writer.writerow([f'  {metric.title()}', f'{value:.4f}'])
+        writer.writerow([])
+        
+        # 分隔线
+        writer.writerow(['=== DETAILED RESULTS ==='])
+        writer.writerow([])
+    
+    def _write_detailed_section(
+        self, 
+        writer, 
+        detailed_results: List[Dict[str, Any]], 
+        entity_types: List[str]
+    ):
+        """写入详细结果部分"""
+        # 写入表头
+        # 确保 entity_types 是列表
+        if isinstance(entity_types, dict):
+            entity_types = list(entity_types.keys())
+        elif not isinstance(entity_types, list):
+            entity_types = list(entity_types)
+        
+        headers = ['Sample ID', 'Text'] + entity_types
+        writer.writerow(headers)
+        
+        # 写入每行数据
+        for result in detailed_results:
+            row = [
+                result['sample_id'],
+                result['text']
+            ]
+            
+            # 添加每个实体类型的列
+            for entity_type in entity_types:
+                entity_data = result['entity_columns'][entity_type]
+                row.append(entity_data['content'])
+            
+            writer.writerow(row)
+    
+    def _get_timestamp(self) -> str:
+        """获取当前时间戳"""
+        from datetime import datetime
+        return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    def generate_excel_report(
+        self,
+        texts: List[str],
+        true_labels: List[List[str]],
+        predictions: List[List[str]],
+        evaluation_results: Dict[str, Any],
+        entity_types: List[str],
+        output_path: str
+    ) -> str:
+        """生成 Excel 格式的评估报告（带颜色高亮）
+        
+        Args:
+            texts: 原始文本列表
+            true_labels: 真实标签序列
+            predictions: 预测标签序列
+            evaluation_results: 评估结果字典
+            entity_types: 实体类型列表
+            output_path: 输出文件路径
+            
+        Returns:
+            生成的报告文件路径
+        """
+        try:
+            import openpyxl
+            from openpyxl.styles import PatternFill
+        except ImportError:
+            self.logger.error("openpyxl is required for Excel report generation. Install with: pip install openpyxl")
+            return ""
+        
+        self.logger.info(f"Generating Excel evaluation report to: {output_path}")
+        
+        # 创建输出目录
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # 生成报告数据
+        report_data = self._prepare_report_data(
+            texts, true_labels, predictions, evaluation_results, entity_types
+        )
+        
+        # 创建 Excel 工作簿
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Evaluation Report"
+        
+        # 写入汇总信息
+        self._write_excel_summary(ws, report_data['summary'])
+        
+        # 写入详细结果
+        self._write_excel_detailed(ws, report_data['detailed_results'], entity_types)
+        
+        # 保存文件
+        wb.save(output_path)
+        
+        self.logger.info(f"Excel evaluation report saved to: {output_path}")
+        return str(output_path)
+    
+    def _write_excel_summary(self, ws, summary: Dict[str, Any]):
+        """写入 Excel 汇总信息"""
+        row = 1
+        
+        # 标题
+        ws.cell(row=row, column=1, value="=== EVALUATION SUMMARY ===")
+        row += 2
+        
+        # 基本信息
+        eval_summary = summary['evaluation_summary']
+        ws.cell(row=row, column=1, value="Total Samples")
+        ws.cell(row=row, column=2, value=eval_summary['total_samples'])
+        row += 1
+        
+        ws.cell(row=row, column=1, value="Timestamp")
+        ws.cell(row=row, column=2, value=summary['timestamp'])
+        row += 2
+        
+        # Token 级指标
+        ws.cell(row=row, column=1, value="=== TOKEN-LEVEL METRICS ===")
+        row += 1
+        
+        token_metrics = eval_summary['token_metrics']
+        for metric, value in token_metrics.items():
+            ws.cell(row=row, column=1, value=f"Token {metric.title()}")
+            ws.cell(row=row, column=2, value=f"{value:.4f}")
+            row += 1
+        
+        row += 1
+        
+        # 实体级指标
+        ws.cell(row=row, column=1, value="=== ENTITY-LEVEL METRICS ===")
+        row += 1
+        
+        entity_metrics = eval_summary['entity_metrics']
+        for metric, value in entity_metrics.items():
+            ws.cell(row=row, column=1, value=f"Entity {metric.title()}")
+            ws.cell(row=row, column=2, value=f"{value:.4f}")
+            row += 1
+        
+        row += 1
+        
+        # 逐实体指标
+        ws.cell(row=row, column=1, value="=== PER-ENTITY METRICS ===")
+        row += 1
+        
+        per_entity_metrics = eval_summary['per_entity_metrics']
+        for entity, metrics in per_entity_metrics.items():
+            ws.cell(row=row, column=1, value=f"Entity: {entity}")
+            row += 1
+            for metric, value in metrics.items():
+                ws.cell(row=row, column=2, value=f"  {metric.title()}")
+                ws.cell(row=row, column=3, value=f"{value:.4f}")
+                row += 1
+        
+        row += 2
+        
+        # 详细结果标题
+        ws.cell(row=row, column=1, value="=== DETAILED RESULTS ===")
+        row += 2
+        
+        return row
+    
+    def _write_excel_detailed(self, ws, detailed_results: List[Dict[str, Any]], entity_types: List[str]):
+        """写入 Excel 详细结果"""
+        # 找到汇总部分的结束行
+        summary_end_row = 1
+        for row in range(1, ws.max_row + 1):
+            if ws.cell(row=row, column=1).value == "=== DETAILED RESULTS ===":
+                summary_end_row = row + 2
+                break
+        
+        # 写入表头
+        # 确保 entity_types 是列表
+        if isinstance(entity_types, dict):
+            entity_types = list(entity_types.keys())
+        elif not isinstance(entity_types, list):
+            entity_types = list(entity_types)
+        
+        headers = ['Sample ID', 'Text'] + entity_types
+        for col, header in enumerate(headers, 1):
+            ws.cell(row=summary_end_row, column=col, value=header)
+        
+        # 设置表头样式
+        try:
+            from openpyxl.styles import PatternFill
+            header_fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+            for col in range(1, len(headers) + 1):
+                ws.cell(row=summary_end_row, column=col).fill = header_fill
+        except ImportError:
+            pass  # 如果 openpyxl 不可用，跳过样式设置
+        
+        # 写入数据行
+        data_start_row = summary_end_row + 1
+        try:
+            from openpyxl.styles import PatternFill
+            error_fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
+        except ImportError:
+            error_fill = None
+        
+        for idx, result in enumerate(detailed_results):
+            row = data_start_row + idx
+            
+           # 基本信息
+            ws.cell(row=row, column=1, value=result['sample_id'])
+            ws.cell(row=row, column=2, value=result['text'])
+            
+            # 实体列
+            for j, entity_type in enumerate(entity_types):
+                col = 3 + j
+                entity_data = result['entity_columns'][entity_type]
+                cell = ws.cell(row=row, column=col, value=entity_data['content'])
+                
+                # 如果是错误，设置背景色
+                if entity_data['style'] == 'error' and error_fill is not None:
+                    cell.fill = error_fill

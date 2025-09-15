@@ -75,3 +75,5 @@ data/ner/training_data/
 data/ner/data/*
 *.csv
 data/ner/result/*
+data/ner/datasets/*
+data/ner/raw_data/*

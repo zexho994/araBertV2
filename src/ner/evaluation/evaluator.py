@@ -250,7 +250,7 @@ class NERMetrics:
                         entities.add(current_entity)
                     current_entity = (seq_idx, token_idx, token_idx + 1)
 
-                elif label == f'I-{entity_type}' and current_entity:
+                elif label == f'I-{entity_type}' and current_entity is not None:
                     current_entity = (current_entity[0], current_entity[1], token_idx + 1)
 
                 else:
@@ -413,6 +413,8 @@ class NEREvaluator:
             'token_metrics': token_metrics,
             'entity_metrics': entity_metrics,
             'per_entity_metrics': per_entity_metrics,
+            'predictions': y_pred_sequences,
+            'true_labels': y_true_sequences,
             'num_samples': len(y_true_sequences)
         }
 

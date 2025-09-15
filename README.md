@@ -15,7 +15,7 @@ DAPT (Domain Adaptive Pre-Training) 是一个专门为阿拉伯语自然语言�
 - 🎯 **领域自适应**: 支持政府、商业、旅游、医疗等多个领域的专门训练
 - 🚀 **高性能推理**: 优化的模型推理引擎，支持批量处理和缓存
 - 🔧 **易用工具**: 完整的 CLI 工具
-- 📊 **全面评估**: 内置评估指标和可视化报告生成
+- 📊 **全面评估**: 内置评估指标和可视化报告生成，支持详细的CSV/Excel报告
 - 🐳 **容器化部署**: 支持 Docker、Kubernetes 等现代化部署方案
 - 📈 **监控集成**: 集成 Prometheus、Grafana 等监控工具
 
@@ -543,6 +543,50 @@ ner evaluate [OPTIONS]
   --data-path, -d TEXT      评估数据路径 (必需)
   --output-dir, -o TEXT     输出目录
   --batch-size INTEGER      批次大小
+  --country TEXT            国家代码 (用于配置)
+  --detailed-report         生成详细评估报告
+  --report-format [csv|excel]  报告格式 (默认: csv)
+  --report-file TEXT        指定报告文件路径
+```
+
+#### 详细评估报告
+
+评估命令支持生成详细的CSV或Excel报告，包含：
+
+1. **汇总信息**：
+   - 总样本数
+   - Token级指标（精确率、召回率、F1分数、准确率）
+   - 实体级指标（精确率、召回率、F1分数）
+   - 逐实体指标（每个实体类型的详细指标）
+
+2. **详细识别结果**：
+   - 每行包含：样本ID、地址文本、各实体类型的识别结果
+   - 识别错误时，单元格内容格式：'正确实体（错误识别）'
+   - Excel格式中，错误单元格会以浅红色背景高亮显示
+
+3. **错误标记说明**：
+   - 正确识别：直接显示实体文本
+   - 漏识别：'正确实体（未识别）'
+   - 误识别：'（误识别：错误结果）'
+   - 部分错误：'正确实体（错误识别）'
+
+**使用示例**：
+
+```bash
+# 生成CSV详细报告
+ner evaluate \
+  --model-path data/ner/models/uae/best_model \
+  --data-path data/ner/data/uae/eval.jsonl \
+  --country uae \
+  --detailed-report \
+
+# 生成Excel报告（带颜色高亮）
+ner evaluate \
+  --model-path data/ner/models/uae/best_model \
+  --data-path data/ner/data/uae/eval.jsonl \
+  --country uae \
+  --detailed-report \
+  --report-format excel \
 ```
 
 ### 预测命令

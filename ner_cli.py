@@ -22,7 +22,10 @@ Examples:
     python ner.py train --country uae --data-path ./data/uae_train.json
     
     # Evaluate a model
-    python ner.py evaluate --model-path ./models/uae_model --data-path ./data/uae_test.json
+    python ner.py evaluate --model-path ./models/uae_model --data-path ./data/uae_test.json --country uae
+    
+    # Evaluate with detailed report
+    python ner.py evaluate --model-path ./models/uae_model --data-path ./data/uae_test.json --country uae --detailed-report --report-format excel
     
     # Make predictions
     python ner.py predict --model-path ./models/uae_model --text "123 Sheikh Zayed Road, Dubai"
@@ -51,7 +54,8 @@ def create_parser() -> argparse.ArgumentParser:
         epilog="""
 Examples:
   %(prog)s train --country uae --data-path ./data/train.json
-  %(prog)s evaluate --model-path ./models/uae_model --data-path ./data/test.json
+  %(prog)s evaluate --model-path ./models/uae_model --data-path ./data/test.json --country uae
+  %(prog)s evaluate --model-path ./models/uae_model --data-path ./data/test.json --country uae --detailed-report --report-format excel
   %(prog)s predict --model-path ./models/uae_model --text "Dubai Marina"
   %(prog)s config list
   %(prog)s data validate --data-path ./data/train.json
@@ -199,6 +203,22 @@ For more information on each command, use:
         type=int,
         help='Evaluation batch size'
     )
+    eval_parser.add_argument(
+        '--detailed-report',
+        action='store_true',
+        help='Generate detailed evaluation report'
+    )
+    eval_parser.add_argument(
+        '--report-format',
+        choices=['csv', 'excel'],
+        default='csv',
+        help='Format for detailed report (default: csv)'
+    )
+    eval_parser.add_argument(
+        '--report-file',
+        type=str,
+        help='Path for detailed report file (default: auto-generated)'
+    )
     
     # Evaluate (predict) command
     eval_predict_parser = subparsers.add_parser(
@@ -239,6 +259,22 @@ For more information on each command, use:
         '--limit',
         type=int,
         help='Limit number of samples for quick evaluation'
+    )
+    eval_predict_parser.add_argument(
+        '--detailed-report',
+        action='store_true',
+        help='Generate detailed evaluation report'
+    )
+    eval_predict_parser.add_argument(
+        '--report-format',
+        choices=['csv', 'excel'],
+        default='csv',
+        help='Format for detailed report (default: csv)'
+    )
+    eval_predict_parser.add_argument(
+        '--report-file',
+        type=str,
+        help='Path for detailed report file (default: auto-generated)'
     )
 
     # Predict command
