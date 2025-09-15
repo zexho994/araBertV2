@@ -545,13 +545,11 @@ ner evaluate [OPTIONS]
   --batch-size INTEGER      批次大小
   --country TEXT            国家代码 (用于配置)
   --detailed-report         生成详细评估报告
-  --report-format [csv|excel]  报告格式 (默认: csv)
-  --report-file TEXT        指定报告文件路径
 ```
 
 #### 详细评估报告
 
-评估命令支持生成详细的CSV或Excel报告，包含：
+评估命令支持生成详细的Excel报告，包含：
 
 1. **汇总信息**：
    - 总样本数
@@ -562,7 +560,7 @@ ner evaluate [OPTIONS]
 2. **详细识别结果**：
    - 每行包含：样本ID、地址文本、各实体类型的识别结果
    - 识别错误时，单元格内容格式：'正确实体（错误识别）'
-   - Excel格式中，错误单元格会以浅红色背景高亮显示
+   - 错误单元格会以浅红色背景高亮显示
 
 3. **错误标记说明**：
    - 正确识别：直接显示实体文本
@@ -573,21 +571,12 @@ ner evaluate [OPTIONS]
 **使用示例**：
 
 ```bash
-# 生成CSV详细报告
+# 生成详细评估报告（Excel格式，自动生成带时间戳的文件名）
 ner evaluate \
   --model-path data/ner/models/uae/best_model \
   --data-path data/ner/data/uae/eval.jsonl \
   --country uae \
   --detailed-report \
-
-# 生成Excel报告（带颜色高亮）
-ner evaluate \
-  --model-path data/ner/models/uae/best_model \
-  --data-path data/ner/data/uae/eval.jsonl \
-  --country uae \
-  --detailed-report \
-  --report-format excel \
-```
 
 ### 预测命令
 

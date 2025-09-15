@@ -266,17 +266,7 @@ class EvaluateCommand(BaseCommand):
         parser.add_argument(
             "--detailed-report",
             action="store_true",
-            help="Generate detailed evaluation report"
-        )
-        parser.add_argument(
-            "--report-format",
-            choices=["csv", "excel"],
-            default="csv",
-            help="Format for detailed report (default: csv)"
-        )
-        parser.add_argument(
-            "--report-file",
-            help="Path for detailed report file (default: auto-generated)"
+            help="Generate detailed evaluation report (Excel format)"
         )
     
     def execute(self, args) -> bool:
@@ -391,7 +381,6 @@ class EvaluateCommand(BaseCommand):
         """生成详细的评估报告"""
         try:
             from ..evaluation.report_generator import NERReportGenerator
-            from ..data import NERDataProcessor
             from ..preprocess import build_preprocessor_from_config
             
             # 获取实体类型列表
@@ -450,29 +439,20 @@ class EvaluateCommand(BaseCommand):
                 true_labels = true_labels[:min_len]
             
             # 生成报告文件路径
-            report_format = getattr(args, 'report_format', 'csv')
             if getattr(args, 'report_file', None):
                 report_path = args.report_file
             else:
-                # 根据格式设置正确的文件扩展名
-                if report_format.lower() == 'excel':
-                    file_extension = 'xlsx'
-                else:  # csv
-                    file_extension = 'csv'
-                report_filename = f"detailed_evaluation_report.{file_extension}"
+                # 生成带时间戳的文件名
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%Y%m%d%H%M")
+                report_filename = f"eval_report_{timestamp}.xlsx"
                 report_path = out_dir / report_filename if out_dir else report_filename
             
-            # 生成报告
+            # 生成Excel报告
             report_generator = NERReportGenerator(logger=self.logger)
-            
-            if report_format.lower() == 'excel':
-                report_path = report_generator.generate_excel_report(
-                    texts, true_labels, predictions, results, entity_types, str(report_path)
-                )
-            else:  # csv
-                report_path = report_generator.generate_detailed_report(
-                    texts, true_labels, predictions, results, entity_types, str(report_path)
-                )
+            report_path = report_generator.generate_excel_report(
+                texts, true_labels, predictions, results, entity_types, str(report_path)
+            )
             
             if report_path:
                 self.logger.info(f"Detailed evaluation report generated: {report_path}")
