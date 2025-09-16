@@ -86,7 +86,7 @@ class CSVAnnotationConvert:
             "west": ["w"],
             "south": ["s"],
             "east": ["e"],
-
+            "suburb": ["area"],
             "Alhamriya": ["al hamriya"],
 
             "avenue": ["avenue", "ave", "ave."],
@@ -103,7 +103,6 @@ class CSVAnnotationConvert:
             "united arab emirates": ["uae"],
             "mount": ["mt"],
             "sheikh": ["sheikh","shk","shk."],
-
             "al-khaimah": ["al-khaimah","al khaimah"],
             "ajman": ["ajman", ""] #ajman en , arabic
         }
