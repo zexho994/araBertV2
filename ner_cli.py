@@ -27,7 +27,7 @@ Examples:
     # Evaluate with detailed report
     python ner.py evaluate --model-path ./models/uae_model --data-path ./data/uae_test.json --country uae --detailed-report
     
-    # Evaluate with entity focus and detailed report
+    # Evaluate with entity focus and detailed report (generates both Excel and JSONL files)
     python ner.py evaluate --model-path ./models/uae_model --data-path ./data/uae_test.json --country uae --detailed-report --entity "country,city"
     
     # Make predictions
@@ -215,7 +215,7 @@ For more information on each command, use:
     eval_parser.add_argument(
         '--entity', '-e',
         type=str,
-        help='Comma-separated list of entity types to focus on (e.g., "country,city"). If specified, will create a special section for samples where all specified entities have issues.'
+        help='Comma-separated list of entity types to focus on (e.g., "country,city"). If specified, will create a special section for samples where all specified entities have issues and generate a separate JSONL file with problematic data.'
     )
     
     # Evaluate (predict) command
@@ -266,7 +266,7 @@ For more information on each command, use:
     eval_predict_parser.add_argument(
         '--entity', '-e',
         type=str,
-        help='Comma-separated list of entity types to focus on (e.g., "country,city"). If specified, will create a special section for samples where all specified entities have issues.'
+        help='Comma-separated list of entity types to focus on (e.g., "country,city"). If specified, will create a special section for samples where all specified entities have issues and generate a separate JSONL file with problematic data.'
     )
 
     # Predict command

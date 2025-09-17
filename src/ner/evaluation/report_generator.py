@@ -25,47 +25,6 @@ class NERReportGenerator:
     def __init__(self, logger: Optional[NERLogger] = None):
         self.logger = logger or NERLogger()
     
-    def generate_detailed_report(
-        self,
-        texts: List[str],
-        true_labels: List[List[str]],
-        predictions: List[List[str]],
-        evaluation_results: Dict[str, Any],
-        entity_types: List[str],
-        output_path: str,
-        specified_entities: Optional[List[str]] = None
-    ) -> str:
-        """生成详细的评估报告
-        
-        Args:
-            texts: 原始文本列表
-            true_labels: 真实标签序列
-            predictions: 预测标签序列
-            evaluation_results: 评估结果字典
-            entity_types: 实体类型列表
-            output_path: 输出文件路径
-            confidence_threshold: 置信度阈值
-            
-        Returns:
-            生成的报告文件路径
-        """
-        self.logger.info(f"Generating detailed evaluation report to: {output_path}")
-        
-        # 创建输出目录
-        output_path = Path(output_path)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # 生成报告数据
-        report_data = self._prepare_report_data(
-            texts, true_labels, predictions, evaluation_results, entity_types, specified_entities
-        )
-        
-        # 写入 CSV 文件
-        self._write_csv_report(report_data, output_path, specified_entities)
-        
-        self.logger.info(f"Detailed evaluation report saved to: {output_path}")
-        return str(output_path)
-    
     def _prepare_report_data(
         self,
         texts: List[str],
@@ -417,6 +376,15 @@ class NERReportGenerator:
         # 保存文件
         wb.save(output_path)
         
+        # 如果指定了实体类型且有问题数据，生成JSONL文件
+        if specified_entities and 'problematic_entities' in report_data and report_data['problematic_entities']:
+            jsonl_path = self._generate_problematic_entities_jsonl(
+                report_data['problematic_entities'], 
+                str(output_path)
+            )
+            if jsonl_path:
+                self.logger.info(f"Problematic entities JSONL saved to: {jsonl_path}")
+        
         self.logger.info(f"Excel evaluation report saved to: {output_path}")
         return str(output_path)
     
@@ -662,3 +630,49 @@ class NERReportGenerator:
                 col += 1
             
             current_row += 1
+    
+    def _generate_problematic_entities_jsonl(
+        self, 
+        problematic_entities: List[Dict[str, Any]], 
+        excel_path: str
+    ) -> Optional[str]:
+        """生成问题实体的JSONL文件
+        
+        Args:
+            problematic_entities: 问题实体数据列表
+            excel_path: Excel文件路径，用于生成对应的JSONL文件名
+            
+        Returns:
+            生成的JSONL文件路径，如果失败返回None
+        """
+        if not problematic_entities:
+            return None
+        
+        try:
+            import json
+            from pathlib import Path
+            
+            # 基于Excel文件路径生成JSONL文件路径
+            excel_path = Path(excel_path)
+            jsonl_filename = excel_path.stem + "_problematic_entities.jsonl"
+            jsonl_path = excel_path.parent / jsonl_filename
+            
+            self.logger.info(f"Generating problematic entities JSONL to: {jsonl_path}")
+            
+            # 写入JSONL文件
+            with open(jsonl_path, 'w', encoding='utf-8') as f:
+                for sample in problematic_entities:
+                    # 构建JSONL记录，保持与输入JSONL相同的格式
+                    record = {
+                        'text': sample['text'],
+                        'tokens': sample['tokens'],
+                        'labels': sample['true_labels']
+                    }
+                    f.write(json.dumps(record, ensure_ascii=False) + '\n')
+            
+            self.logger.info(f"Problematic entities JSONL saved: {jsonl_path}")
+            return str(jsonl_path)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to generate problematic entities JSONL: {e}")
+            return None
