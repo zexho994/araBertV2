@@ -144,6 +144,10 @@ class TrainCommand(BaseCommand):
             help="Output directory for model (overrides config)"
         )
         parser.add_argument(
+            "--model",
+            help="Pretrained model name or path (overrides config)"
+        )
+        parser.add_argument(
             "--resume",
             help="Resume training from checkpoint"
         )
@@ -151,6 +155,35 @@ class TrainCommand(BaseCommand):
             "--dry-run",
             action="store_true",
             help="Validate configuration without training"
+        )
+        # LoRA相关参数
+        parser.add_argument(
+            "--lora",
+            action="store_true",
+            help="Enable LoRA training mode"
+        )
+        parser.add_argument(
+            "--lora-r",
+            type=int,
+            help="LoRA attention dimension (r)"
+        )
+        parser.add_argument(
+            "--lora-alpha",
+            type=int,
+            help="LoRA alpha parameter"
+        )
+        parser.add_argument(
+            "--lora-dropout",
+            type=float,
+            help="LoRA dropout rate"
+        )
+        parser.add_argument(
+            "--lora-target-modules",
+            help="Comma-separated list of target modules for LoRA"
+        )
+        parser.add_argument(
+            "--lora-base-adapter",
+            help="Path to base LoRA adapter for incremental training"
         )
     
     def execute(self, args) -> bool:
@@ -172,6 +205,36 @@ class TrainCommand(BaseCommand):
                 config['training']['learning_rate'] = args.learning_rate
             if getattr(args, 'output_dir', None):
                 config['output']['model_dir'] = args.output_dir
+            if getattr(args, 'model', None):
+                config['model']['pretrained_model_name'] = args.model
+                self.logger.info(f"Using pretrained model: {args.model}")
+                
+            # 处理LoRA参数
+            if getattr(args, 'lora', False):
+                # 确保training配置中有lora部分
+                if 'lora' not in config['training']:
+                    config['training']['lora'] = {}
+                # 启用LoRA
+                config['training']['lora']['enabled'] = True
+                
+                # 设置LoRA参数
+                if getattr(args, 'lora_r', None):
+                    config['training']['lora']['r'] = args.lora_r
+                if getattr(args, 'lora_alpha', None):
+                    config['training']['lora']['alpha'] = args.lora_alpha
+                if getattr(args, 'lora_dropout', None):
+                    config['training']['lora']['dropout'] = args.lora_dropout
+                if getattr(args, 'lora_target_modules', None):
+                    # 将逗号分隔的字符串转换为列表
+                    target_modules = [m.strip() for m in args.lora_target_modules.split(',')]
+                    config['training']['lora']['target_modules'] = target_modules
+                
+                # 设置LoRA增量训练参数
+                if getattr(args, 'lora_base_adapter', None):
+                    config['training']['lora']['base_adapter_path'] = args.lora_base_adapter
+                    self.logger.info(f"LoRA incremental training enabled with base adapter: {args.lora_base_adapter}")
+                
+                self.logger.info(f"LoRA training enabled with parameters: {config['training']['lora']}")
                 
             # 校验配置
             validator = ConfigValidator()

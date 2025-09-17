@@ -173,6 +173,40 @@ For more information on each command, use:
         type=str,
         help='Resume training from checkpoint'
     )
+    train_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate configuration without training"
+    )
+    # LoRA相关参数
+    train_parser.add_argument(
+        "--lora",
+        action="store_true",
+        help="Enable LoRA training mode"
+    )
+    train_parser.add_argument(
+        "--lora-r",
+        type=int,
+        help="LoRA attention dimension (r)"
+    )
+    train_parser.add_argument(
+        "--lora-alpha",
+        type=int,
+        help="LoRA alpha parameter"
+    )
+    train_parser.add_argument(
+        "--lora-dropout",
+        type=float,
+        help="LoRA dropout rate"
+    )
+    train_parser.add_argument(
+        "--lora-target-modules",
+        help="Comma-separated list of target modules for LoRA"
+    )
+    train_parser.add_argument(
+        "--lora-base-adapter",
+        help="Path to base LoRA adapter for incremental training"
+    )
     
     # Evaluate command
     eval_parser = subparsers.add_parser(

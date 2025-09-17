@@ -8,7 +8,7 @@
     "model": {
         "name": "XLM-RoBERTa",
         "type": "bert",
-        "pretrained_model": "xlm-roberta-base",
+        "pretrained_model": "data/ner/models/uae/v0.1",
         "max_length": 512,
         "hidden_size": 768,
         "num_attention_heads": 12,
@@ -45,7 +45,7 @@
     "training": {
         "epochs": 2,
         "batch_size": 16,
-        "learning_rate": 2e-05,
+        "learning_rate": 1e-4,
         "weight_decay": 0.03,
         "warmup_steps": 500,
         "warmup_ratio": 0.1,
@@ -55,12 +55,22 @@
         "max_grad_norm": 1.0,
         "save_steps": 1000,
         "eval_steps": 500,
-        "logging_steps": 100
+        "logging_steps": 100,
+        "lora": {
+            "enabled": false,
+            "r": 16,
+            "alpha": 32,
+            "dropout": 0.1,
+            "target_modules": ["query", "key", "value", "dense"],
+            "bias": "none",
+            "task_type": "TOKEN_CLS",
+            "base_adapter": "data/ner/models/uae/v0.1"
+        }
     },
     "data": {
-        "train_file": "data/ner/datasets/uae/train_250910.jsonl",
-        "val_file": "data/ner/datasets/uae/eval_250910.jsonl",
-        "test_file": "data/ner/datasets/uae/test_50000.jsonl",
+        "train_file": "data/ner/datasets/uae/train_250916.jsonl",
+        "val_file": "data/ner/datasets/uae/eval_250916.jsonl",
+        "test_file": "data/ner/datasets/uae/test.jsonl",
         "max_length": 512,
         "doc_stride": 128,
         "preprocessing": {

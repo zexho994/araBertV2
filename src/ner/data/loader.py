@@ -107,13 +107,12 @@ class NERDataset(Dataset):
             previous_word_idx = word_idx
 
         # 可选：一次性打印对齐调试信息（仅当设置 DEBUG_ALIGNMENT=1）
-        if os.environ.get("DEBUG_ALIGNMENT", "0") == "1" and not getattr(self, "_alignment_debug_printed", False):
-            try:
-                self._print_alignment_debug(tokenized_inputs, tokens, labels, aligned_labels)
-            except Exception:
-                # TODO：可更细化异常类型并记录日志
-                pass
-            self._alignment_debug_printed = True
+        # if os.environ.get("DEBUG_ALIGNMENT", "0") == "1" and not getattr(self, "_alignment_debug_printed", False):
+        #     try:
+        #         self._print_alignment_debug(tokenized_inputs, tokens, labels, aligned_labels)
+        #     except Exception:
+        #         pass
+        #     self._alignment_debug_printed = True
 
         return {
             'input_ids': tokenized_inputs['input_ids'].squeeze(),

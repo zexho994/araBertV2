@@ -265,14 +265,27 @@ class NERTrainer:
     
     def prepare_model(self):
         """准备模型（根据配置加载预训练模型并适配标签数）
+        
+        支持LoRA训练模式，通过配置文件中的lora参数控制
+        支持LoRA增量训练，可以基于之前的LoRA模型继续训练
 
         # TODO: 添加支持使用 CRF, 在预测与验证处适配解码流程。
         """
         self.logger.info("Preparing model...")
         
         model_config = self.config['model']
-
-        self.logger.debug(f"Preparing {self.model_type} model...")
+        training_config = self.config['training']
+        
+        # 检查是否启用LoRA
+        lora_config = training_config.get('lora', {})
+        use_lora = lora_config.get('enabled', False)
+        
+        # 检查是否有指定的LoRA基础模型路径（用于增量训练）
+        lora_base_model_path = lora_config.get('base_adapter_path', None)
+        
+        self.logger.debug(f"Preparing {self.model_type} model with LoRA={use_lora}...")
+        
+        # 基础模型加载
         if self.model_type == 'bert' or self.model_type == 'roberta':
             self.model = BertNERModel.from_pretrained(
                 pretrained_model_name_or_path=self.pretrained_model_name,
@@ -284,9 +297,29 @@ class NERTrainer:
         else:
             raise ValueError(f"Unsupported model type: {model_config['type']}")
         
+        # 如果启用了LoRA并指定了基础适配器路径，加载之前的LoRA权重
+        if use_lora and lora_base_model_path:
+            from peft import PeftModel
+            
+            # 检查路径是否存在
+            if not os.path.exists(lora_base_model_path):
+                self.logger.warning(f"指定的LoRA基础模型路径不存在: {lora_base_model_path}，将创建新的LoRA模型")
+            else:
+                try:
+                    self.logger.info(f"正在加载LoRA基础模型: {lora_base_model_path}")
+                    # 使用PeftModel加载之前的LoRA权重
+                    self.model = PeftModel.from_pretrained(
+                        self.model,
+                        lora_base_model_path,
+                        is_trainable=True
+                    )
+                    self.logger.info(f"成功加载LoRA基础模型，将在此基础上继续训练")
+                except Exception as e:
+                    self.logger.error(f"加载LoRA基础模型失败: {str(e)}，将创建新的LoRA模型")
+                    # 如果加载失败，继续使用新的LoRA模型
+        
         # Move model to device
         self.model.to(self.device)
-        
         self.logger.info(f"Initialized {model_config['type']} model with {self.num_labels} labels")
     
     def prepare_optimizer(self):
@@ -576,6 +609,7 @@ class NERTrainer:
         - 保存 HF 兼容的模型权重与 tokenizer
         - 基于 `base_model_name` 生成 config.json，并注入 NER 相关字段
         - 另存训练元信息（便于部署/对比/复现实验）
+        - 支持LoRA模型保存
 
         # TODO: 采用 `safe_serialization=True`（如适用）提高健壮性。
         # TODO: 导出 `label_mapping` 与版本信息，便于推理侧复盘。
@@ -583,8 +617,29 @@ class NERTrainer:
         model_dir = self.output_dir / "best_model"
         model_dir.mkdir(parents=True, exist_ok=True)
         
-        # Save model
-        self.model.save_pretrained(model_dir)
+        # 检查是否为LoRA模型
+        training_config = self.config['training']
+        lora_config = training_config.get('lora', {})
+        use_lora = lora_config.get('enabled', False)
+        
+        # 保存模型
+        if use_lora:
+            self.logger.info("Saving LoRA model...")
+            # 对于LoRA模型，只保存适配器权重
+            self.model.save_pretrained(model_dir)
+            
+            # 保存LoRA配置信息
+            lora_config_path = model_dir / "lora_config.json"
+            with open(lora_config_path, 'w', encoding='utf-8') as f:
+                json.dump(lora_config, f, ensure_ascii=False, indent=2)
+                
+            self.logger.info(f"Saved LoRA adapter weights to {model_dir}")
+        else:
+            # 常规模型保存
+            self.logger.info("Saving full model...")
+            self.model.save_pretrained(model_dir)
+            
+        # 保存tokenizer
         self.tokenizer.save_pretrained(model_dir)
         
         # Create a Transformers config based on the actual pretrained base to
@@ -599,6 +654,10 @@ class NERTrainer:
         dropout_val = self.config['model'].get('dropout', None)
         if dropout_val is not None:
             setattr(base_cfg, 'classifier_dropout', dropout_val)
+        # 添加LoRA信息到配置
+        if use_lora:
+            base_cfg.lora_enabled = True
+            base_cfg.lora_config = lora_config
         # Persist config.json
         config_path = model_dir / "config.json"
         base_cfg.to_json_file(config_path)
