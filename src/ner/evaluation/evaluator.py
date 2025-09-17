@@ -422,3 +422,36 @@ class NEREvaluator:
             results['val_loss'] = total_loss / num_batches
 
         return results
+
+    def print_evaluate_results(self, results):
+        """打印评估结果
+        
+        Args:
+            results: 评估结果
+        
+        Returns:
+            None
+        """
+        self.logger.info("Evaluation Results:")
+
+        # 打印 token 级指标
+        self.logger.info("\nToken-level Metrics:")
+        for metric, value in results.get('token_metrics', {}).items():
+            self.logger.info(f"  {metric}: {value:.4f}")
+        
+        # 打印实体级指标
+        self.logger.info("Entity-level Metrics:")
+        for metric, value in results.get('entity_metrics', {}).items():
+            self.logger.info(f"  {metric}: {value:.4f}")
+        
+        # 打印逐实体指标
+        if 'per_entity_metrics' in results:
+            self.logger.info("Per-Entity Metrics:")
+            for entity, metrics in results['per_entity_metrics'].items():
+                self.logger.info(f"  {entity}:")
+                for metric, value in metrics.items():
+                    self.logger.info(f"    {metric}: {value:.4f}")
+        
+        self.logger.info(f"Total samples evaluated: {results.get('num_samples', 0)}")
+        if 'val_loss' in results:
+            self.logger.info(f"Validation loss: {results['val_loss']:.4f}")

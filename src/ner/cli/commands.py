@@ -250,7 +250,7 @@ class EvaluateCommand(BaseCommand):
             help="Evaluation batch size"
         )
         parser.add_argument(
-            "--country",
+            "--country","-c",
             help="Country code for configuration"
         )
         parser.add_argument(
@@ -264,7 +264,7 @@ class EvaluateCommand(BaseCommand):
             help="Compare with another model"
         )
         parser.add_argument(
-            "--detailed-report",
+            "--detailed-report","-dr",
             action="store_true",
             help="Generate detailed evaluation report (Excel format)"
         )
@@ -327,29 +327,8 @@ class EvaluateCommand(BaseCommand):
             # 运行基于 DataLoader 的评估
             results = evaluator.evaluate_dataloader(val_loader)
             
-            self.logger.info("Evaluation Results:")
-
-            # 打印 token 级指标
-            self.logger.info("\nToken-level Metrics:")
-            for metric, value in results.get('token_metrics', {}).items():
-                self.logger.info(f"  {metric}: {value:.4f}")
-            
-            # 打印实体级指标
-            self.logger.info("Entity-level Metrics:")
-            for metric, value in results.get('entity_metrics', {}).items():
-                self.logger.info(f"  {metric}: {value:.4f}")
-            
-            # 打印逐实体指标
-            if 'per_entity_metrics' in results:
-                self.logger.info("Per-Entity Metrics:")
-                for entity, metrics in results['per_entity_metrics'].items():
-                    self.logger.info(f"  {entity}:")
-                    for metric, value in metrics.items():
-                        self.logger.info(f"    {metric}: {value:.4f}")
-            
-            self.logger.info(f"Total samples evaluated: {results.get('num_samples', 0)}")
-            if 'val_loss' in results:
-                self.logger.info(f"Validation loss: {results['val_loss']:.4f}")
+            # 打印评估结果
+            evaluator.print_evaluate_results(results)
 
             # 持久化结果
             out_dir = None
