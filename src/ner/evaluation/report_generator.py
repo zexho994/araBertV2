@@ -32,7 +32,8 @@ class NERReportGenerator:
         predictions: List[List[str]],
         evaluation_results: Dict[str, Any],
         entity_types: List[str],
-        output_path: str
+        output_path: str,
+        specified_entities: Optional[List[str]] = None
     ) -> str:
         """生成详细的评估报告
         
@@ -56,11 +57,11 @@ class NERReportGenerator:
         
         # 生成报告数据
         report_data = self._prepare_report_data(
-            texts, true_labels, predictions, evaluation_results, entity_types
+            texts, true_labels, predictions, evaluation_results, entity_types, specified_entities
         )
         
         # 写入 CSV 文件
-        self._write_csv_report(report_data, output_path)
+        self._write_csv_report(report_data, output_path, specified_entities)
         
         self.logger.info(f"Detailed evaluation report saved to: {output_path}")
         return str(output_path)
@@ -71,7 +72,8 @@ class NERReportGenerator:
         true_labels: List[List[str]],
         predictions: List[List[str]],
         evaluation_results: Dict[str, Any],
-        entity_types: List[str]
+        entity_types: List[str],
+        specified_entities: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """准备报告数据
         
@@ -86,10 +88,19 @@ class NERReportGenerator:
             texts, true_labels, predictions, entity_types
         )
         
-        return {
+        result = {
             'summary': summary,
             'detailed_results': detailed_results
         }
+        
+        # 如果指定了实体类型，生成问题实体数据
+        if specified_entities:
+            problematic_entities = self._generate_problematic_entities_data(
+                texts, true_labels, predictions, specified_entities
+            )
+            result['problematic_entities'] = problematic_entities
+        
+        return result
     
     def _extract_summary(
         self,
@@ -217,7 +228,7 @@ class NERReportGenerator:
         """获取指定实体类型的文本"""
         return entities.get(entity_type, "")
     
-    def _write_csv_report(self, report_data: Dict[str, Any], output_path: Path):
+    def _write_csv_report(self, report_data: Dict[str, Any], output_path: Path, specified_entities: Optional[List[str]] = None):
         """写入 CSV 报告文件"""
         summary = report_data['summary']
         detailed_results = report_data['detailed_results']
@@ -232,6 +243,10 @@ class NERReportGenerator:
             
             # 写入详细结果
             self._write_detailed_section(writer, detailed_results, entity_types)
+            
+            # 如果指定了实体类型，写入问题实体部分
+            if specified_entities and 'problematic_entities' in report_data:
+                self._write_csv_problematic_entities(writer, report_data['problematic_entities'], specified_entities)
     
     def _write_summary_section(self, writer, summary: Dict[str, Any]):
         """写入汇总信息部分"""
@@ -302,6 +317,41 @@ class NERReportGenerator:
             
             writer.writerow(row)
     
+    def _write_csv_problematic_entities(
+        self, 
+        writer, 
+        problematic_entities: List[Dict[str, Any]], 
+        specified_entities: List[str]
+    ):
+        """写入CSV问题实体部分"""
+        if not problematic_entities:
+            return
+        
+        # 写入标题
+        writer.writerow([])
+        writer.writerow(['=== PROBLEMATIC ENTITIES SECTION ==='])
+        writer.writerow([f"Samples where all specified entities ({', '.join(specified_entities)}) have issues"])
+        writer.writerow([])
+        
+        # 写入表头
+        headers = ['Sample ID', 'Text'] + [f"{entity} (True)" for entity in specified_entities] + [f"{entity} (Pred)" for entity in specified_entities]
+        writer.writerow(headers)
+        
+        # 写入数据行
+        for sample in problematic_entities:
+            row = [
+                sample['sample_id'],
+                sample['text']
+            ]
+            
+            # 添加实体列
+            for entity_type in specified_entities:
+                entity_issue = sample['entity_issues'][entity_type]
+                row.append(entity_issue['true'] or "")
+                row.append(entity_issue['pred'] or "")
+            
+            writer.writerow(row)
+    
     def _get_timestamp(self) -> str:
         """获取当前时间戳"""
         from datetime import datetime
@@ -314,7 +364,8 @@ class NERReportGenerator:
         predictions: List[List[str]],
         evaluation_results: Dict[str, Any],
         entity_types: List[str],
-        output_path: str
+        output_path: str,
+        specified_entities: Optional[List[str]] = None
     ) -> str:
         """生成 Excel 格式的评估报告（带颜色高亮）
         
@@ -325,6 +376,7 @@ class NERReportGenerator:
             evaluation_results: 评估结果字典
             entity_types: 实体类型列表
             output_path: 输出文件路径
+            specified_entities: 指定的实体类型列表，如果提供，将创建特殊的问题实体部分
             
         Returns:
             生成的报告文件路径
@@ -344,7 +396,7 @@ class NERReportGenerator:
         
         # 生成报告数据
         report_data = self._prepare_report_data(
-            texts, true_labels, predictions, evaluation_results, entity_types
+            texts, true_labels, predictions, evaluation_results, entity_types, specified_entities
         )
         
         # 创建 Excel 工作簿
@@ -357,6 +409,10 @@ class NERReportGenerator:
         
         # 写入详细结果
         self._write_excel_detailed(ws, report_data['detailed_results'], entity_types)
+        
+        # 如果指定了实体类型，写入问题实体部分
+        if specified_entities and 'problematic_entities' in report_data:
+            self._write_excel_problematic_entities(ws, report_data['problematic_entities'], specified_entities)
         
         # 保存文件
         wb.save(output_path)
@@ -480,3 +536,129 @@ class NERReportGenerator:
                 # 如果是错误，设置背景色
                 if entity_data['style'] == 'error' and error_fill is not None:
                     cell.fill = error_fill
+    
+    def _generate_problematic_entities_data(
+        self,
+        texts: List[str],
+        true_labels: List[List[str]],
+        predictions: List[List[str]],
+        specified_entities: List[str]
+    ) -> List[Dict[str, Any]]:
+        """生成问题实体数据
+        
+        找出所有指定实体类型都有问题的样本
+        
+        Args:
+            texts: 原始文本列表
+            true_labels: 真实标签序列
+            predictions: 预测标签序列
+            specified_entities: 指定的实体类型列表
+            
+        Returns:
+            问题实体数据列表
+        """
+        problematic_samples = []
+        
+        for i, (text, true_seq, pred_seq) in enumerate(zip(texts, true_labels, predictions)):
+            # 提取实体信息
+            true_entities = self._extract_entities_from_sequence(true_seq, text.split())
+            pred_entities = self._extract_entities_from_sequence(pred_seq, text.split())
+            
+            # 检查指定实体类型是否都有问题
+            all_entities_problematic = True
+            entity_issues = {}
+            
+            for entity_type in specified_entities:
+                true_entity_text = self._get_entity_text(true_entities, entity_type)
+                pred_entity_text = self._get_entity_text(pred_entities, entity_type)
+                
+                # 检查是否有识别错误
+                has_error = true_entity_text != pred_entity_text
+                entity_issues[entity_type] = {
+                    'true': true_entity_text,
+                    'pred': pred_entity_text,
+                    'has_error': has_error
+                }
+                
+                if not has_error:
+                    all_entities_problematic = False
+                    break
+            
+            # 如果所有指定实体都有问题，添加到问题样本列表
+            if all_entities_problematic and any(issue['has_error'] for issue in entity_issues.values()):
+                problematic_samples.append({
+                    'sample_id': i + 1,
+                    'text': text,
+                    'tokens': text.split(),
+                    'true_labels': true_seq,
+                    'pred_labels': pred_seq,
+                    'entity_issues': entity_issues
+                })
+        
+        return problematic_samples
+    
+    def _write_excel_problematic_entities(
+        self, 
+        ws, 
+        problematic_entities: List[Dict[str, Any]], 
+        specified_entities: List[str]
+    ):
+        """写入Excel问题实体部分"""
+        if not problematic_entities:
+            return
+        
+        # 找到当前内容的结束行
+        current_row = ws.max_row + 2
+        
+        # 写入标题
+        ws.cell(row=current_row, column=1, value="=== PROBLEMATIC ENTITIES SECTION ===")
+        current_row += 1
+        ws.cell(row=current_row, column=1, value=f"Samples where all specified entities ({', '.join(specified_entities)}) have issues")
+        current_row += 2
+        
+        # 写入表头
+        headers = ['Sample ID', 'Text'] + [f"{entity} (True)" for entity in specified_entities] + [f"{entity} (Pred)" for entity in specified_entities]
+        for col, header in enumerate(headers, 1):
+            ws.cell(row=current_row, column=col, value=header)
+        
+        # 设置表头样式
+        try:
+            from openpyxl.styles import PatternFill
+            header_fill = PatternFill(start_color="FF9999", end_color="FF9999", fill_type="solid")
+            for col in range(1, len(headers) + 1):
+                ws.cell(row=current_row, column=col).fill = header_fill
+        except ImportError:
+            pass
+        
+        current_row += 1
+        
+        # 写入数据行
+        try:
+            from openpyxl.styles import PatternFill
+            error_fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
+        except ImportError:
+            error_fill = None
+        
+        for sample in problematic_entities:
+            # 基本信息
+            ws.cell(row=current_row, column=1, value=sample['sample_id'])
+            ws.cell(row=current_row, column=2, value=sample['text'])
+            
+            # 实体列
+            col = 3
+            for entity_type in specified_entities:
+                entity_issue = sample['entity_issues'][entity_type]
+                
+                # True 值
+                ws.cell(row=current_row, column=col, value=entity_issue['true'] or "")
+                if error_fill is not None:
+                    ws.cell(row=current_row, column=col).fill = error_fill
+                col += 1
+                
+                # Pred 值
+                ws.cell(row=current_row, column=col, value=entity_issue['pred'] or "")
+                if error_fill is not None:
+                    ws.cell(row=current_row, column=col).fill = error_fill
+                col += 1
+            
+            current_row += 1

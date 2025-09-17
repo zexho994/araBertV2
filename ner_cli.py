@@ -27,6 +27,9 @@ Examples:
     # Evaluate with detailed report
     python ner.py evaluate --model-path ./models/uae_model --data-path ./data/uae_test.json --country uae --detailed-report
     
+    # Evaluate with entity focus and detailed report
+    python ner.py evaluate --model-path ./models/uae_model --data-path ./data/uae_test.json --country uae --detailed-report --entity "country,city"
+    
     # Make predictions
     python ner.py predict --model-path ./models/uae_model --text "123 Sheikh Zayed Road, Dubai"
     or
@@ -56,6 +59,7 @@ Examples:
   %(prog)s train --country uae --data-path ./data/train.json
   %(prog)s evaluate --model-path ./models/uae_model --data-path ./data/test.json --country uae
   %(prog)s evaluate --model-path ./models/uae_model --data-path ./data/test.json --country uae --detailed-report
+  %(prog)s evaluate --model-path ./models/uae_model --data-path ./data/test.json --country uae --detailed-report --entity "country,city"
   %(prog)s predict --model-path ./models/uae_model --text "Dubai Marina"
   %(prog)s config list
   %(prog)s data validate --data-path ./data/train.json
@@ -208,6 +212,11 @@ For more information on each command, use:
         action='store_true',
         help='Generate detailed evaluation report (Excel format)'
     )
+    eval_parser.add_argument(
+        '--entity', '-e',
+        type=str,
+        help='Comma-separated list of entity types to focus on (e.g., "country,city"). If specified, will create a special section for samples where all specified entities have issues.'
+    )
     
     # Evaluate (predict) command
     eval_predict_parser = subparsers.add_parser(
@@ -253,6 +262,11 @@ For more information on each command, use:
         '--detailed-report',
         action='store_true',
         help='Generate detailed evaluation report (Excel format)'
+    )
+    eval_predict_parser.add_argument(
+        '--entity', '-e',
+        type=str,
+        help='Comma-separated list of entity types to focus on (e.g., "country,city"). If specified, will create a special section for samples where all specified entities have issues.'
     )
 
     # Predict command

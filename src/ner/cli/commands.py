@@ -264,9 +264,14 @@ class EvaluateCommand(BaseCommand):
             help="Compare with another model"
         )
         parser.add_argument(
-            "--detailed-report","-dr",
+            "--detailed-report","--dr",
             action="store_true",
             help="Generate detailed evaluation report (Excel format)"
+        )
+        parser.add_argument(
+            "--entity", "-e",
+            type=str,
+            help="Comma-separated list of entity types to focus on (e.g., 'country,city'). If specified, will create a special section for samples where all specified entities have issues."
         )
     
     def execute(self, args) -> bool:
@@ -405,10 +410,22 @@ class EvaluateCommand(BaseCommand):
             report_filename = f"evaluation_report_{timestamp}.xlsx"
             report_path = out_dir / report_filename if out_dir else report_filename
             
+            # 解析指定的实体类型
+            specified_entities = None
+            if hasattr(args, 'entity') and args.entity:
+                specified_entities = [e.strip() for e in args.entity.split(',')]
+                # 验证指定的实体类型是否存在于配置中
+                invalid_entities = [e for e in specified_entities if e not in entity_types]
+                if invalid_entities:
+                    self.logger.warning(f"Invalid entity types specified: {invalid_entities}. Available types: {entity_types}")
+                    specified_entities = [e for e in specified_entities if e in entity_types]
+                if specified_entities:
+                    self.logger.info(f"Focusing on entity types: {specified_entities}")
+            
             # 生成Excel报告
             report_generator = NERReportGenerator(logger=self.logger)
             report_path = report_generator.generate_excel_report(
-                texts, true_labels, predictions, results, entity_types, str(report_path)
+                texts, true_labels, predictions, results, entity_types, str(report_path), specified_entities
             )
             
             if report_path:
@@ -530,20 +547,7 @@ class EvaluatePredictCommand(BaseCommand):
             results = evaluator.evaluate(texts, true_labels, confidence_threshold=getattr(args, 'confidence_threshold', 0.5))
             
             # 打印指标
-            self.logger.info("Evaluation (predict) Results:")
-            self.logger.info("\nToken-level Metrics:")
-            for metric, value in results.get('token_metrics', {}).items():
-                self.logger.info(f"  {metric}: {value:.4f}")
-            self.logger.info("Entity-level Metrics:")
-            for metric, value in results.get('entity_metrics', {}).items():
-                self.logger.info(f"  {metric}: {value:.4f}")
-            if 'per_entity_metrics' in results:
-                self.logger.info("Per-Entity Metrics:")
-                for entity, metrics in results['per_entity_metrics'].items():
-                    self.logger.info(f"  {entity}:")
-                    for metric, value in metrics.items():
-                        self.logger.info(f"    {metric}: {value:.4f}")
-            self.logger.info(f"Total samples evaluated: {results.get('num_samples', 0)}")
+            evaluator.print_evaluate_results(results)
             
             # 持久化结果
             out_dir = None
