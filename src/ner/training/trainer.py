@@ -298,25 +298,59 @@ class NERTrainer:
             raise ValueError(f"Unsupported model type: {model_config['type']}")
         
         # 如果启用了LoRA并指定了基础适配器路径，加载之前的LoRA权重
-        if use_lora and lora_base_model_path:
-            from peft import PeftModel
-            
-            # 检查路径是否存在
-            if not os.path.exists(lora_base_model_path):
-                self.logger.warning(f"指定的LoRA基础模型路径不存在: {lora_base_model_path}，将创建新的LoRA模型")
-            else:
+        if use_lora:
+            try:
+                from peft import PeftModel, LoraConfig, get_peft_model, TaskType  # type: ignore
+            except Exception as e:
+                raise RuntimeError(f"LoRA training requires 'peft' package: {e}")
+
+            # 如果提供了基础适配器且存在，则在其基础上继续训练；否则创建新的LoRA适配器
+            if lora_base_model_path and os.path.exists(lora_base_model_path):
                 try:
                     self.logger.info(f"正在加载LoRA基础模型: {lora_base_model_path}")
-                    # 使用PeftModel加载之前的LoRA权重
                     self.model = PeftModel.from_pretrained(
                         self.model,
                         lora_base_model_path,
                         is_trainable=True
                     )
-                    self.logger.info(f"成功加载LoRA基础模型，将在此基础上继续训练")
+                    self.logger.info("成功加载LoRA基础模型，将在此基础上继续训练")
                 except Exception as e:
-                    self.logger.error(f"加载LoRA基础模型失败: {str(e)}，将创建新的LoRA模型")
-                    # 如果加载失败，继续使用新的LoRA模型
+                    self.logger.error(f"加载LoRA基础模型失败: {str(e)}，将回退为新建LoRA适配器: {e}")
+                    # 回退到新建 LoRA
+                    r = lora_config.get('r', 8)
+                    alpha = lora_config.get('alpha', 16)
+                    dropout = lora_config.get('dropout', 0.1)
+                    target_modules = lora_config.get('target_modules', None)
+                    bias = lora_config.get('bias', 'none')
+                    l_cfg = LoraConfig(
+                        r=r,
+                        lora_alpha=alpha,
+                        lora_dropout=dropout,
+                        target_modules=target_modules,
+                        bias=bias,
+                        task_type=TaskType.TOKEN_CLS,
+                        modules_to_save=["classifier"]
+                    )
+                    self.model = get_peft_model(self.model, l_cfg)
+            else:
+                # 新建 LoRA 适配器
+                if lora_base_model_path and not os.path.exists(lora_base_model_path):
+                    self.logger.warning(f"指定的LoRA基础模型路径不存在: {lora_base_model_path}，将创建新的LoRA适配器")
+                r = lora_config.get('r', 8)
+                alpha = lora_config.get('alpha', 16)
+                dropout = lora_config.get('dropout', 0.1)
+                target_modules = lora_config.get('target_modules', None)
+                bias = lora_config.get('bias', 'none')
+                l_cfg = LoraConfig(
+                    r=r,
+                    lora_alpha=alpha,
+                    lora_dropout=dropout,
+                    target_modules=target_modules,
+                    bias=bias,
+                    task_type=TaskType.TOKEN_CLS,
+                    modules_to_save=["classifier"]
+                )
+                self.model = get_peft_model(self.model, l_cfg)
         
         # Move model to device
         self.model.to(self.device)
@@ -639,6 +673,7 @@ class NERTrainer:
                 json.dump(lora_config, f, ensure_ascii=False, indent=2)
                 
             self.logger.info(f"Saved LoRA adapter weights to {target_adapter_dir}")
+            return
         else:
             # 常规模型保存
             self.logger.info("Saving full model...")

@@ -815,7 +815,6 @@ class PredictCommand(BaseCommand):
             self.logger.error(f"Prediction failed: {e}")
             return False
 
-
 class PreprocessCommand(BaseCommand):
     """预处理管道命令
 
