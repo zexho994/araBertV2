@@ -7,6 +7,7 @@
 
 from ..config import ConfigManager
 from ..preprocess import build_preprocessor_from_config
+from .base import BaseCommand
 
 class PreprocessCommand(BaseCommand):
     """预处理管道命令

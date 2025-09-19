@@ -12,6 +12,7 @@
 
 from pathlib import Path
 
+from .base import BaseCommand
 
 class StatusCommand(BaseCommand):
     """训练状态与日志查看命令
