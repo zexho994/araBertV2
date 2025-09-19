@@ -138,18 +138,47 @@ class NERModelManager:
         try:
             from peft import PeftModel
             
-            # 直接从LoRA路径加载，PEFT会自动处理基础模型
-            model = BertNERModel.from_pretrained(
-                str(model_path),
-                num_labels=len(label2id),
-                id2label=id2label,
-                label2id=label2id
-            )
+            # 检查是否存在 adapter_config.json
+            adapter_config_path = model_path / "adapter_config.json"
+            if not adapter_config_path.exists():
+                raise FileNotFoundError(f"LoRA adapter config not found: {adapter_config_path}")
+            
+            # 读取适配器配置以获取基础模型信息
+            with open(adapter_config_path, 'r', encoding='utf-8') as f:
+                adapter_config = json.load(f)
+                base_model_name = adapter_config.get('base_model_name_or_path')
+                
+            if not base_model_name:
+                # 如果适配器配置中没有基础模型信息，尝试从模型目录加载
+                self.logger.warning(f"No base_model_name_or_path in adapter config, trying to load from model directory {model_path}")
+                base_model = BertNERModel.from_pretrained(
+                    str(model_path),
+                    num_labels=len(label2id),
+                    id2label=id2label,
+                    label2id=label2id
+                )
+            else:
+                # 从基础模型路径加载
+                base_model = BertNERModel.from_pretrained(
+                    base_model_name,
+                    num_labels=len(label2id),
+                    id2label=id2label,
+                    label2id=label2id
+                )
+            
+            # 加载 PEFT 适配器
             lora_model = PeftModel.from_pretrained(
-                model,
+                base_model,
                 model_path,
-                is_trainable=True
+                is_trainable=False  # 评估时设为 False
             )
+            
+            # 确保配置正确设置（PEFT 模型的配置访问）
+            if hasattr(lora_model, 'base_model') and hasattr(lora_model.base_model, 'config'):
+                lora_model.base_model.config.label2id = label2id
+                lora_model.base_model.config.id2label = id2label
+                lora_model.base_model.config.num_labels = len(label2id)
+            
             self.logger.info(f"Successfully loaded LoRA model from {model_path}")
             return lora_model
             

@@ -354,10 +354,19 @@ class EvaluateCommand(BaseCommand):
             tokenizer = AutoTokenizer.from_pretrained(args.model_path, use_fast=True)
 
             # 从模型配置中获取标签列表与映射（确保与模型训练时一致）
-            if hasattr(model, 'config') and hasattr(model.config, 'id2label') and hasattr(model.config, 'label2id'):
+            # 支持 PEFT 模型和普通模型的配置访问
+            config_obj = None
+            if hasattr(model, 'config'):
+                config_obj = model.config
+            elif hasattr(model, 'base_model') and hasattr(model.base_model, 'config'):
+                # PEFT 模型的配置在 base_model.config 中
+                config_obj = model.base_model.config
+                self.logger.info("Detected PEFT model, using base_model.config for label mappings")
+            
+            if config_obj and hasattr(config_obj, 'id2label') and hasattr(config_obj, 'label2id'):
                 # id2label 可能是 {int: str} 或 {str: str}，统一按索引顺序取
-                id2label = model.config.id2label
-                model_label2id = model.config.label2id
+                id2label = config_obj.id2label
+                model_label2id = config_obj.label2id
                 # 按键排序（数字键优先）；若是 str 键且可转 int，则按 int 排
                 try:
                     label_list = [id2label[i] for i in range(len(id2label))]
@@ -568,8 +577,17 @@ class EvaluatePredictCommand(BaseCommand):
             tokenizer = AutoTokenizer.from_pretrained(args.model_path, use_fast=True)
             
             # 解析标签列表（与模型一致）
-            if hasattr(model, 'config') and hasattr(model.config, 'id2label') and hasattr(model.config, 'label2id'):
-                id2label = model.config.id2label
+            # 支持 PEFT 模型和普通模型的配置访问
+            config_obj = None
+            if hasattr(model, 'config'):
+                config_obj = model.config
+            elif hasattr(model, 'base_model') and hasattr(model.base_model, 'config'):
+                # PEFT 模型的配置在 base_model.config 中
+                config_obj = model.base_model.config
+                self.logger.info("Detected PEFT model, using base_model.config for label mappings")
+            
+            if config_obj and hasattr(config_obj, 'id2label') and hasattr(config_obj, 'label2id'):
+                id2label = config_obj.id2label
                 try:
                     label_list = [id2label[i] for i in range(len(id2label))]
                 except Exception:
