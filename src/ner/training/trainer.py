@@ -350,6 +350,7 @@ class NERTrainer:
                     task_type=TaskType.TOKEN_CLS,
                     modules_to_save=["classifier"]
                 )
+                self.logger.info(f"创建新的LoRA适配器: {l_cfg}")
                 self.model = get_peft_model(self.model, l_cfg)
         
         # Move model to device
