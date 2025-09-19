@@ -12,13 +12,13 @@ from .main import NERCLIManager
 from .commands import (
     BaseCommand,
     TrainCommand,
-    EvaluateCommand,
     PredictCommand,
     ConfigCommand,
     DataCommand,
     ModelCommand,
     StatusCommand,
 )
+from .evaluate_command import EvaluateCommand
 
 __all__ = [
     'NERCLIManager',

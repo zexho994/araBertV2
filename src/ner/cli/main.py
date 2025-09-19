@@ -9,7 +9,6 @@ from pathlib import Path
 
 from .commands import (
     TrainCommand,
-    EvaluateCommand,
     EvaluatePredictCommand,
     PredictCommand,
     PreprocessCommand,
@@ -18,6 +17,7 @@ from .commands import (
     ModelCommand,
     StatusCommand
 )
+from .evaluate_command import EvaluateCommand
 from ..utils.logger import setup_logging
 
 class NERCLIManager:
