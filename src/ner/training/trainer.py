@@ -625,15 +625,20 @@ class NERTrainer:
         # 保存模型
         if use_lora:
             self.logger.info("Saving LoRA model...")
+            # 若指定了适配器保存路径，则写入该路径；否则回退到默认 best_model 目录
+            adapter_save_path = lora_config.get('train_save_adapter_path')
+            target_adapter_dir = Path(adapter_save_path) if adapter_save_path else model_dir
+            target_adapter_dir.mkdir(parents=True, exist_ok=True)
+
             # 对于LoRA模型，只保存适配器权重
-            self.model.save_pretrained(model_dir)
+            self.model.save_pretrained(target_adapter_dir)
             
             # 保存LoRA配置信息
-            lora_config_path = model_dir / "lora_config.json"
+            lora_config_path = target_adapter_dir / "lora_config.json"
             with open(lora_config_path, 'w', encoding='utf-8') as f:
                 json.dump(lora_config, f, ensure_ascii=False, indent=2)
                 
-            self.logger.info(f"Saved LoRA adapter weights to {model_dir}")
+            self.logger.info(f"Saved LoRA adapter weights to {target_adapter_dir}")
         else:
             # 常规模型保存
             self.logger.info("Saving full model...")
