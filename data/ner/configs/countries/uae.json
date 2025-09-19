@@ -9,7 +9,7 @@
         "name": "XLM-RoBERTa",
         "type": "bert",
         "pretrained_model": "data/ner/models/uae/v0.1",
-        "lora_adapter": "data/ner/models/uae/adapter/v0.1",
+        "lora_adapter": "data/ner/models/uae/adapter/v0.2",
         "max_length": 512,
         "hidden_size": 768,
         "num_attention_heads": 12,
