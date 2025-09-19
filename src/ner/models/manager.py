@@ -102,15 +102,18 @@ class NERModelManager:
 
         model_path = Path(model_identifier)
 
-        # 1. 检查模型是否已登记
-        model_id = self._get_model_id_from_path(model_path)
-        if model_id and model_id in self.registry['models']:
+        # 1. 检查模型是否已登记并更新访问时间
+        model_id = self._find_model_id_by_path(model_path)
+        if model_id:
             # 更新访问时间
-            self.registry['models'][model_id]['last_accessed'] = datetime.now().isoformat()
+            if 'last_accessed' not in self.registry['models'][model_id]:
+                self.registry['models'][model_id]['last_accessed'] = datetime.now().isoformat()
+            else:
+                self.registry['models'][model_id]['last_accessed'] = datetime.now().isoformat()
             self._save_registry()
             self.logger.info(f"Model {model_id} found in registry, updated access time")
         else:
-            self.logger.warning(f"Model {model_identifier} not found in registry, loading anyway") 
+            self.logger.warning(f"Model {model_identifier} not found in registry, loading anyway")
 
         # 读取配置
         config_path = model_path / "config.json"
@@ -161,6 +164,24 @@ class NERModelManager:
         )
         self.logger.info(f"Successfully loaded full model from {model_path}")
         return model
+
+    def _find_model_id_by_path(self, model_path: Path) -> Optional[str]:
+        """通过路径查找模型ID"""
+        # 在注册表中查找匹配的模型路径
+        for model_id, model_info in self.registry['models'].items():
+            if model_info.get('path') == str(model_path):
+                return model_id
+        
+        # 如果直接路径匹配失败，尝试相对路径匹配
+        try:
+            model_path_resolved = model_path.resolve()
+            for model_id, model_info in self.registry['models'].items():
+                if Path(model_info.get('path', '')).resolve() == model_path_resolved:
+                    return model_id
+        except Exception:
+            pass
+        
+        return None
 
     def _detect_model_type(self, model_path: str) -> str:
         """从路径推断模型类型
