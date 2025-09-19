@@ -14,6 +14,7 @@ from transformers import (
     PreTrainedModel, PretrainedConfig
 )
 from typing import Dict, Any, List, Optional
+from pathlib import Path
 
 class NERModelConfig(PretrainedConfig):
     """NER 模型配置类
@@ -310,6 +311,19 @@ class BertNERModel(NERModel):
         # 载入预训练主干权重
         # TODO: 这里可以优化，将加载权重的操作提取到类外，避免重复加载
         model.bert = AutoModel.from_pretrained(pretrained_model_name_or_path)
+        
+        # 尝试加载完整的预训练权重（包括分类头）
+        try:
+            state_dict_path = Path(pretrained_model_name_or_path) / "pytorch_model.bin"
+            if state_dict_path.exists():
+                state_dict = torch.load(state_dict_path, map_location="cpu")
+                missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
+                if missing_keys:
+                    print(f"Missing keys when loading pretrained model: {missing_keys[:3]}{'...' if len(missing_keys) > 3 else ''}")
+                if unexpected_keys:
+                    print(f"Unexpected keys when loading pretrained model: {unexpected_keys[:3]}{'...' if len(unexpected_keys) > 3 else ''}")
+        except Exception as e:
+            print(f"Could not load full state dict, using default initialization for classifier: {e}")
         
         return model
     
