@@ -266,9 +266,8 @@ class NERTrainer:
     def prepare_model(self):
         """准备模型（根据配置加载预训练模型并适配标签数）
         
-        支持LoRA训练模式，通过配置文件中的lora参数控制
         支持LoRA增量训练，可以基于之前的LoRA模型继续训练
-
+        
         # TODO: 添加支持使用 CRF, 在预测与验证处适配解码流程。
         """
         self.logger.info("Preparing model...")
@@ -285,7 +284,116 @@ class NERTrainer:
         
         self.logger.debug(f"Preparing {self.model_type} model with LoRA={use_lora}...")
         
-        # 基础模型加载
+        # 检查是否要加载现有模型（LoRA 或完整模型）
+        if use_lora and lora_base_model_path:
+            # LoRA 增量训练：使用 manager 加载现有 LoRA 模型
+            try:
+                from ..models import NERModelManager
+                
+                # 检查路径是否存在
+                if not os.path.exists(lora_base_model_path):
+                    self.logger.warning(f"指定的LoRA基础模型路径不存在: {lora_base_model_path}，将创建新的LoRA模型")
+                    self._create_new_model(model_config)
+                else:
+                    self.logger.info(f"正在加载LoRA基础模型: {lora_base_model_path}")
+                    
+                    # 使用 manager 加载现有模型
+                    model_manager = NERModelManager(logger=self.logger)
+                    self.model = model_manager.load_model(lora_base_model_path)
+                    
+                    # 确保模型是可训练的
+                    if hasattr(self.model, 'train'):
+                        self.model.train()
+                    
+                    self.logger.info("成功加载LoRA基础模型，将在此基础上继续训练")
+            except Exception as e:
+                self.logger.error(f"加载LoRA基础模型失败: {str(e)}，将创建新的LoRA模型")
+                self._create_new_model(model_config)
+        elif self._is_local_model_path(self.pretrained_model_name):
+            # 本地模型路径：使用 manager 加载完整模型
+            try:
+                from ..models import NERModelManager
+                
+                self.logger.info(f"检测到本地模型路径，使用 manager 加载: {self.pretrained_model_name}")
+                
+                # 使用 manager 加载现有模型
+                model_manager = NERModelManager(logger=self.logger)
+                self.model = model_manager.load_model(self.pretrained_model_name)
+                
+                # 确保模型是可训练的
+                if hasattr(self.model, 'train'):
+                    self.model.train()
+                
+                self.logger.info("成功加载本地模型，将在此基础上继续训练")
+            except Exception as e:
+                self.logger.error(f"加载本地模型失败: {str(e)}，将创建新模型")
+                self._create_new_model(model_config)
+        else:
+            # 预训练模型或 HuggingFace 模型
+            self._create_new_model(model_config)
+        
+        # Move model to device
+        self.model.to(self.device)
+        self.logger.info(f"Initialized {model_config['type']} model with {self.num_labels} labels")
+    
+    def _is_local_model_path(self, model_path: str) -> bool:
+        """检查是否为本地模型路径
+        
+        参数：
+            model_path: 模型路径
+            
+        返回：
+            是否为本地路径
+        """
+        # 检查是否为本地路径（包含 / 或 \ 或 . 开头）
+        return ('/' in model_path or '\\' in model_path or 
+                model_path.startswith('.') or 
+                os.path.exists(model_path))
+    
+    def _is_continued_training(self) -> bool:
+        """检查是否为继续训练（加载了现有模型）
+        
+        返回：
+            是否为继续训练
+        """
+        # 检查是否加载了本地模型（非 HuggingFace 模型）
+        return self._is_local_model_path(self.pretrained_model_name)
+    
+    def _setup_continued_training_optimizer(self, base_learning_rate: float, weight_decay: float):
+        """设置继续训练的优化器（分层学习率）
+        
+        参数：
+            base_learning_rate: 基础学习率
+            weight_decay: 权重衰减
+        """
+        # 分层学习率：BERT 层使用更小的学习率，分类头使用正常学习率
+        bert_lr = base_learning_rate * 0.1  # BERT 层：原学习率的 1/10
+        classifier_lr = base_learning_rate * 0.5  # 分类头：原学习率的 1/2
+        
+        self.logger.info(f"继续训练分层学习率设置:")
+        self.logger.info(f"  - BERT 层: {base_learning_rate} -> {bert_lr}")
+        self.logger.info(f"  - 分类头: {base_learning_rate} -> {classifier_lr}")
+        
+        # 分离 BERT 层和分类头参数
+        bert_params = []
+        classifier_params = []
+        
+        for name, param in self.model.named_parameters():
+            if 'bert' in name:
+                bert_params.append(param)
+            else:
+                classifier_params.append(param)
+        
+        # 创建参数组
+        param_groups = [
+            {'params': bert_params, 'lr': bert_lr, 'weight_decay': weight_decay},
+            {'params': classifier_params, 'lr': classifier_lr, 'weight_decay': weight_decay}
+        ]
+        
+        self.optimizer = AdamW(param_groups)
+    
+    def _create_new_model(self, model_config):
+        """创建新的模型实例"""
         if self.model_type == 'bert' or self.model_type == 'roberta':
             self.model = BertNERModel.from_pretrained(
                 pretrained_model_name_or_path=self.pretrained_model_name,
@@ -296,37 +404,13 @@ class NERTrainer:
             )
         else:
             raise ValueError(f"Unsupported model type: {model_config['type']}")
-        
-        # 如果启用了LoRA并指定了基础适配器路径，加载之前的LoRA权重
-        if use_lora and lora_base_model_path:
-            from peft import PeftModel
-            
-            # 检查路径是否存在
-            if not os.path.exists(lora_base_model_path):
-                self.logger.warning(f"指定的LoRA基础模型路径不存在: {lora_base_model_path}，将创建新的LoRA模型")
-            else:
-                try:
-                    self.logger.info(f"正在加载LoRA基础模型: {lora_base_model_path}")
-                    # 使用PeftModel加载之前的LoRA权重
-                    self.model = PeftModel.from_pretrained(
-                        self.model,
-                        lora_base_model_path,
-                        is_trainable=True
-                    )
-                    self.logger.info(f"成功加载LoRA基础模型，将在此基础上继续训练")
-                except Exception as e:
-                    self.logger.error(f"加载LoRA基础模型失败: {str(e)}，将创建新的LoRA模型")
-                    # 如果加载失败，继续使用新的LoRA模型
-        
-        # Move model to device
-        self.model.to(self.device)
-        self.logger.info(f"Initialized {model_config['type']} model with {self.num_labels} labels")
     
     def prepare_optimizer(self):
         """准备优化器与学习率调度器
 
         - 优化器：默认 AdamW
         - 调度器：linear（基于总步数与 warmup_ratio）或 cosine（按总步数退火）
+        - 继续训练：自动调整学习率，避免破坏已学习的特征
 
         # TODO: 按参数类型做权重衰减分组（bias/LayerNorm 不衰减），提升优化效果。
         # TODO: 支持梯度累积（gradient_accumulation_steps）以增大等效 batch size。
@@ -335,15 +419,13 @@ class NERTrainer:
         
         # Prepare optimizer
         optimizer_name = training_config.get('optimizer', 'adamw')
-        learning_rate = training_config['learning_rate']
+        base_learning_rate = training_config['learning_rate']
         weight_decay = training_config.get('weight_decay', 0.01)
-
-        self.logger.debug(f"Preparing {optimizer_name} optimizer with learning rate {learning_rate} and weight decay {weight_decay}")
         
         if optimizer_name.lower() == 'adamw':
             self.optimizer = AdamW(
                 self.model.parameters(),
-                lr=learning_rate,
+                lr=base_learning_rate,
                 weight_decay=weight_decay
             )
         else:

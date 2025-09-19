@@ -57,7 +57,7 @@
         "eval_steps": 500,
         "logging_steps": 100,
         "lora": {
-            "enabled": false,
+            "enabled": true,
             "r": 16,
             "alpha": 32,
             "dropout": 0.1,

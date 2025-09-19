@@ -6,11 +6,10 @@
 - 提示：若直接加载标准 transformers 目录（非本工具保存格式），需确保存在 label2id/id2label 信息。
 """
 
-import os
 import json
 import torch
 import shutil
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional
 from pathlib import Path
 from datetime import datetime
 import hashlib
@@ -99,82 +98,96 @@ class NERModelManager:
         return model_id
     
     def load_model(self, model_identifier: str) -> NERModel:
-        """按 ID 或路径加载模型
-        
-        参数：
-            model_identifier: 模型 ID 或模型路径
-        
-        返回：
-            已加载的 NER 模型实例
-        """
-        # 判断是否为已登记的模型 ID
-        if model_identifier in self.registry['models']:
-            model_entry = self.registry['models'][model_identifier]
-            model_path = model_entry['path']
-            model_type = model_entry['type']
+        """超优化版本：完全避免重复加载"""
+
+        model_path = Path(model_identifier)
+
+        # 1. 检查模型是否已登记
+        model_id = self._get_model_id_from_path(model_path)
+        if model_id and model_id in self.registry['models']:
+            # 更新访问时间
+            self.registry['models'][model_id]['last_accessed'] = datetime.now().isoformat()
+            self._save_registry()
+            self.logger.info(f"Model {model_id} found in registry, updated access time")
         else:
-            # 否则视为直接路径
-            model_path = model_identifier
-            model_type = self._detect_model_type(model_path)
-        
-        model_path = Path(model_path)
-        
-        if not model_path.exists():
-            raise FileNotFoundError(f"Model not found: {model_path}")
-        
+            self.logger.warning(f"Model {model_identifier} not found in registry, loading anyway") 
+
         # 读取配置
         config_path = model_path / "config.json"
         if config_path.exists():
             with open(config_path, 'r', encoding='utf-8') as f:
                 config_data = json.load(f)
-                config = config_data.get('config', {})
                 label2id = config_data.get('label2id', {})
                 id2label = config_data.get('id2label', {})
+                lora_enabled = config_data.get('lora_enabled', False)
         else:
-            # ERROR：未发现自定义 config.json；若为标准 transformers 目录，可能需要从其 config.json 中获取 label2id/id2label
             raise FileNotFoundError(f"Model configuration not found: {config_path}")
         
-        # 初始化模型
-        if model_type == 'bert':
-            # ERROR：若 label2id 为空，num_labels=0 将导致分类器形状非法；需确保保存时写入了标签映射
-            model = BertNERModel.from_pretrained(
-                str(model_path),
+        if lora_enabled:
+            return self._load_lora_ultra_optimized(model_path, label2id, id2label)
+        else:
+            return self._load_full_ultra_optimized(model_path, label2id, id2label)
+
+    def _load_lora_ultra_optimized(self, model_path: Path, label2id: dict, id2label: dict) -> NERModel:
+        """超优化LoRA加载：只加载一次"""
+        try:
+            from peft import PeftModel
+            
+            # 直接从LoRA路径加载，PEFT会自动处理基础模型
+            model = PeftModel.from_pretrained(
+                str(model_path),  # 直接指定LoRA路径
                 num_labels=len(label2id),
                 id2label=id2label,
                 label2id=label2id
             )
-            # 关键：载入完整训练后的权重（包含分类头），防止仅加载主干导致评估效果极差
-            state_dict_path = model_path / "pytorch_model.bin"
-            if state_dict_path.exists():
-                try:
-                    state_dict = torch.load(state_dict_path, map_location="cpu")
-                    missing, unexpected = model.load_state_dict(state_dict, strict=False)
-                    if missing:
-                        self.logger.warning(f"Missing keys when loading state dict: {missing[:5]}{'...' if len(missing) > 5 else ''}")
-                    if unexpected:
-                        self.logger.warning(f"Unexpected keys when loading state dict into model: {unexpected[:5]}{'...' if len(unexpected) > 5 else ''}")
-                except Exception as e:
-                    self.logger.error(f"Failed to load full model state from {state_dict_path}: {e}")
-                    raise e
-            else:
-                raise FileNotFoundError(f"State dict not found at {state_dict_path}")
-        else:
-            raise ValueError(f"Unsupported model type: {model_type}")
-        
-        # 附加属性
-        # model.config_data = config
-        # model.country = config.get('country', 'unknown')
-        
-        self.logger.info(f"Loaded model from {model_path}")
+            self.logger.info(f"Successfully loaded LoRA model from {model_path}")
+            return model
+            
+        except ImportError as exc:
+            self.logger.error("PEFT library not available. Cannot load LoRA model.")
+            raise ImportError("PEFT library is required for LoRA model loading. Install with: pip install peft") from exc
+        except Exception as e:
+            self.logger.error(f"Failed to load LoRA model: {e}")
+            raise e
+
+    def _load_full_ultra_optimized(self, model_path: Path, label2id: dict, id2label: dict) -> NERModel:
+        """超优化完整模型加载：只加载一次"""
+        # 直接使用 from_pretrained，它会自动加载权重
+        model = BertNERModel.from_pretrained(
+            str(model_path),
+            num_labels=len(label2id),
+            id2label=id2label,
+            label2id=label2id
+        )
+        self.logger.info(f"Successfully loaded full model from {model_path}")
         return model
-    
+
     def _detect_model_type(self, model_path: str) -> str:
         """从路径推断模型类型
         
-        策略：存在 'pytorch_model.bin' 或 'model.safetensors' 视为 BERT 模型。
+        策略：
+        1. 检查 config.json 中的 lora_enabled 标志
+        2. 检查是否存在 adapter_config.json（LoRA 特有文件）
+        3. 存在 'pytorch_model.bin' 或 'model.safetensors' 视为 BERT 模型
+        
         # TODO：当前逻辑较为简化，后续可根据配置或文件结构更准确地区分不同模型类型。
         """
         model_path = Path(model_path)
+        
+        # 首先检查 config.json 中的 LoRA 标志
+        config_path = model_path / "config.json"
+        if config_path.exists():
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config_data = json.load(f)
+                    if config_data.get('lora_enabled', False):
+                        return "bert"  # LoRA 模型仍然是 BERT 类型，但需要特殊处理
+            except Exception:
+                pass
+        
+        # 检查 LoRA 特有文件
+        if (model_path / "adapter_config.json").exists():
+            return "bert"  # LoRA 模型
         
         # 检查 BERT 常见文件
         if (model_path / "pytorch_model.bin").exists() or (model_path / "model.safetensors").exists():
@@ -251,7 +264,28 @@ class NERModelManager:
             if country and model_entry.get('country') != country:
                 continue
             
-            models.append(model_entry.copy())
+            # 创建模型信息的副本
+            model_info = model_entry.copy()
+            
+            # 添加 LoRA 状态信息
+            model_path = Path(model_entry['path'])
+            if model_path.exists():
+                config_path = model_path / "config.json"
+                if config_path.exists():
+                    try:
+                        with open(config_path, 'r', encoding='utf-8') as f:
+                            config_data = json.load(f)
+                            model_info['lora_enabled'] = config_data.get('lora_enabled', False)
+                            if model_info['lora_enabled']:
+                                model_info['lora_config'] = config_data.get('lora_config', {})
+                    except Exception:
+                        model_info['lora_enabled'] = False
+                else:
+                    model_info['lora_enabled'] = False
+            else:
+                model_info['lora_enabled'] = False
+            
+            models.append(model_info)
         
         # 按创建时间降序
         models.sort(key=lambda x: x.get('created_at', ''), reverse=True)
@@ -290,6 +324,26 @@ class NERModelManager:
                 with open(config_path, 'r', encoding='utf-8') as f:
                     config_data = json.load(f)
                     model_entry['config'] = config_data
+                    
+                    # 添加 LoRA 信息
+                    if config_data.get('lora_enabled', False):
+                        model_entry['lora_enabled'] = True
+                        model_entry['lora_config'] = config_data.get('lora_config', {})
+                    else:
+                        model_entry['lora_enabled'] = False
+                        
+                    # 检查是否存在 LoRA 适配器文件
+                    adapter_config_path = model_path / "adapter_config.json"
+                    if adapter_config_path.exists():
+                        model_entry['has_lora_adapter'] = True
+                        try:
+                            with open(adapter_config_path, 'r', encoding='utf-8') as f:
+                                adapter_config = json.load(f)
+                                model_entry['adapter_config'] = adapter_config
+                        except Exception as e:
+                            self.logger.warning(f"Failed to read adapter config: {e}")
+                    else:
+                        model_entry['has_lora_adapter'] = False
         else:
             model_entry['exists'] = False
         
@@ -488,6 +542,8 @@ class NERModelManager:
             'deleted_models': 0,
             'countries': set(),
             'model_types': {},
+            'lora_models': 0,
+            'regular_models': 0,
             'total_size_mb': 0
         }
         
@@ -502,9 +558,24 @@ class NERModelManager:
                 model_type = model_entry.get('type', 'unknown')
                 stats['model_types'][model_type] = stats['model_types'].get(model_type, 0) + 1
                 
-                # 计算体积
+                # 检查是否为 LoRA 模型
                 model_path = Path(model_entry['path'])
                 if model_path.exists():
+                    config_path = model_path / "config.json"
+                    if config_path.exists():
+                        try:
+                            with open(config_path, 'r', encoding='utf-8') as f:
+                                config_data = json.load(f)
+                                if config_data.get('lora_enabled', False):
+                                    stats['lora_models'] += 1
+                                else:
+                                    stats['regular_models'] += 1
+                        except Exception:
+                            stats['regular_models'] += 1
+                    else:
+                        stats['regular_models'] += 1
+                    
+                    # 计算体积
                     stats['total_size_mb'] += self._get_directory_size(model_path) / (1024 * 1024)
             
             elif status == 'deleted':
