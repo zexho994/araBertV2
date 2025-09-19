@@ -98,7 +98,9 @@ class NERModelManager:
         return model_id
     
     def load_model(self, model_identifier: str) -> NERModel:
-        """超优化版本：完全避免重复加载"""
+        """
+        加载模型
+        """
 
         model_path = Path(model_identifier)
 
@@ -127,25 +129,29 @@ class NERModelManager:
             raise FileNotFoundError(f"Model configuration not found: {config_path}")
         
         if lora_enabled:
-            return self._load_lora_ultra_optimized(model_path, model_id, label2id, id2label)
+            return self._load_lora_ultra_optimized(model_path, label2id, id2label)
         else:
             return self._load_full_ultra_optimized(model_path, label2id, id2label)
 
-    def _load_lora_ultra_optimized(self, model_path: Path, model_id: str, label2id: dict, id2label: dict) -> NERModel:
+    def _load_lora_ultra_optimized(self, model_path: Path, label2id: dict, id2label: dict) -> NERModel:
         """超优化LoRA加载：只加载一次"""
         try:
             from peft import PeftModel
             
             # 直接从LoRA路径加载，PEFT会自动处理基础模型
-            model = PeftModel.from_pretrained(
-                str(model_path),  # 直接指定LoRA路径
-                model_id=model_id,
+            model = BertNERModel.from_pretrained(
+                str(model_path),
                 num_labels=len(label2id),
                 id2label=id2label,
                 label2id=label2id
             )
+            lora_model = PeftModel.from_pretrained(
+                model,
+                model_path,
+                is_trainable=True
+            )
             self.logger.info(f"Successfully loaded LoRA model from {model_path}")
-            return model
+            return lora_model
             
         except ImportError as exc:
             self.logger.error("PEFT library not available. Cannot load LoRA model.")
