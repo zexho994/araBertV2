@@ -7,17 +7,15 @@ a unified interface for the command-line operations.
 from typing import Dict, Any, Optional
 from pathlib import Path
 
-from .commands import (
-    TrainCommand,
-    EvaluatePredictCommand,
-    PredictCommand,
-    PreprocessCommand,
-    ConfigCommand,
-    DataCommand,
-    ModelCommand,
-    StatusCommand
-)
 from .evaluate_command import EvaluateCommand
+from .train_command import TrainCommand
+from .predict_command import PredictCommand
+from .evaluate_predict_command import EvaluatePredictCommand
+from .preprocess_command import PreprocessCommand
+from .config_command import ConfigCommand
+from .data_command import DataCommand
+from .model_command import ModelCommand
+from .status_command import StatusCommand
 from ..utils.logger import setup_logging
 
 class NERCLIManager:

@@ -20,9 +20,7 @@
 """
 
 from __future__ import annotations
-
-from typing import Optional, Dict, Any
-
+from typing import Optional
 
 class PredictREPL:
     """预测 REPL，会话内可多轮使用同一模型，避免重复加载重依赖。
