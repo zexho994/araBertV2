@@ -9,66 +9,9 @@
 # TODO: 实现 `split`，并支持自定义随机种子与分层抽样。
 """
 
-from abc import ABC, abstractmethod
-from typing import Dict, Any
 from pathlib import Path
-from ..config import ConfigManager
 
-class BaseCommand(ABC):
-    """所有 NER CLI 子命令的抽象基类"""
-
-    global_config: Dict[str, Any]
-    country_config: Dict[str, Any]
-    
-    def __init__(self):
-        self.global_config = {}
-        self.country_config = {}
-        self.logger = None
-    
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """Command name"""
-        pass
-    
-    @property
-    @abstractmethod
-    def description(self) -> str:
-        """Command description"""
-        pass
-    
-    @abstractmethod
-    def setup_parser(self, parser):
-        """Setup command-specific arguments"""
-        pass
-    
-    @abstractmethod
-    def execute(self, args) -> bool:
-        """Execute the command"""
-        pass
-    
-    def set_global_config(self, config: Dict[str, Any]):
-        """Set global configuration"""
-        self.global_config = config
-
-    def get_global_config(self) -> Dict[str, Any]:
-        """Get global configuration"""
-        return self.global_config
-
-    def get_country_config(self, country: str) -> Dict[str, Any]:
-        """Get country configuration"""
-        if not self.country_config:
-            config_manager = ConfigManager(self.global_config.get('config_dir'))
-            self.country_config = config_manager.load_country_config(country)
-        return self.country_config
-    
-    def set_logger(self, logger):
-        """Inject a shared logger instance"""
-        self.logger = logger
-    
-    def get_help(self) -> str:
-        """Get help text for this command"""
-        return self.description
+from .base import BaseCommand
 
 class DataCommand(BaseCommand):
     """数据处理相关命令

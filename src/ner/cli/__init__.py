@@ -9,7 +9,7 @@ Provides CLI manager and command implementations.
 
 # 仅暴露类型与管理器，避免在此处导入可能间接拉取重库的子模块
 from .main import NERCLIManager
-from .commands import BaseCommand
+from .base import BaseCommand
 from .evaluate_command import EvaluateCommand
 from .train_command import TrainCommand
 from .predict_command import PredictCommand
