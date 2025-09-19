@@ -309,8 +309,8 @@ class NERTrainer:
             except Exception as e:
                 self.logger.error(f"加载LoRA基础模型失败: {str(e)}，将创建新的LoRA模型")
                 self._create_new_model(model_config)
+
         elif self._is_local_model_path(self.pretrained_model_name):
-            # 本地模型路径：使用 manager 加载完整模型
             try:
                 from ..models import NERModelManager
                 
@@ -318,7 +318,39 @@ class NERTrainer:
                 
                 # 使用 manager 加载现有模型
                 model_manager = NERModelManager(logger=self.logger)
-                self.model = model_manager.load_model(self.pretrained_model_name)
+                base_model = model_manager.load_model(self.pretrained_model_name)
+                
+                # 检查是否需要对加载的模型应用LoRA
+                if use_lora:
+                    self.logger.info("对加载的本地模型应用LoRA配置...")
+                    try:
+                        from peft import LoraConfig, get_peft_model, TaskType
+                        
+                        # 创建LoRA配置
+                        peft_config = LoraConfig(
+                            task_type=lora_config.get('task_type', TaskType.TOKEN_CLS),
+                            inference_mode=False,
+                            r=lora_config.get('r', 16),
+                            lora_alpha=lora_config.get('alpha', 32),
+                            lora_dropout=lora_config.get('dropout', 0.1),
+                            target_modules=lora_config.get('target_modules', ["query", "key", "value", "dense"]),
+                            bias=lora_config.get('bias', "none")
+                        )
+                        
+                        # 应用LoRA到加载的模型
+                        self.model = get_peft_model(base_model, peft_config)
+                        self.model.print_trainable_parameters()
+                        self.logger.info("成功对本地模型应用LoRA配置")
+                        
+                    except ImportError as e:
+                        self.logger.error("PEFT library not available. Cannot apply LoRA to loaded model.")
+                        raise ImportError("PEFT library is required for LoRA training. Install with: pip install peft") from e
+                    except Exception as e:
+                        self.logger.error(f"对本地模型应用LoRA配置失败: {e}")
+                        raise e
+                else:
+                    # 不使用LoRA，直接使用加载的模型
+                    self.model = base_model
                 
                 # 确保模型是可训练的
                 if hasattr(self.model, 'train'):
@@ -747,11 +779,38 @@ class NERTrainer:
         # 保存模型
         if use_lora:
             self.logger.info("Saving LoRA model...")
+            
+            # 调试信息：检查模型类型
+            self.logger.info(f"Model type: {type(self.model)}")
+            self.logger.info(f"Model class name: {self.model.__class__.__name__}")
+            
+            # 检查是否是PEFT模型
+            try:
+                from peft import PeftModel
+                is_peft_model = isinstance(self.model, PeftModel)
+                self.logger.info(f"Is PEFT model: {is_peft_model}")
+                
+                if is_peft_model:
+                    # 检查PEFT模型属性
+                    if hasattr(self.model, 'peft_config'):
+                        self.logger.info(f"PEFT config keys: {list(self.model.peft_config.keys())}")
+                    if hasattr(self.model, 'active_adapter'):
+                        self.logger.info(f"Active adapter: {self.model.active_adapter}")
+                else:
+                    self.logger.warning("Model is not a PEFT model! LoRA configuration may not have been applied correctly.")
+            except ImportError:
+                self.logger.warning("PEFT library not available for model type checking")
+            
             # 对于LoRA模型，让PEFT库处理保存逻辑
             self.model.save_pretrained(model_dir)
             
             # 保存tokenizer
             self.tokenizer.save_pretrained(model_dir)
+            
+            # 检查保存后的文件
+            self.logger.info(f"Files in {model_dir} after save_pretrained:")
+            for file_path in model_dir.iterdir():
+                self.logger.info(f"  - {file_path.name}")
             
             # 检查PEFT是否正确生成了adapter_config.json
             adapter_config_path = model_dir / "adapter_config.json"
