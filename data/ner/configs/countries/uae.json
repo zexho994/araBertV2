@@ -44,10 +44,10 @@
         }
     },
     "training": {
-        "epochs": 2,
+        "epochs": 1,
         "batch_size": 16,
-        "learning_rate": 1e-4,
-        "weight_decay": 0.03,
+        "learning_rate": 5e-5,
+        "weight_decay": 0.01,
         "warmup_steps": 500,
         "warmup_ratio": 0.1,
         "optimizer": "adamw",
@@ -66,7 +66,8 @@
             "bias": "none",
             "task_type": "TOKEN_CLS",
             "train_base_adapter": "data/ner/models/uae/adapter/v0.1",
-            "train_save_adapter_path": "data/ner/models/uae/adapter/v0.2"
+            "train_save_adapter_path": "data/ner/models/uae/adapter/v0.2",
+            "modules_to_save": ["classifier"]
         }
     },
     "data": {

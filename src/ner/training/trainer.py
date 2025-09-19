@@ -322,6 +322,7 @@ class NERTrainer:
                     dropout = lora_config.get('dropout', 0.1)
                     target_modules = lora_config.get('target_modules', None)
                     bias = lora_config.get('bias', 'none')
+                    modules_to_save = lora_config.get('modules_to_save', ["classifier"])
                     l_cfg = LoraConfig(
                         r=r,
                         lora_alpha=alpha,
@@ -329,7 +330,7 @@ class NERTrainer:
                         target_modules=target_modules,
                         bias=bias,
                         task_type=TaskType.TOKEN_CLS,
-                        modules_to_save=["classifier"]
+                        modules_to_save=modules_to_save
                     )
                     self.model = get_peft_model(self.model, l_cfg)
             else:
@@ -341,6 +342,7 @@ class NERTrainer:
                 dropout = lora_config.get('dropout', 0.1)
                 target_modules = lora_config.get('target_modules', None)
                 bias = lora_config.get('bias', 'none')
+                modules_to_save = lora_config.get('modules_to_save', ["classifier"])
                 l_cfg = LoraConfig(
                     r=r,
                     lora_alpha=alpha,
@@ -348,7 +350,7 @@ class NERTrainer:
                     target_modules=target_modules,
                     bias=bias,
                     task_type=TaskType.TOKEN_CLS,
-                    modules_to_save=["classifier"]
+                    modules_to_save=modules_to_save
                 )
                 self.logger.info(f"创建新的LoRA适配器: {l_cfg}")
                 self.model = get_peft_model(self.model, l_cfg)
