@@ -281,7 +281,7 @@ class NERTrainer:
         use_lora = lora_config.get('enabled', False)
         
         # 检查是否有指定的LoRA基础模型路径（用于增量训练）
-        lora_base_model_path = lora_config.get('base_adapter_path', None)
+        lora_base_model_path = lora_config.get('train_base_adapter', None)
         
         self.logger.debug(f"Preparing {self.model_type} model with LoRA={use_lora}...")
         

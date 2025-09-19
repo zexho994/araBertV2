@@ -228,12 +228,10 @@ class TrainCommand(BaseCommand):
                     # 将逗号分隔的字符串转换为列表
                     target_modules = [m.strip() for m in args.lora_target_modules.split(',')]
                     config['training']['lora']['target_modules'] = target_modules
-                
                 # 设置LoRA增量训练参数
                 if getattr(args, 'lora_base_adapter', None):
-                    config['training']['lora']['base_adapter_path'] = args.lora_base_adapter
+                    config['training']['lora']['train_base_adapter'] = args.lora_base_adapter
                     self.logger.info(f"LoRA incremental training enabled with base adapter: {args.lora_base_adapter}")
-                
                 self.logger.info(f"LoRA training enabled with parameters: {config['training']['lora']}")
                 
             # 校验配置
@@ -345,32 +343,68 @@ class EvaluateCommand(BaseCommand):
             from pathlib import Path
             from ..data import NERDataProcessor, NERDataLoader
             from transformers import AutoTokenizer
-            
-            # 加载模型
-            model_manager = NERModelManager(logger=self.logger)
-            model = model_manager.load_model(args.model_path)
-            
-            # 加载 tokenizer（保持与训练一致，优先从模型目录加载）
-            tokenizer = AutoTokenizer.from_pretrained(args.model_path, use_fast=True)
 
-            # 从模型配置中获取标签列表与映射（确保与模型训练时一致）
-            if hasattr(model, 'config') and hasattr(model.config, 'id2label') and hasattr(model.config, 'label2id'):
-                # id2label 可能是 {int: str} 或 {str: str}，统一按索引顺序取
-                id2label = model.config.id2label
-                model_label2id = model.config.label2id
-                # 按键排序（数字键优先）；若是 str 键且可转 int，则按 int 排
-                try:
-                    label_list = [id2label[i] for i in range(len(id2label))]
-                except Exception as e:
-                    self.logger.error(f"加载标签列表与映射发生回退, ID2Label: {id2label}, Label2ID: {model_label2id}: {e}")
-                    label_list = list(id2label.values())
-            else:
-                raise ValueError("Model configuration does not contain label mappings.")
-
-            # 加载国家配置（用于数据与标签一致性）
+            # 加载国家配置（用于数据与标签与LoRA设置一致）
             if not getattr(args, 'country', None):
                 raise ValueError("--country is required for evaluate to ensure consistent data processing")
             config = self.get_country_config(args.country)
+
+            # 根据配置决定加载普通模型或LoRA组合模型
+            lora_cfg = (config.get('training', {}) or {}).get('lora', {}) or {}
+            use_lora = bool(lora_cfg.get('enabled', False))
+
+            if use_lora:
+                # LoRA评估：使用 base + adapter 组合
+                from ..models import BertNERModel
+                try:
+                    from peft import PeftModel  # type: ignore
+                except Exception as e:
+                    raise RuntimeError(f"LoRA evaluation requires 'peft' package: {e}")
+
+                base_model_path = (config.get('model', {}) or {}).get('pretrained_model') or args.model_path
+                adapter_path = (config.get('model', {}) or {}).get('lora_adapter')
+                if not adapter_path:
+                    raise ValueError("LoRA enabled but 'model.lora_adapter' not set in config")
+
+                # 标签映射来自配置，确保与训练一致
+                labels_cfg = (config.get('labels', {}) or {})
+                model_label2id = labels_cfg.get('label_mapping', {})
+                if not model_label2id:
+                    raise ValueError("Config 'labels.label_mapping' is required when using LoRA evaluate")
+                id2label_map = {int(v): k for k, v in model_label2id.items()}
+                label_list = [id2label_map[i] for i in range(len(id2label_map))]
+
+                # 构建基础模型并加载LoRA适配器
+                model = BertNERModel.from_pretrained(
+                    pretrained_model_name_or_path=base_model_path,
+                    num_labels=len(model_label2id),
+                    dropout=(config.get('model', {}) or {}).get('dropout', 0.1),
+                    label2id=model_label2id,
+                    id2label=id2label_map
+                )
+                model = PeftModel.from_pretrained(model, adapter_path)
+                tokenizer = AutoTokenizer.from_pretrained(base_model_path, use_fast=True)
+                tokenizer_name_for_loader = base_model_path
+            else:
+                # 常规评估：从训练产物目录加载完整模型
+                model_manager = NERModelManager(logger=self.logger)
+                model = model_manager.load_model(args.model_path)
+
+                # 加载 tokenizer（保持与训练一致，优先从模型目录加载）
+                tokenizer = AutoTokenizer.from_pretrained(args.model_path, use_fast=True)
+
+                # 从模型配置中获取标签列表与映射（确保与模型训练时一致）
+                if hasattr(model, 'config') and hasattr(model.config, 'id2label') and hasattr(model.config, 'label2id'):
+                    id2label = model.config.id2label
+                    model_label2id = model.config.label2id
+                    try:
+                        label_list = [id2label[i] for i in range(len(id2label))]
+                    except Exception as e:
+                        self.logger.error(f"加载标签列表与映射发生回退, ID2Label: {id2label}, Label2ID: {model_label2id}: {e}")
+                        label_list = list(id2label.values())
+                else:
+                    raise ValueError("Model configuration does not contain label mappings.")
+                tokenizer_name_for_loader = args.model_path
 
             # 准备数据（与训练流程一致）
             processor = NERDataProcessor(config, logger=self.logger)
@@ -378,7 +412,7 @@ class EvaluateCommand(BaseCommand):
 
             # 构建与训练一致的 DataLoader（使用 is_split_into_words 对齐）
             ner_loader_builder = NERDataLoader(
-                tokenizer_name=args.model_path,
+                tokenizer_name=tokenizer_name_for_loader,
                 label2id=model_label2id,
                 max_length=config.get('data', {}).get('max_length', 512),
                 logger=self.logger
