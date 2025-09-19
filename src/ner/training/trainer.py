@@ -648,7 +648,7 @@ class NERTrainer:
 
         return metrics
     
-    def save_checkpoint(self, epoch: int, metrics: Dict[str, float], is_best: bool = False):
+    def _save_checkpoint(self, epoch: int, metrics: Dict[str, float], is_best: bool = False):
         """保存训练检查点（checkpoint）
         
         Args:
@@ -811,20 +811,11 @@ class NERTrainer:
                 self.patience_counter += 1
             
             # 保存检查点
-            self.save_checkpoint(epoch, val_metrics, is_best)
+            self._save_checkpoint(epoch, val_metrics, is_best)
             
             # 记录轮次结果
-            epoch_time = time.time() - epoch_start_time
-            log_msg = f"Epoch {epoch + 1}/{num_epochs} - "
-            log_msg += f"Train Loss: {train_loss:.4f}, "
-            log_msg += f"Time: {epoch_time:.2f}s"
-            if val_metrics:
-                log_msg += f", Val Loss: {val_metrics.get('val_loss', 0):.4f}"
-                log_msg += f", Val F1: {val_metrics.get('f1', 0):.4f}"
-                log_msg += f", Val Precision: {val_metrics.get('precision', 0):.4f}"
-                log_msg += f", Val Recall: {val_metrics.get('recall', 0):.4f}"
-            self.logger.info(log_msg)
-            
+            self._print_train_log(epoch, epoch_start_time, num_epochs, train_loss, val_metrics)
+
             # Early stopping（基于验证集 F1 触发）
             if self.patience_counter >= self.early_stopping_patience:
                 self.logger.info(f"Early stopping triggered after {epoch + 1} epochs")
@@ -846,6 +837,19 @@ class NERTrainer:
             except Exception as e:
                 self.logger.error(f"Error flushing/closing TensorBoard writer: {e}")
                 pass
+
+    def _print_train_log(self, epoch: int, epoch_start_time: float, num_epochs, train_loss: float,
+                         val_metrics: dict[str, float]):
+        epoch_time = time.time() - epoch_start_time
+        log_msg = f"Epoch {epoch + 1}/{num_epochs} - "
+        log_msg += f"Train Loss: {train_loss:.4f}, "
+        log_msg += f"Time: {epoch_time:.2f}s"
+        if val_metrics:
+            log_msg += f", Val Loss: {val_metrics.get('val_loss', 0):.4f}"
+            log_msg += f", Val F1: {val_metrics.get('f1', 0):.4f}"
+            log_msg += f", Val Precision: {val_metrics.get('precision', 0):.4f}"
+            log_msg += f", Val Recall: {val_metrics.get('recall', 0):.4f}"
+        self.logger.info(log_msg)
 
     def write_training_metric_tensorboard_(self, epoch, val_metrics):
         if self.tb_writer is not None and val_metrics:
