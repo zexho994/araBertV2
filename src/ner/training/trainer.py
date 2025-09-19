@@ -834,14 +834,33 @@ class NERTrainer:
                     if hasattr(self.model, 'base_model') and hasattr(self.model.base_model, 'config'):
                         # 从PEFT模型的base_model获取配置
                         base_cfg = self.model.base_model.config
+                        self.logger.info("Using PEFT base_model config for LoRA model configuration")
                     else:
                         # 备用方案：从预训练模型路径加载
                         base_cfg = AutoConfig.from_pretrained(self.pretrained_model_name)
+                        self.logger.info(f"Loading base config from pretrained model: {self.pretrained_model_name}")
                     
                     # 注入NER相关字段
                     base_cfg.id2label = self.id2label
                     base_cfg.label2id = self.label2id
                     base_cfg.num_labels = self.config['labels']['num_labels']
+                    
+                    # 确保model_type存在（这对Transformers识别模型类型很重要）
+                    if not hasattr(base_cfg, 'model_type') or not base_cfg.model_type:
+                        # 从原始预训练模型加载以获取正确的model_type
+                        try:
+                            original_cfg = AutoConfig.from_pretrained(self.pretrained_model_name)
+                            if hasattr(original_cfg, 'model_type'):
+                                base_cfg.model_type = original_cfg.model_type
+                                self.logger.info(f"Inferred model_type from original config: {base_cfg.model_type}")
+                            else:
+                                base_cfg.model_type = 'bert'  # 默认回退
+                                self.logger.warning("Could not determine model_type, using 'bert' as fallback")
+                        except Exception:
+                            base_cfg.model_type = 'bert'  # 默认回退
+                            self.logger.warning("Failed to load original config, using 'bert' as fallback model_type")
+                    
+                    self.logger.info(f"Model type set to: {base_cfg.model_type}")
                     
                     # 添加分类器dropout
                     dropout_val = self.config['model'].get('dropout', None)
