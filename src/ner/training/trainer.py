@@ -393,15 +393,55 @@ class NERTrainer:
         self.optimizer = AdamW(param_groups)
     
     def _create_new_model(self, model_config):
-        """创建新的模型实例"""
+        """创建新的模型实例，支持LoRA配置"""
         if self.model_type == 'bert' or self.model_type == 'roberta':
-            self.model = BertNERModel.from_pretrained(
+            # 先创建基础模型
+            base_model = BertNERModel.from_pretrained(
                 pretrained_model_name_or_path=self.pretrained_model_name,
                 num_labels=self.num_labels,
                 dropout=model_config.get('dropout', 0.1),
                 label2id=self.label2id,
                 id2label=self.id2label
             )
+            
+            # 检查是否需要应用LoRA
+            training_config = self.config['training']
+            lora_config = training_config.get('lora', {})
+            use_lora = lora_config.get('enabled', False)
+            
+            if use_lora:
+                self.logger.info("Applying LoRA configuration to base model...")
+                try:
+                    from peft import LoraConfig, get_peft_model, TaskType
+                    
+                    # 创建LoRA配置
+                    peft_config = LoraConfig(
+                        task_type=TaskType.TOKEN_CLS,  # 用于Token分类任务
+                        inference_mode=False,  # 训练模式
+                        r=lora_config.get('r', 16),
+                        lora_alpha=lora_config.get('alpha', 32),
+                        lora_dropout=lora_config.get('dropout', 0.1),
+                        target_modules=lora_config.get('target_modules', ["query", "key", "value", "dense"]),
+                        bias=lora_config.get('bias', "none")
+                    )
+                    
+                    # 应用LoRA到基础模型
+                    self.model = get_peft_model(base_model, peft_config)
+                    
+                    # 打印可训练参数信息
+                    self.model.print_trainable_parameters()
+                    self.logger.info("Successfully applied LoRA configuration")
+                    
+                except ImportError as e:
+                    self.logger.error("PEFT library not available. Cannot create LoRA model.")
+                    raise ImportError("PEFT library is required for LoRA training. Install with: pip install peft") from e
+                except Exception as e:
+                    self.logger.error(f"Failed to apply LoRA configuration: {e}")
+                    raise e
+            else:
+                # 不使用LoRA，直接使用基础模型
+                self.model = base_model
+                self.logger.info("Created standard (non-LoRA) model")
         else:
             raise ValueError(f"Unsupported model type: {model_config['type']}")
     
@@ -707,13 +747,55 @@ class NERTrainer:
         # 保存模型
         if use_lora:
             self.logger.info("Saving LoRA model...")
-            # 对于LoRA模型，只保存适配器权重
+            # 对于LoRA模型，让PEFT库处理保存逻辑
             self.model.save_pretrained(model_dir)
             
-            # 保存LoRA配置信息
+            # 保存tokenizer
+            self.tokenizer.save_pretrained(model_dir)
+            
+            # 检查PEFT是否正确生成了adapter_config.json
+            adapter_config_path = model_dir / "adapter_config.json"
+            if adapter_config_path.exists():
+                self.logger.info(f"PEFT successfully saved adapter_config.json")
+            else:
+                self.logger.warning("adapter_config.json not found after PEFT save_pretrained")
+            
+            # 保存LoRA配置信息（作为备份）
             lora_config_path = model_dir / "lora_config.json"
             with open(lora_config_path, 'w', encoding='utf-8') as f:
                 json.dump(lora_config, f, ensure_ascii=False, indent=2)
+                
+            # 为LoRA模型生成基础模型配置（不覆盖PEFT文件）
+            # 检查是否已存在config.json，如果没有则创建
+            config_path = model_dir / "config.json"
+            if not config_path.exists():
+                self.logger.info("Creating base model config.json for LoRA model...")
+                # 从基础模型路径获取配置，确保配置正确
+                try:
+                    if hasattr(self.model, 'base_model') and hasattr(self.model.base_model, 'config'):
+                        # 从PEFT模型的base_model获取配置
+                        base_cfg = self.model.base_model.config
+                    else:
+                        # 备用方案：从预训练模型路径加载
+                        base_cfg = AutoConfig.from_pretrained(self.pretrained_model_name)
+                    
+                    # 注入NER相关字段
+                    base_cfg.id2label = self.id2label
+                    base_cfg.label2id = self.label2id
+                    base_cfg.num_labels = self.config['labels']['num_labels']
+                    
+                    # 添加分类器dropout
+                    dropout_val = self.config['model'].get('dropout', None)
+                    if dropout_val is not None:
+                        setattr(base_cfg, 'classifier_dropout', dropout_val)
+                    
+                    # 保存配置
+                    base_cfg.to_json_file(config_path)
+                    self.logger.info("Base model config.json created")
+                except Exception as e:
+                    self.logger.warning(f"Failed to create base config.json: {e}")
+            else:
+                self.logger.info("config.json already exists (created by PEFT), skipping base config creation")
                 
             self.logger.info(f"Saved LoRA adapter weights to {model_dir}")
         else:
@@ -721,28 +803,23 @@ class NERTrainer:
             self.logger.info("Saving full model...")
             self.model.save_pretrained(model_dir)
             
-        # 保存tokenizer
-        self.tokenizer.save_pretrained(model_dir)
-        
-        # Create a Transformers config based on the actual pretrained base to
-        # avoid shape mismatches (e.g., vocab_size/model_type must match xlm-roberta-base)
-        base_model_name = self.pretrained_model_name
-        base_cfg = AutoConfig.from_pretrained(base_model_name)
-        # Inject NER-specific fields
-        base_cfg.id2label = self.id2label
-        base_cfg.label2id = self.label2id
-        base_cfg.num_labels = self.config['labels']['num_labels']
-        # Optional classifier dropout if present in our config
-        dropout_val = self.config['model'].get('dropout', None)
-        if dropout_val is not None:
-            setattr(base_cfg, 'classifier_dropout', dropout_val)
-        # 添加LoRA信息到配置
-        if use_lora:
-            base_cfg.lora_enabled = True
-            base_cfg.lora_config = lora_config
-        # Persist config.json
-        config_path = model_dir / "config.json"
-        base_cfg.to_json_file(config_path)
+            # 保存tokenizer
+            self.tokenizer.save_pretrained(model_dir)
+            
+            # 为常规模型创建或更新配置
+            base_model_name = self.pretrained_model_name
+            base_cfg = AutoConfig.from_pretrained(base_model_name)
+            # 注入NER相关字段
+            base_cfg.id2label = self.id2label
+            base_cfg.label2id = self.label2id
+            base_cfg.num_labels = self.config['labels']['num_labels']
+            # 可选的分类器dropout
+            dropout_val = self.config['model'].get('dropout', None)
+            if dropout_val is not None:
+                setattr(base_cfg, 'classifier_dropout', dropout_val)
+            # 保存配置
+            config_path = model_dir / "config.json"
+            base_cfg.to_json_file(config_path)
         
         # Save training metadata separately
         metadata_path = model_dir / "training_metadata.json"
