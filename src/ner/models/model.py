@@ -240,7 +240,7 @@ class BertNERModel(NERModel):
         # 加载 BERT 主干
         if hasattr(config, 'model_name'):
             # TODO：类名为 BertNERModel，但此处允许任何 AutoModel；可校验是否为 BERT 兼容架构
-            self.bert = AutoModel.from_pretrained(config.model_name)
+            self.bert = AutoModel.from_pretrained(config.model_name,ignore_mismatched_sizes=True)
         else:
             self.bert = BertModel(config)
         
