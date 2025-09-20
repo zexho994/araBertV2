@@ -34,6 +34,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from transformers import get_linear_schedule_with_warmup, AutoConfig
 
+from ..config import GlobalConfig
 from ..data import NERDataProcessor, NERDataLoader
 from ..evaluation.evaluator import NERMetrics as SeqevalNERMetrics
 from ..models import BertNERModel
@@ -42,13 +43,13 @@ from ..utils import NERLogger
 class NERTrainer:
     """Main trainer class for NER models"""
     config = {}
-    global_config = {}
+    global_config = None
     country_code: str
     pretrained_model_name: str
     model_type: str
     logger: NERLogger
 
-    def __init__(self, config: Dict[str, Any], global_config: Dict[str, Any], logger: NERLogger):
+    def __init__(self, config: Dict[str, Any], global_config: GlobalConfig, logger: NERLogger):
         """
         初始化 NER 训练器
         
@@ -884,12 +885,14 @@ class TrainingEngine:
 
     # TODO: 覆盖合并应为深度合并（deep merge），避免嵌套字段被整体覆盖。
     """
+
+    global_config: GlobalConfig
     
-    def __init__(self, global_config: Dict[str, Any]):
+    def __init__(self, global_config:GlobalConfig):
         self.global_config = global_config
         self.logger = NERLogger(
             name="training_engine",
-            log_dir=global_config.get('log_dir', 'data/ner/logs')
+            log_dir=self.global_config.log_dir,
         )
     
     def train_model(self, country: str, config_override: Optional[Dict[str, Any]] = None) -> bool:
@@ -906,7 +909,7 @@ class TrainingEngine:
             # Load configuration
             from ..config import ConfigManager
             
-            config_manager = ConfigManager(self.global_config.get('config_dir'))
+            config_manager = ConfigManager(self.global_config.config_dir)
             config = config_manager.load_country_config(country)
             
             # Apply overrides

@@ -42,7 +42,7 @@ class ModelCommand(BaseCommand):
         try:
             from ..models import NERModelManager
             
-            model_manager = NERModelManager(self.global_config.get('model_dir'), logger=self.logger)
+            model_manager = NERModelManager(self.global_config.get_model_dir(), logger=self.logger)
             
             if args.model_action == "list":
                 models = model_manager.list_models(country=args.country)

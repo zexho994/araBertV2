@@ -4,25 +4,26 @@ Main CLI manager that coordinates all NER commands and provides
 a unified interface for the command-line operations.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Optional
 from pathlib import Path
 
+from ..config import GlobalConfig
 from .evaluate_command import EvaluateCommand
 from .train_command import TrainCommand
 from .predict_command import PredictCommand
 from .evaluate_predict_command import EvaluatePredictCommand
 from .preprocess_command import PreprocessCommand
-from .config_command import ConfigCommand
 from .data_command import DataCommand
 from .model_command import ModelCommand
-from .status_command import StatusCommand
 from ..utils.logger import setup_logging
+
 
 class NERCLIManager:
     """Manages NER CLI commands and global configuration"""
+
+    global_config: GlobalConfig
     
-    def __init__(self, config_dir: str = "data/ner/configs", data_dir: str = "data/ner", 
-                 model_dir: str = "data/ner/models", logger = None):
+    def __init__(self, config_dir: str = "data/ner/configs", data_dir: str = "data/ner", model_dir: str = "data/ner/models", logger = None):
         """Initialize the CLI manager
         
         Args:
@@ -32,19 +33,8 @@ class NERCLIManager:
             logger: Logger instance
         """
         self.commands = {}
-        self.config_dir = config_dir
-        self.data_dir = data_dir
-        self.model_dir = model_dir
         self.logger = logger
-        
-        # Initialize global config with provided directories
-        self.global_config = {
-            'config_dir': config_dir,
-            'data_dir': data_dir,
-            'model_dir': model_dir,
-            'log_dir': f"{data_dir}/logs",
-            'eval_dir': f"{data_dir}/eval"
-        }
+        self.global_config = GlobalConfig(config_dir, data_dir, model_dir)
         
         # Register all available commands
         self._register_commands()
@@ -67,10 +57,8 @@ class NERCLIManager:
             EvaluatePredictCommand(),
             PredictCommand(),
             PreprocessCommand(),
-            ConfigCommand(),
             DataCommand(),
             ModelCommand(),
-            StatusCommand()
         ]
         
         for command in commands:
@@ -93,27 +81,6 @@ class NERCLIManager:
             # Let the command setup its specific arguments
             command.setup_parser(parser)
     
-    def set_global_config(self, config: Dict[str, Any]):
-        """Set global configuration for all commands
-        
-        Args:
-            config: Global configuration dictionary
-        """
-        # Merge with existing global config
-        self.global_config.update(config)
-        
-        # Setup logging with global config
-        if self.logger is None:
-            self._setup_logging()
-        
-        # Pass global config to all commands
-        for command in self.commands.values():
-            command.set_global_config(self.global_config)
-            # Ensure shared logger is injected
-            if hasattr(command, "set_logger"):
-                command.set_logger(self.logger)
-            else:
-                command.logger = self.logger
     
     def execute_command(self, command_name: str, args) -> bool:
         """Execute a specific command
@@ -139,9 +106,6 @@ class NERCLIManager:
             
         except Exception as e:
             self.logger.error(f"Error executing command '{command_name}': {str(e)}")
-            if self.global_config.get('verbose', False):
-                import traceback
-                self.logger.error(traceback.format_exc())
             return False
     
     def list_commands(self) -> Dict[str, str]:
@@ -167,8 +131,8 @@ class NERCLIManager:
     
     def _setup_logging(self):
         """Setup logging based on global configuration"""
-        log_dir = self.global_config.get('log_dir', 'data/ner/logs')
-        verbose = self.global_config.get('verbose', False)
+        log_dir = self.global_config.get_log_dir()
+        verbose = self.global_config.get_verbose()
         
         # Create log directory if it doesn't exist
         Path(log_dir).mkdir(parents=True, exist_ok=True)
@@ -182,37 +146,14 @@ class NERCLIManager:
             logger_name='ner_cli'
         )
     
-    def validate_global_config(self) -> bool:
-        """Validate global configuration
-        
-        Returns:
-            True if configuration is valid, False otherwise
-        """
-        required_dirs = ['config_dir', 'data_dir', 'model_dir', 'log_dir', 'eval_dir']
-        
-        for dir_key in required_dirs:
-            if dir_key not in self.global_config:
-                if self.logger:
-                    self.logger.error(f"Missing required directory configuration: {dir_key}")
-                return False
-            
-            dir_path = Path(self.global_config[dir_key])
-            try:
-                dir_path.mkdir(parents=True, exist_ok=True)
-            except Exception as e:
-                if self.logger:
-                    self.logger.error(f"Cannot create directory {dir_path}: {e}")
-                return False
-        
-        return True
     
-    def get_global_config(self) -> Dict[str, Any]:
+    def get_global_config(self) -> GlobalConfig:
         """Get current global configuration
         
         Returns:
             Copy of global configuration dictionary
         """
-        return self.global_config.copy()
+        return self.global_config
     
     def shutdown(self):
         """Cleanup and shutdown the CLI manager"""

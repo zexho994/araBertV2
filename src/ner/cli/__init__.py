@@ -14,10 +14,8 @@ from .train_command import TrainCommand
 from .predict_command import PredictCommand
 from .evaluate_predict_command import EvaluatePredictCommand
 from .preprocess_command import PreprocessCommand
-from .config_command import ConfigCommand
 from .data_command import DataCommand
 from .model_command import ModelCommand
-from .status_command import StatusCommand
 
 __all__ = [
     'NERCLIManager',
@@ -26,8 +24,6 @@ __all__ = [
     'PredictCommand',
     'EvaluatePredictCommand',
     'PreprocessCommand',
-    'ConfigCommand',
     'DataCommand',
     'ModelCommand',
-    'StatusCommand'
 ]

@@ -92,7 +92,7 @@ class DataCommand(BaseCommand):
                 from ..data.convertor import CSVAnnotationConvert
                 
                 # Initialize CSV annotation generator
-                generator = CSVAnnotationConvert(config_dir=self.global_config.get('config_dir', 'data/ner/configs'))
+                generator = CSVAnnotationConvert(config_dir=self.global_config.get_config_dir())
                 
                 # Check if only validation is requested
                 if getattr(args, 'only_validate', False):

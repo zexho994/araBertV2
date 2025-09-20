@@ -94,7 +94,7 @@ class PredictCommand(BaseCommand):
             from transformers import AutoTokenizer
 
             # 加载模型与分词器
-            model_manager = NERModelManager(self.global_config.get('model_dir'), logger=self.logger)
+            model_manager = NERModelManager(self.global_config.get_model_dir(), logger=self.logger)
             model = model_manager.load_model(args.model_path)
             tokenizer = AutoTokenizer.from_pretrained(args.model_path)
 
