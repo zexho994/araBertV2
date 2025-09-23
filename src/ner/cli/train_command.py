@@ -134,7 +134,7 @@ class TrainCommand(BaseCommand):
             if getattr(args, 'output_dir', None):
                 config['output']['model_dir'] = args.output_dir
             if getattr(args, 'model', None):
-                config['model']['pretrained_model_name'] = args.model
+                config['model']['pretrained_model'] = args.model
                 self.logger.info(f"Using pretrained model: {args.model}")
                 
             # 处理LoRA参数
