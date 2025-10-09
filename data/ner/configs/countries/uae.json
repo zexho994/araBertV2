@@ -87,6 +87,7 @@
             { "step": "punctuation_normalize" },
             { "step": "arabic_diacritics_filter" },
             { "step": "punctuation_filter"},
+            { "step": "emoji_filter"},
             { "step": "special_punct_spacing"},
             { "step": "whitespace_normalize", "params": { "collapse": true, "trim": true } }
         ]

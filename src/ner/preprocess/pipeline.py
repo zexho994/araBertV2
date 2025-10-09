@@ -16,6 +16,7 @@ PUNCTUATION_NORMALIZE_STEP = 'punctuation_normalize'
 ## 去噪
 ARABIC_DIACRITICS_FILTER_STEP = 'arabic_diacritics_filter'
 PUNCTUATION_FILTER_STEP = 'punctuation_filter'
+EMOJI_FILTER_STEP = 'emoji_filter'
 
 ## 结构优化
 SPECIAL_PUNCT_SPACING_STEP = 'special_punct_spacing'
@@ -304,6 +305,50 @@ class PunctuationFilterStep(BaseStep):
             return result
 
         return [_strip_punct_token(t) for t in tokens], labels
+
+
+class EmojiFilterStep(BaseStep):
+    """去噪: 过滤 emoji 表情符号
+    
+    移除文本中的 emoji 表情，包括各种 Unicode emoji 范围：
+    - 情绪图标、符号和象形文字
+    - 交通和地图符号
+    - 补充符号和象形文字
+    - 杂项符号等
+    """
+    name = EMOJI_FILTER_STEP
+    is_label_safe = True
+
+    # Emoji Unicode 范围正则表达式
+    _emoji_pattern = re.compile(
+        "["
+        "\U0001F600-\U0001F64F"  # 情绪图标 (Emoticons) 😀😁😂
+        "\U0001F300-\U0001F5FF"  # 符号和象形文字 (Symbols & Pictographs) 🌍
+        "\U0001F680-\U0001F6FF"  # 交通和地图符号 (Transport & Map Symbols) 🚗🚕🚙
+        "\U0001F700-\U0001F77F"  # 炼金术符号 (Alchemical Symbols) 🔮
+        "\U0001F780-\U0001F7FF"  # 几何形状扩展 (Geometric Shapes Extended)
+        "\U0001F800-\U0001F8FF"  # 补充箭头-C (Supplemental Arrows-C) ➡️➡️➡️
+        "\U0001F900-\U0001F9FF"  # 补充符号和象形文字 (Supplemental Symbols and Pictographs) 🤝🤝🤝
+        "\U0001FA00-\U0001FA6F"  # 象棋符号 (Chess Symbols) 🎯
+        "\U0001FA70-\U0001FAFF"  # 符号和象形文字扩展-A (Symbols and Pictographs Extended-A)
+        "\U00002600-\U000026FF"  # 杂项符号 (Miscellaneous Symbols)
+        "\U00002700-\U000027BF"  # 装饰符号 (Dingbats)
+        "\U0001F1E0-\U0001F1FF"  # 旗帜 (Flags)
+        "\U00002300-\U000023FF"  # 杂项技术符号 (Miscellaneous Technical)
+        "\U0001F000-\U0001F02F"  # 麻将牌 (Mahjong Tiles)
+        "\U0001F0A0-\U0001F0FF"  # 扑克牌 (Playing Cards)
+        "\U0001F100-\U0001F1FF"  # 封闭字母数字补充 (Enclosed Alphanumeric Supplement)
+        "]+",
+        flags=re.UNICODE
+    )
+
+    def apply_text(self, text: str) -> str:
+        return self._emoji_pattern.sub("", text) if text else text
+
+    def apply_tokens(self, tokens: List[str], labels: Optional[List[str]] = None):
+        if not tokens:
+            return tokens, labels
+        return [self._emoji_pattern.sub("", t) for t in tokens], labels
 
 
 

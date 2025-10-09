@@ -10,6 +10,7 @@ from .pipeline import (
     LowercaseStep,
     ArabicDiacriticsFilterStep,
     PunctuationFilterStep,
+    EmojiFilterStep,
     DigitNormalizeStep,
     PunctuationNormalizeStep,
     SpecialPunctuationSpacingStep,
@@ -18,6 +19,7 @@ from .pipeline import (
     LOWERCASE_STEP,
     ARABIC_DIACRITICS_FILTER_STEP,
     PUNCTUATION_FILTER_STEP,
+    EMOJI_FILTER_STEP,
     DIGIT_NORMALIZE_STEP,
     PUNCTUATION_NORMALIZE_STEP,
     SPECIAL_PUNCT_SPACING_STEP,
@@ -48,6 +50,8 @@ def _instantiate_step(spec: Dict[str, Any]) -> BaseStep:
         return ArabicDiacriticsFilterStep(**params)
     if name == PUNCTUATION_FILTER_STEP:
         return PunctuationFilterStep(**params)
+    if name == EMOJI_FILTER_STEP:
+        return EmojiFilterStep(**params)
     if name == DIGIT_NORMALIZE_STEP:
         return DigitNormalizeStep(**params)
     if name == PUNCTUATION_NORMALIZE_STEP:
