@@ -117,7 +117,7 @@ class EvaluatePredictCommand(BaseCommand):
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
             model = model.to(device)
             evaluator = NEREvaluator(model, tokenizer, label_list, device, logger=self.logger)
-            results = evaluator.evaluate(texts, true_labels, confidence_threshold=getattr(args, 'confidence_threshold', 0.5))
+            results = evaluator.evaluate_predict(texts, true_labels, confidence_threshold=getattr(args, 'confidence_threshold', 0.5))
             
             # 打印指标
             evaluator.print_evaluate_results(results)

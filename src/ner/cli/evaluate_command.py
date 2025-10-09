@@ -151,7 +151,7 @@ class EvaluateCommand(BaseCommand):
 
             # 准备数据（与训练流程一致）
             processor = NERDataProcessor(config, logger=self.logger)
-            val_dataset = processor.load_data_file(args.data_path)
+            val_dataset_file = processor.load_data_file(args.data_path)
 
             # 构建与训练一致的 DataLoader（使用 is_split_into_words 对齐）
             ner_loader_builder = NERDataLoader(
@@ -160,9 +160,9 @@ class EvaluateCommand(BaseCommand):
                 max_length=config.get('data', {}).get('max_length', 512),
                 logger=self.logger
             )
-            val_ds = ner_loader_builder.create_dataset_loader(val_dataset)
+            val_dataset = ner_loader_builder.create_dataset_loader(val_dataset_file)
             batch_size = getattr(args, 'batch_size', None) or config.get('training', {}).get('batch_size', 16)
-            val_loader = ner_loader_builder.create_dataloader(val_ds, batch_size=batch_size, shuffle=False)
+            val_loader = ner_loader_builder.create_dataloader(val_dataset, batch_size=batch_size, shuffle=False)
 
             # 初始化评估器，迁移模型至设备
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -185,7 +185,7 @@ class EvaluateCommand(BaseCommand):
             # 生成详细报告
             if getattr(args, 'detailed_report', False):
                 self._generate_detailed_report(
-                    results, val_dataset, config, out_dir, args
+                    results, val_dataset_file, config, out_dir, args
                 )
             
             return True

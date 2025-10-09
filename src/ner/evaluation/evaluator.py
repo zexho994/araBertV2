@@ -303,7 +303,7 @@ class NEREvaluator:
         self.label2id = {label: i for i, label in enumerate(label_list)}
         self.id2label = {i: label for i, label in enumerate(label_list)}
     
-    def evaluate(
+    def evaluate_predict(
         self, 
         texts: List[str], 
         true_labels: List[List[str]],
