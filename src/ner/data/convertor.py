@@ -104,7 +104,7 @@ class CSVAnnotationConvert:
             "mount": ["mt"],
             "sheikh": ["sheikh","shk","shk."],
             "al-khaimah": ["al-khaimah","al khaimah"],
-            "ajman": ["ajman", ""] #ajman en , arabic
+            "ajman": ["ajman"] #ajman en , arabic
         }
 
         self._entity_priority: Dict[str, int] = {
