@@ -1,0 +1,195 @@
+{
+    "version": "1.0",
+    "templates": {
+        "enabled": true,
+        "definitions": [
+            {
+                "pattern": "{BUILDING} {STREET} {COMPOUND} {SUB_AREA} {CITY} {EMIRATE} {COUNTRY}",
+                "weight": 0.15
+            },
+            {
+                "pattern": "{BUILDING} {SUB_AREA} {CITY} {COUNTRY}",
+                "weight": 0.25
+            },
+            {
+                "pattern": "{BUILDING} {STREET} {SUB_AREA} {CITY} {COUNTRY}",
+                "weight": 0.20
+            },
+            {
+                "pattern": "{STREET} {SUB_AREA} {CITY} {EMIRATE} {COUNTRY}",
+                "weight": 0.15
+            },
+            {
+                "pattern": "{BUILDING} {COMPOUND} {SUB_AREA} {CITY} {COUNTRY}",
+                "weight": 0.15
+            },
+            {
+                "pattern": "{SUB_AREA} {CITY} {EMIRATE} {COUNTRY}",
+                "weight": 0.10
+            }
+        ],
+        "separator_variations": {
+            "enabled": true,
+            "options": [",", "/", "-", " , ", ", "],
+            "variation_probability": 0.4
+        }
+    },
+    
+    "typo_injection": {
+        "enabled": true,
+        "global_typo_probability": 0.5,
+        "per_entity_config": {
+            "BUILDING": {
+                "probability": 0.05,
+                "max_char_error_ratio": 0.15,
+                "typo_types": {
+                    "swap": 0.4,
+                    "deletion": 0.3,
+                    "insertion": 0.2,
+                    "substitution": 0.1
+                }
+            },
+            "STREET": {
+                "probability": 0.08,
+                "max_char_error_ratio": 0.12,
+                "typo_types": {
+                    "swap": 0.4,
+                    "deletion": 0.3,
+                    "insertion": 0.2,
+                    "substitution": 0.1
+                }
+            },
+            "COMPOUND": {
+                "probability": 0.03,
+                "max_char_error_ratio": 0.10,
+                "typo_types": {
+                    "swap": 0.5,
+                    "deletion": 0.25,
+                    "insertion": 0.15,
+                    "substitution": 0.1
+                }
+            },
+            "SUB_AREA": {
+                "probability": 0.02,
+                "max_char_error_ratio": 0.08,
+                "typo_types": {
+                    "swap": 0.5,
+                    "deletion": 0.3,
+                    "insertion": 0.15,
+                    "substitution": 0.05
+                }
+            },
+            "CITY": {
+                "probability": 0.01,
+                "max_char_error_ratio": 0.05,
+                "typo_types": {
+                    "swap": 0.6,
+                    "deletion": 0.2,
+                    "insertion": 0.15,
+                    "substitution": 0.05
+                }
+            },
+            "EMIRATE": {
+                "probability": 0.01,
+                "max_char_error_ratio": 0.05,
+                "typo_types": {
+                    "swap": 0.6,
+                    "deletion": 0.2,
+                    "insertion": 0.15,
+                    "substitution": 0.05
+                }
+            },
+            "COUNTRY": {
+                "probability": 0.005,
+                "max_char_error_ratio": 0.03,
+                "typo_types": {
+                    "swap": 0.7,
+                    "deletion": 0.2,
+                    "insertion": 0.08,
+                    "substitution": 0.02
+                }
+            }
+        }
+    },
+    
+    "noise_injection": {
+        "enabled": true,
+        "global_noise_probability": 0.4,
+        "max_noise_per_address": 3,
+        "noise_types": {
+            "punctuation": {
+                "enabled": true,
+                "probability": 0.35,
+                "characters": [".", ",", ";", "-", "–", "—", ":", "/", "\\", "@", "#", "%", "*", "&"],
+                "max_consecutive": 3
+            },
+            "numbers": {
+                "enabled": true,
+                "probability": 0.25,
+                "patterns": {
+                    "random_digits": {
+                        "min_length": 1,
+                        "max_length": 4,
+                        "probability": 0.6
+                    },
+                    "phone_like": {
+                        "format": "+971XXXXXXXXX",
+                        "probability": 0.25
+                    },
+                    "po_box": {
+                        "format": "P.O. Box XXXXX",
+                        "probability": 0.15
+                    }
+                }
+            },
+            "meaningless_words": {
+                "enabled": true,
+                "probability": 0.2,
+                "word_list": [
+                    "Near", "Opposite", "Behind", "Next to", "Close to", "beside",
+                    "بجانب", "قريب من", "مقابل", "خلف", "أمام",
+                    "Floor", "Unit", "Block", "Gate", "Door", "Room", "Flat", "Apartment",
+                    "الطابق", "الوحدة", "غرفة", "شقة"
+                ],
+                "max_per_address": 2
+            }
+        },
+        "noise_position_strategy": {
+            "before_first_entity": 0.15,
+            "between_entities": 0.70,
+            "after_last_entity": 0.15
+        }
+    },
+    
+    "case_variations": {
+        "enabled": true,
+        "strategies": {
+            "normal_case": 0.70,
+            "all_lowercase": 0.15,
+            "all_uppercase": 0.10,
+            "random_case": 0.05
+        }
+    },
+    
+    "output": {
+        "format": "csv",
+        "output_dir": "../raw_data/",
+        "file_prefix": "simulated_",
+        "timestamp_suffix": true,
+        "fields": ["formatted_address", "BUILDING", "STREET", "COMPOUND", "SUB_AREA", "CITY", "EMIRATE", "COUNTRY"],
+        "deduplicate": true,
+        "shuffle": false,
+        "include_metadata": false,
+        "quality_validation": {
+            "enabled": true,
+            "min_address_length": 20,
+            "max_address_length": 500
+        }
+    },
+    
+    "generation_limits": {
+        "total_addresses": 100,
+        "unique_combinations_only": true
+    }
+}
+
