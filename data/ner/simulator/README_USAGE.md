@@ -9,7 +9,7 @@ python data/ner/simulator/generator.py
 
 或指定配置文件
 ```
-python data/ner/simulator/generator.py data/ner/simulator/uae/config/generator_config.json5
+python data/ner/simulator/generator.py data/ner/simulator/uae/config/generator_config.json
 ```
 
 ## 2. 生成流程说明
@@ -66,7 +66,7 @@ villa 276, Near al yalayis 4, 1234 dubai, uae
 
 ### 3. 配置调整
 
-编辑 `data/ner/simulator/uae/config/generator_config.json5` 来调整生成参数：
+编辑 `data/ner/simulator/uae/config/generator_config.json` 来调整生成参数：
 
 #### 控制生成数量
 ```json

@@ -77,7 +77,7 @@ class AddressGenerator:
         dictionaries = {}
         
         # 获取项目根目录
-        # 配置文件在 data/ner/simulator/uae/config/generator_config.json5
+        # 配置文件在 data/ner/simulator/uae/config/generator_config.json
         # 向上6级到项目根目录 (config -> uae -> simulator -> ner -> data -> araBertv2)
         project_root = self.config_path.parent.parent.parent.parent.parent.parent
         
@@ -550,7 +550,7 @@ def main():
     import sys
     
     # 默认配置文件路径
-    default_config = "data/ner/simulator/uae/config/generator_config.json5"
+    default_config = "data/ner/simulator/uae/config/generator_config.json"
     
     # 从命令行参数获取配置文件路径
     config_path = sys.argv[1] if len(sys.argv) > 1 else default_config

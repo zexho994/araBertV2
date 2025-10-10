@@ -1,6 +1,6 @@
 # 配置文件详细说明
 
-本文档详细解释 `generator_config.json5` 中每个配置项的含义和使用方法。
+本文档详细解释 `generator_config.json` 中每个配置项的含义和使用方法。
 
 ## 📋 完整配置结构
 

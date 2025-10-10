@@ -16,31 +16,51 @@
         "definitions": [
             {
                 "pattern": "{BUILDING} {STREET} {COMPOUND} {SUB_AREA} {CITY} {EMIRATE} {COUNTRY}",
-                "weight": 0.15
+                "weight": 0.05
             },
             {
-                "pattern": "{BUILDING} {SUB_AREA} {CITY} {COUNTRY}",
-                "weight": 0.25
+                "pattern": "{BUILDING} {STREET} {COMPOUND} {SUB_AREA} {EMIRATE}",
+                "weight": 0.05
             },
             {
-                "pattern": "{BUILDING} {STREET} {SUB_AREA} {CITY} {COUNTRY}",
-                "weight": 0.20
+                "pattern": "{BUILDING} {STREET} {EMIRATE}",
+                "weight": 0.1
             },
             {
-                "pattern": "{STREET} {SUB_AREA} {CITY} {EMIRATE} {COUNTRY}",
-                "weight": 0.15
+                "pattern": "{STREET} {BUILDING} {SUB_AREA}",
+                "weight": 0.1
             },
             {
-                "pattern": "{BUILDING} {COMPOUND} {SUB_AREA} {CITY} {COUNTRY}",
-                "weight": 0.15
+                "pattern": "{STREET} {BUILDING} {COMPOUND} {EMIRATE}",
+                "weight": 0.1
             },
             {
-                "pattern": "{SUB_AREA} {CITY} {EMIRATE} {COUNTRY}",
-                "weight": 0.10
+                "pattern": "{BUILDING} {SUB_AREA} {EMIRATE} {COUNTRY}",
+                "weight": 0.1
+            },
+            {
+                "pattern": "{BUILDING} {STREET} {SUB_AREA}",
+                "weight": 0.1
+            },
+            {
+                "pattern": "{STREET} {SUB_AREA} {EMIRATE} ",
+                "weight": 0.1
+            },
+            {
+                "pattern": "{BUILDING} {COMPOUND} {SUB_AREA} ",
+                "weight": 0.1
+            },
+            {
+                "pattern": "{BUILDING} {SUB_AREA} {COMPOUND}  ",
+                "weight": 0.1
+            },
+            {
+                "pattern": "{SUB_AREA} {EMIRATE} {COUNTRY}",
+                "weight": 0.1
             }
         ],
         "separator_variations": {
-            "options": [",", "/", "-"],
+            "options": [",", "-", "."],
             "probability": 0.6
         }
     },

@@ -82,7 +82,7 @@ python3 data/ner/simulator/extract_entities.py
 python3 data/ner/simulator/generator.py
 
 # 或指定配置文件
-python3 data/ner/simulator/generator.py data/ner/simulator/uae/config/generator_config.json5
+python3 data/ner/simulator/generator.py data/ner/simulator/uae/config/generator_config.json
 
 # 生成更多数据：修改配置文件中的 generate_size 参数
 ```

@@ -6,7 +6,7 @@
 
 ✅ **生成器代码**: `generator.py` (600+行，带详细中文注释)  
 ✅ **词典文件**: 7个实体类型的词典（从真实数据提取）  
-✅ **配置文件**: `generator_config.json5`（完整配置）  
+✅ **配置文件**: `generator_config.json`（完整配置）  
 ✅ **文档**: 5份详细文档  
 ✅ **测试数据**: 已生成200条样本数据  
 
@@ -57,7 +57,7 @@ head -5 data/ner/simulator/uae/raw_data/simulated_*.csv | tail -1
 
 ```bash
 # 1. 修改配置文件
-vim data/ner/simulator/uae/config/generator_config.json5
+vim data/ner/simulator/uae/config/generator_config.json
 # 将 "generate_size": 100 改为 "generate_size": 1000
 
 # 2. 运行生成器
@@ -71,7 +71,7 @@ wc -l data/ner/simulator/uae/raw_data/simulated_*.csv
 
 ```bash
 # 1. 修改配置文件
-vim data/ner/simulator/uae/config/generator_config.json5
+vim data/ner/simulator/uae/config/generator_config.json
 
 # 2. 调整以下参数:
 #    "typo_injection": { "enabled": false }
@@ -113,7 +113,7 @@ simulator/
 │
 └── uae/                            # 🇦🇪 UAE配置
     ├── config/
-    │   └── generator_config.json5  # ⚙️ 配置文件（重点）
+    │   └── generator_config.json  # ⚙️ 配置文件（重点）
     ├── dictionaries/               # 📚 词典目录
     │   ├── building.txt           # 1173个实体
     │   ├── street.txt             # 491个实体
@@ -130,7 +130,7 @@ simulator/
 
 ## ⚙️ 核心配置参数
 
-只需要修改配置文件 `uae/config/generator_config.json5`：
+只需要修改配置文件 `uae/config/generator_config.json`：
 
 ### 控制生成数量
 ```json5
