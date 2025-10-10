@@ -2,7 +2,13 @@
 # -*- coding: utf-8 -*-
 """
 词典去重工具
-用于对词典文件进行去重处理，去重时忽略大小写
+
+用于对词典文件进行去重处理，去重时忽略大小写。
+支持处理任何国家/地区的词典文件。
+
+使用方法：
+    python3 data/ner/simulator/dedup_dictionaries.py -d uae/dictionaries
+    python3 data/ner/simulator/dedup_dictionaries.py -d path/to/dictionaries
 """
 
 from pathlib import Path
@@ -24,13 +30,21 @@ class DictionaryDeduplicator:
         初始化去重工具
         
         Args:
-            directory: 词典文件所在目录，默认为当前脚本所在目录
+            directory: 词典文件所在目录，支持相对路径（相对于simulator/）或绝对路径
         """
         if directory is None:
-            # 默认使用脚本所在目录
+            # 如果未指定目录，使用脚本所在目录
             self.directory = Path(__file__).parent
         else:
-            self.directory = Path(directory)
+            dir_path = Path(directory)
+            
+            # 如果是相对路径，相对于simulator目录解析
+            if not dir_path.is_absolute():
+                # 脚本在 simulator/ 目录下
+                simulator_dir = Path(__file__).parent
+                self.directory = (simulator_dir / directory).resolve()
+            else:
+                self.directory = dir_path
         
         if not self.directory.exists():
             raise ValueError(f"目录不存在: {self.directory}")
@@ -190,8 +204,8 @@ class DictionaryDeduplicator:
         # 处理每个文件
         results = {}
         for file_path in sorted(files):
-            # 跳过工具脚本本身
-            if file_path.name == 'dedup_tool.py':
+            # 跳过Python脚本文件
+            if file_path.suffix == '.py':
                 continue
             
             success = self.process_file(file_path, dry_run=dry_run)
@@ -213,29 +227,34 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description='词典文件去重工具',
+        description='词典文件去重工具 - 支持任何国家/地区的词典文件',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例:
-  # 去重当前目录下所有 .txt 文件
-  python dedup_tool.py
+  # 去重UAE词典（相对于simulator目录）
+  python3 data/ner/simulator/dedup_dictionaries.py -d uae/dictionaries
   
   # 演练模式（不实际修改文件）
-  python dedup_tool.py --dry-run
+  python3 data/ner/simulator/dedup_dictionaries.py -d uae/dictionaries --dry-run
   
-  # 处理指定目录
-  python dedup_tool.py --directory /path/to/dictionaries
+  # 使用绝对路径
+  python3 data/ner/simulator/dedup_dictionaries.py \\
+      -d /Users/zexho/Documents/python_script/araBertv2/data/ner/simulator/uae/dictionaries
   
   # 处理特定模式的文件
-  python dedup_tool.py --pattern "city*.txt"
+  python3 data/ner/simulator/dedup_dictionaries.py -d uae/dictionaries -p "city*.txt"
+  
+  # 如果在simulator目录下执行
+  cd data/ner/simulator
+  python3 dedup_dictionaries.py -d uae/dictionaries
         """
     )
     
     parser.add_argument(
         '-d', '--directory',
         type=str,
-        default=None,
-        help='词典文件所在目录（默认为脚本所在目录）'
+        required=True,
+        help='词典文件所在目录（相对于simulator/目录或绝对路径）'
     )
     
     parser.add_argument(
@@ -248,7 +267,7 @@ def main():
     parser.add_argument(
         '--dry-run',
         action='store_true',
-        help='演练模式，不实际修改文件'
+        help='演练模式，不实际修改文件，仅显示统计信息'
     )
     
     args = parser.parse_args()

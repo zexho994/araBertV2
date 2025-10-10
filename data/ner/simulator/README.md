@@ -17,7 +17,10 @@
 ```
 simulator/
 ├── README.md                    # 本文件
+├── generator.py                 # 地址生成器
 ├── extract_entities.py          # 实体提取脚本
+├── dedup_dictionaries.py        # 词典去重工具
+├── analyze_templates.py         # 模板分析工具
 └── {country}/                   # 按国家/地区组织
     ├── README.md               # 该国家/地区的说明文档
     ├── dictionaries/           # 实体词典目录
@@ -58,6 +61,24 @@ python3 data/ner/simulator/extract_entities.py
 ```
 
 或者手动编辑词典文件，每行一个实体。
+
+### 1.1 词典去重（推荐）
+
+提取实体后，使用去重工具清理词典文件：
+
+```bash
+# 去重UAE词典（演练模式，先查看效果）
+python3 data/ner/simulator/dedup_dictionaries.py -d uae/dictionaries --dry-run
+
+# 确认无误后，实际执行去重
+python3 data/ner/simulator/dedup_dictionaries.py -d uae/dictionaries
+```
+
+**优势**：
+- ✅ 自动去除重复词条（忽略大小写）
+- ✅ 移除空行
+- ✅ 保留首次出现的原始大小写
+- ✅ 详细的统计报告
 
 ### 1.5 分析地址模板（推荐）
 
