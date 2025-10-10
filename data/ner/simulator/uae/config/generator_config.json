@@ -108,27 +108,27 @@
             }
         ],
         "separator_variations": {
-            "options": [",", "-", "."],
+            "options": [","],
             "probability": 0.6
         }
     },
     
     "typo_injection": {
         "enabled": true,
-        "global_probability": 0.8,
+        "global_probability": 0.4,
         "case_variations": {
             "enabled": true,
-            "probability": 0.4,
+            "probability": 0.3,
             "strategies": {
-                "normal_case": 0.70,
-                "all_lowercase": 0.15,
-                "all_uppercase": 0.10,
-                "random_case": 0.05
+                "normal_case": 0.4,
+                "all_lowercase": 0.35,
+                "all_uppercase": 0.15,
+                "random_case": 0.1
             }
         },
         "per_entity_config": {
             "BUILDING": {
-                "probability": 0.6,
+                "probability": 0.4,
                 "max_char_error_ratio": 0.15,
                 "typo_types": {
                     "swap": 0.4,
@@ -138,7 +138,7 @@
                 }
             },
             "STREET": {
-                "probability": 0.08,
+                "probability": 0.2,
                 "max_char_error_ratio": 0.12,
                 "typo_types": {
                     "swap": 0.4,
@@ -148,7 +148,7 @@
                 }
             },
             "COMPOUND": {
-                "probability": 0.03,
+                "probability": 0.2,
                 "max_char_error_ratio": 0.10,
                 "typo_types": {
                     "swap": 0.5,
@@ -158,7 +158,7 @@
                 }
             },
             "SUB_AREA": {
-                "probability": 0.02,
+                "probability": 0.2,
                 "max_char_error_ratio": 0.08,
                 "typo_types": {
                     "swap": 0.5,
@@ -168,7 +168,7 @@
                 }
             },
             "CITY": {
-                "probability": 0.01,
+                "probability": 0.05,
                 "max_char_error_ratio": 0.05,
                 "typo_types": {
                     "swap": 0.6,
@@ -178,7 +178,7 @@
                 }
             },
             "EMIRATE": {
-                "probability": 0.01,
+                "probability": 0.05,
                 "max_char_error_ratio": 0.05,
                 "typo_types": {
                     "swap": 0.6,
@@ -188,7 +188,7 @@
                 }
             },
             "COUNTRY": {
-                "probability": 0.005,
+                "probability": 0.05,
                 "max_char_error_ratio": 0.03,
                 "typo_types": {
                     "swap": 0.7,
@@ -202,42 +202,44 @@
     
     "noise_injection": {
         "enabled": true,
-        "global_noise_probability": 0.8,
+        "global_noise_probability": 0.5,
         "max_noise_per_address": 3,
         "noise_types": {
             "punctuation": {
                 "enabled": true,
-                "probability": 0.35,
-                "characters": [".", ",", ";", "-", "–", "—", ":", "/", "\\", "@", "#", "%", "*", "&"],
+                "probability": 0.3,
+                "characters": [".", ",", ";", "-", "—", "/", "\\", "@", "#", "%", "*", "&"],
                 "max_consecutive": 3
             },
             "numbers": {
                 "enabled": true,
-                "probability": 0.25,
+                "probability": 0.4,
                 "patterns": {
                     "random_digits": {
                         "min_length": 1,
-                        "max_length": 4,
-                        "probability": 0.6
+                        "max_length": 3,
+                        "probability": 0.8
                     },
                     "phone_like": {
                         "format": "+971XXXXXXXXX",
-                        "probability": 0.25
+                        "probability": 0.1
                     },
                     "po_box": {
                         "format": "P.O. Box XXXXX",
-                        "probability": 0.15
+                        "probability": 0.1
                     }
                 }
             },
             "meaningless_words": {
                 "enabled": true,
-                "probability": 0.4,
+                "probability": 0.2,
                 "word_list": [
                     "Near", "Opposite", "Behind", "Next to", "Close to", "beside",
                     "بجانب", "قريب من", "مقابل", "خلف", "أمام",
                     "Floor", "Unit", "Block", "Gate", "Door", "Room", "Flat", "Apartment",
-                    "الطابق", "الوحدة", "غرفة", "شقة"
+                    "الطابق", "الوحدة", "غرفة", "شقة",
+                    "North", "South", "East", "West", "Central",
+                    "Before", "After", "Front", "Back", "Left", "Right"
                 ],
                 "max_per_address": 2
             }
@@ -256,8 +258,8 @@
         "include_metadata": false,
         "quality_validation": {
             "enabled": true,
-            "min_address_length": 20,
-            "max_address_length": 500
+            "min_address_length": 10,
+            "max_address_length": 512
         }
     }
 }

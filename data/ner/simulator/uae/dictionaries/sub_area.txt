@@ -52,7 +52,6 @@ Al Muhaisnah 2
 Al Mushrif
 Al Nahda
 Al Nahda 2
-Al Nahyan
 Al Nakheel
 Al Nakhil
 Al Naser Street
@@ -71,8 +70,6 @@ Al Qusais Industrial 5
 Al Qusais Industrial Area
 Al Qusais Industrial Area 1
 Al Qusais Industrial Area 3
-Al Qusais Industrial Area 5
-Al Qusais industrial area 5
 Al Rahah
 Al Rashidiya 1
 Al Rashidiya 2
@@ -110,14 +107,10 @@ Al badiya
 Al dait east
 Al jazraa
 Al jubail
-Al karama
 Al khalidiya
 Al mamzar
 Al manara area
 Al marri
-Al nahda
-Al quoz 1
-Al rigga
 Al rumailah 3
 Al-Bidya
 Al-Ghanim
@@ -205,7 +198,6 @@ Meydan South
 Mira Community
 Mirbah
 Mirbih
-Mirdif
 Mohamed Bin Zayed City
 Motor City
 Mughaider Suburb
@@ -232,7 +224,6 @@ Rashdiya 3
 Rawda 3
 Riggat Al Buteen
 SAIH SHUAIB 2
-Saih Shuaib 2
 Saih Shuaib 3
 Satwa
 Shabiya9
@@ -256,7 +247,6 @@ Umm Ramool
 Umm Sequiem 2
 Umm Suqeim
 Umm Suqeim 1
-Umm ramool
 University City
 Urbana 2
 WINDSOR RESIDENCE
@@ -270,26 +260,16 @@ Zone 1
 Zone 5
 Zone I
 Zone J
-al majaz 3
 abu Dhabi city
-al furjan
 al nadha2
-al nahyan
-business bay
-dip 2
 dubai airport
 dubai airport freezone
 impz
-jumeirah 1
-jvc
 kuwaitat
 mardif
-mirdif
 mirdiff
 muweilah commercial
 nternational city
-qidfa
-qusais
 satwa roundabout
 sonapur
 the gardens

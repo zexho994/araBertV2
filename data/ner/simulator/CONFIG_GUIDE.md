@@ -123,7 +123,7 @@
 ```json5
 "typo_injection": {
     "enabled": true,              // 是否启用拼写错误注入
-    "global_probability": 0.8,    // 地址进行typo处理的概率
+    "global_probability": 0.25,    // 地址进行typo处理的概率
     ...
 }
 ```

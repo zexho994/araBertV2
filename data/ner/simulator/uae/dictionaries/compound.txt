@@ -81,22 +81,16 @@ Al Zahia
 Al Zahiyah
 Al Zahya 1
 Al ajnadeen
-Al bahya
-Al barsha south
 Al bustan
 Al dhaith north
 Al ghubaiba
-Al hamra village
-Al jazeera
 Al khabisi
 Al majaz 1
 Al nahda
 Al quoz 3
-Al rams
 Al saadi
 Al safa 2
 Al tawuun
-Al twar 3
 Al-Araibi
 Al-Bakrifla 5
 Al-Bidya
@@ -132,14 +126,12 @@ Block A
 Block B
 Block C
 Business Bay
-Business bay
 CC9
 Canal view
 Capital Bay Towers
 Central 1
 Central District
 City of Lights
-City of lights
 Cluster 1
 Cluster A
 Cluster A Gate 2
@@ -163,10 +155,8 @@ Dubai harbor
 Dubai industrial Park
 Dubai investment park 2
 Dubai land
-Dubai production city
 Dubailand
 EMAAR South
-Emaar South
 Emaar South Greenview 2
 England cluster X -13
 FAMCO city
@@ -197,7 +187,6 @@ Jumeira Luxury Villas
 Jumeirah 1
 Jumeirah Islands
 Jumeirah Village
-Jumeirah Village Circle
 Jwaizea Track Complex
 Khor Khuwair
 LAZUWARD SW
@@ -217,14 +206,12 @@ Maha Townsquare
 Majjarah district
 Marina Square
 Meydan District 11
-Meydan South Villas
 Mina Al Arab
 Mira 4
 Mira Oasis
 Mira Oasis 1
 Mira Oasis 3
 Mira Oasis 3 by Emaar
-Mira oasis 3
 Mirbah
 Mughaider Suburb
 Muhaisanah 2
@@ -270,7 +257,6 @@ Rukan community
 Rumailah 3
 Russia Cluster
 Russia W2
-Russia cluster
 Safa 1
 Safia
 Sahara villas
@@ -305,13 +291,10 @@ Wadi AL Safa 3
 Wadi kub village
 Warsan village
 Wasl Village
-Wasl village
 Waves Towers
 Yas Acres
 Yas Island
 Yas Residential
-Yas acres
-Yas island
 Zabeel park
 Zayed Sports City
 Zone J
@@ -321,27 +304,21 @@ ajman mushirif
 al Rifaah
 al WASAL VILLLAGE
 al baraha
-al barsha south
 al gadeer
 al gharain
-al manhal
-al riffa
 al riffah
 aljuraina4
 almajaz 3
 alshuwaihy
 altwar3
 behind westzone
-business bay
 centro courtyard 9
 chikha mohra
 cluster P
 dubai Investments Park 1
-ghoroob
 industrial area 1
 industrial area 15
 khalidiya daratul
-meydan south villas
 mrdf shuruq
 mushairif
 near
