@@ -15,48 +15,96 @@
     "templates": {
         "definitions": [
             {
-                "pattern": "{BUILDING} {STREET} {COMPOUND} {SUB_AREA} {CITY} {EMIRATE} {COUNTRY}",
-                "weight": 0.05
-            },
-            {
-                "pattern": "{BUILDING} {STREET} {COMPOUND} {SUB_AREA} {EMIRATE}",
-                "weight": 0.05
-            },
-            {
-                "pattern": "{BUILDING} {STREET} {EMIRATE}",
-                "weight": 0.1
-            },
-            {
-                "pattern": "{STREET} {BUILDING} {SUB_AREA}",
-                "weight": 0.1
-            },
-            {
-                "pattern": "{STREET} {BUILDING} {COMPOUND} {EMIRATE}",
-                "weight": 0.1
+                "pattern": "{BUILDING} {EMIRATE} {COUNTRY}",
+                "weight": 0.136
             },
             {
                 "pattern": "{BUILDING} {SUB_AREA} {EMIRATE} {COUNTRY}",
-                "weight": 0.1
+                "weight": 0.124
             },
             {
-                "pattern": "{BUILDING} {STREET} {SUB_AREA}",
-                "weight": 0.1
+                "pattern": "{STREET} {BUILDING} {EMIRATE} {COUNTRY}",
+                "weight": 0.119
             },
             {
-                "pattern": "{STREET} {SUB_AREA} {EMIRATE} ",
-                "weight": 0.1
+                "pattern": "{COMPOUND} {BUILDING} {EMIRATE} {COUNTRY}",
+                "weight": 0.083
             },
             {
-                "pattern": "{BUILDING} {COMPOUND} {SUB_AREA} ",
-                "weight": 0.1
+                "pattern": "{STREET} {BUILDING} {CITY} {EMIRATE} {COUNTRY}",
+                "weight": 0.069
             },
             {
-                "pattern": "{BUILDING} {SUB_AREA} {COMPOUND}  ",
-                "weight": 0.1
+                "pattern": "{BUILDING} {COMPOUND} {EMIRATE} {COUNTRY}",
+                "weight": 0.046
             },
             {
-                "pattern": "{SUB_AREA} {EMIRATE} {COUNTRY}",
-                "weight": 0.1
+                "pattern": "{STREET} {BUILDING} {SUB_AREA} {EMIRATE} {COUNTRY}",
+                "weight": 0.041
+            },
+            {
+                "pattern": "{SUB_AREA} {BUILDING} {EMIRATE} {COUNTRY}",
+                "weight": 0.041
+            },
+            {
+                "pattern": "{BUILDING} {STREET} {SUB_AREA} {EMIRATE} {COUNTRY}",
+                "weight": 0.037
+            },
+            {
+                "pattern": "{COMPOUND} {CITY} {EMIRATE} {COUNTRY}",
+                "weight": 0.03
+            },
+            {
+                "pattern": "{COMPOUND} {BUILDING} {SUB_AREA} {EMIRATE} {COUNTRY}",
+                "weight": 0.028
+            },
+            {
+                "pattern": "{COMPOUND} {STREET} {BUILDING} {EMIRATE} {COUNTRY}",
+                "weight": 0.028
+            },
+            {
+                "pattern": "{BUILDING} {COMPOUND} {SUB_AREA} {EMIRATE} {COUNTRY}",
+                "weight": 0.025
+            },
+            {
+                "pattern": "{STREET} {BUILDING} {COMPOUND} {EMIRATE} {COUNTRY}",
+                "weight": 0.025
+            },
+            {
+                "pattern": "{BUILDING} {STREET} {EMIRATE} {COUNTRY}",
+                "weight": 0.024
+            },
+            {
+                "pattern": "{STREET} {COMPOUND} {BUILDING} {EMIRATE} {COUNTRY}",
+                "weight": 0.022
+            },
+            {
+                "pattern": "{STREET} {SUB_AREA} {BUILDING} {EMIRATE} {COUNTRY}",
+                "weight": 0.021
+            },
+            {
+                "pattern": "{COMPOUND} {SUB_AREA} {EMIRATE} {COUNTRY}",
+                "weight": 0.019
+            },
+            {
+                "pattern": "{BUILDING} {STREET} {COMPOUND} {EMIRATE} {COUNTRY}",
+                "weight": 0.019
+            },
+            {
+                "pattern": "{STREET} {COMPOUND} {EMIRATE} {COUNTRY}",
+                "weight": 0.018
+            },
+            {
+                "pattern": "{STREET} {SUB_AREA} {CITY} {EMIRATE} {COUNTRY}",
+                "weight": 0.015
+            },
+            {
+                "pattern": "{STREET} {CITY} {EMIRATE} {COUNTRY}",
+                "weight": 0.015
+            },
+            {
+                "pattern": "{COMPOUND} {EMIRATE} {BUILDING} {COUNTRY}",
+                "weight": 0.015
             }
         ],
         "separator_variations": {
