@@ -14,6 +14,7 @@ import json
 import csv
 import random
 import re
+import string
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Tuple
@@ -243,10 +244,105 @@ class AddressGenerator:
         
         return text
     
+    def _apply_typo_to_entity(self, text: str, entity_type: str) -> str:
+        """
+        为单个实体应用拼写错误
+        
+        Args:
+            text: 实体文本
+            entity_type: 实体类型（用于查找配置）
+            
+        Returns:
+            带有拼写错误的文本
+        """
+        # 检查是否有该实体类型的配置
+        per_entity_config = self.config['typo_injection'].get('per_entity_config', {})
+        if entity_type not in per_entity_config:
+            return text
+        
+        entity_config = per_entity_config[entity_type]
+        
+        # 按概率决定是否为该实体注入错误
+        if random.random() > entity_config['probability']:
+            return text
+        
+        # 如果文本太短，不注入错误
+        if len(text) < 2:
+            return text
+        
+        # 计算最大错误数量
+        max_errors = max(1, int(len(text) * entity_config['max_char_error_ratio']))
+        error_count = random.randint(1, max_errors)
+        
+        # 转换为字符列表以便修改
+        chars = list(text)
+        typo_types = entity_config['typo_types']
+        
+        for _ in range(error_count):
+            if len(chars) < 2:
+                break
+            
+            # 根据权重选择错误类型
+            typo_type = random.choices(
+                list(typo_types.keys()),
+                weights=list(typo_types.values())
+            )[0]
+            
+            # 随机选择一个位置（避免空格）
+            non_space_indices = [i for i, c in enumerate(chars) if c != ' ']
+            if not non_space_indices:
+                break
+            
+            pos = random.choice(non_space_indices)
+            
+            if typo_type == 'swap' and pos < len(chars) - 1:
+                # 交换相邻字符（确保下一个不是空格）
+                next_pos = pos + 1
+                while next_pos < len(chars) and chars[next_pos] == ' ':
+                    next_pos += 1
+                if next_pos < len(chars):
+                    chars[pos], chars[next_pos] = chars[next_pos], chars[pos]
+            
+            elif typo_type == 'deletion':
+                # 删除字符
+                chars.pop(pos)
+            
+            elif typo_type == 'insertion':
+                # 插入随机字符（字母或数字）
+                # 优先插入相似的字符（如果是字母插入字母，如果是数字插入数字）
+                original_char = chars[pos]
+                if original_char.isalpha():
+                    # 插入随机字母，保持相同大小写风格
+                    if original_char.isupper():
+                        random_char = random.choice(string.ascii_uppercase)
+                    else:
+                        random_char = random.choice(string.ascii_lowercase)
+                elif original_char.isdigit():
+                    random_char = str(random.randint(0, 9))
+                else:
+                    random_char = random.choice('abcdefghijklmnopqrstuvwxyz')
+                
+                chars.insert(pos, random_char)
+            
+            elif typo_type == 'substitution':
+                # 替换为随机字符
+                original_char = chars[pos]
+                if original_char.isalpha():
+                    if original_char.isupper():
+                        chars[pos] = random.choice(string.ascii_uppercase)
+                    else:
+                        chars[pos] = random.choice(string.ascii_lowercase)
+                elif original_char.isdigit():
+                    chars[pos] = str(random.randint(0, 9))
+        
+        return ''.join(chars)
+    
     def _generate_t3(self, address: str, entities: Dict[str, str]) -> Tuple[str, Dict[str, str]]:
         """
-        T3: 应用大小写变体
-        注意：这里对整个地址应用变体，但保持实体值不变（用于输出）
+        T3: 应用拼写错误和大小写变体
+        包括：
+        1. 为每个实体应用拼写错误（swap, deletion, insertion, substitution）
+        2. 应用大小写变体
         
         Args:
             address: T2生成的地址
@@ -264,13 +360,26 @@ class AddressGenerator:
         if random.random() > typo_config['global_probability']:
             return address, entities
         
-        # 对整个地址应用大小写变体
-        address_t3 = self._apply_case_variation(address)
+        # 步骤1: 为每个实体应用拼写错误
+        entities_with_typos = {}
+        address_with_typos = address
         
-        # 同时更新实体值（保持一致性）
-        entities_t3 = {}
         for entity_type, entity_value in entities.items():
-            # 为每个实体独立应用变体
+            # 应用拼写错误
+            entity_with_typo = self._apply_typo_to_entity(entity_value, entity_type)
+            entities_with_typos[entity_type] = entity_with_typo
+            
+            # 在地址中替换实体值
+            # 注意：这里需要小心处理，避免误替换
+            if entity_value in address_with_typos:
+                address_with_typos = address_with_typos.replace(entity_value, entity_with_typo, 1)
+        
+        # 步骤2: 应用大小写变体（对整个地址）
+        address_t3 = self._apply_case_variation(address_with_typos)
+        
+        # 同时更新实体值（应用大小写变体）
+        entities_t3 = {}
+        for entity_type, entity_value in entities_with_typos.items():
             entities_t3[entity_type] = self._apply_case_variation(entity_value)
         
         return address_t3, entities_t3
