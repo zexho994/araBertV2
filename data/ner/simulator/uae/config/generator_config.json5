@@ -1,7 +1,18 @@
 {
-    "version": "1.0",
+    "generate_size": 100,
+    "unique_combinations_only": true,
+
+    "dictionaries": {
+        "COUNTRY": "data/ner/simulator/uae/dictionaries/country.txt",
+        "EMIRATE": "data/ner/simulator/uae/dictionaries/emirate.txt",
+        "CITY": "data/ner/simulator/uae/dictionaries/city.txt",
+        "SUB_AREA": "data/ner/simulator/uae/dictionaries/sub_area.txt",
+        "COMPOUND": "data/ner/simulator/uae/dictionaries/compound.txt",
+        "STREET": "data/ner/simulator/uae/dictionaries/street.txt",
+        "BUILDING": "data/ner/simulator/uae/dictionaries/building.txt"
+    },
+
     "templates": {
-        "enabled": true,
         "definitions": [
             {
                 "pattern": "{BUILDING} {STREET} {COMPOUND} {SUB_AREA} {CITY} {EMIRATE} {COUNTRY}",
@@ -29,18 +40,28 @@
             }
         ],
         "separator_variations": {
-            "enabled": true,
-            "options": [",", "/", "-", " , ", ", "],
-            "variation_probability": 0.4
+            "options": [",", "/", "-"],
+            "probability": 0.6
         }
     },
+
     
     "typo_injection": {
         "enabled": true,
-        "global_typo_probability": 0.5,
+        "global_probability": 0.8,
+        "case_variations": {
+            "enabled": true,
+            "probability": 0.4,
+            "strategies": {
+                "normal_case": 0.70,
+                "all_lowercase": 0.15,
+                "all_uppercase": 0.10,
+                "random_case": 0.05
+            }
+        },
         "per_entity_config": {
             "BUILDING": {
-                "probability": 0.05,
+                "probability": 0.6,
                 "max_char_error_ratio": 0.15,
                 "typo_types": {
                     "swap": 0.4,
@@ -114,7 +135,7 @@
     
     "noise_injection": {
         "enabled": true,
-        "global_noise_probability": 0.4,
+        "global_noise_probability": 0.8,
         "max_noise_per_address": 3,
         "noise_types": {
             "punctuation": {
@@ -144,7 +165,7 @@
             },
             "meaningless_words": {
                 "enabled": true,
-                "probability": 0.2,
+                "probability": 0.4,
                 "word_list": [
                     "Near", "Opposite", "Behind", "Next to", "Close to", "beside",
                     "بجانب", "قريب من", "مقابل", "خلف", "أمام",
@@ -153,23 +174,9 @@
                 ],
                 "max_per_address": 2
             }
-        },
-        "noise_position_strategy": {
-            "before_first_entity": 0.15,
-            "between_entities": 0.70,
-            "after_last_entity": 0.15
         }
     },
     
-    "case_variations": {
-        "enabled": true,
-        "strategies": {
-            "normal_case": 0.70,
-            "all_lowercase": 0.15,
-            "all_uppercase": 0.10,
-            "random_case": 0.05
-        }
-    },
     
     "output": {
         "format": "csv",
@@ -185,11 +192,6 @@
             "min_address_length": 20,
             "max_address_length": 500
         }
-    },
-    
-    "generation_limits": {
-        "total_addresses": 100,
-        "unique_combinations_only": true
     }
 }
 
