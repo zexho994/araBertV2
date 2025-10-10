@@ -1,7 +1,9 @@
 AL Muhaisnah
 Abu Dhabi
+أبو ظبي
 Ajman
 Al Ain
+العين
 Al Barsha
 Al Khawaneej 1
 Al Majaz
@@ -11,6 +13,12 @@ Al Quasis
 Al Qusais Industrial Area 5
 Al Raha Gardens
 Al Rams
+Al Dhafra
+الظفرة
+Al Ruwais
+الرويس
+Bani Yas	
+بني ياس
 DISTRICT 18
 Deira
 Dip
@@ -22,12 +30,19 @@ Dubailand
 Fujairah
 International Media Production Zone
 Jumeirah Village Circle
+Jebel Ali
+جبل علي
 Madinat Al Qudra
+Madinat Zayed
 Meydan
 Mohamed Bin Zayed City
 Mohammed Bin Zayed City
 Mussafah Community
+Liwa
+ليوا
 Nad Al Hamar
+Hatta
+حتا
 Ras Al Khor Industrial Area 2
 Ras al Khaimah
 Rashidiya
@@ -39,3 +54,31 @@ district 10
 muhisnah 2
 دبي
 دبي الجنوب
+Khor Fakkan
+خورفكان
+Kalba
+كلباء
+Dibba Al-Hisn
+دبا الحصن
+Al Dhaid
+الذيد
+Masfout
+مصفوت
+Manama
+المنامة	
+Umm Al Quwain
+أم القيوين
+Falaj Al Mualla
+فلج المعلا
+Digdaga
+دقداقة
+Al Jazirah Al Hamra
+الجزيرة الحمراء
+Khatt
+خت
+Dibba Al-Fujairah
+دبا الفجيرة
+Qidfa
+القدفع
+Masafi
+مسافي
