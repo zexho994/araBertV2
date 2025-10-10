@@ -64,7 +64,6 @@
             "probability": 0.6
         }
     },
-
     
     "typo_injection": {
         "enabled": true,

@@ -59,6 +59,28 @@ python3 data/ner/simulator/extract_entities.py
 
 或者手动编辑词典文件，每行一个实体。
 
+### 1.5 分析地址模板（推荐）
+
+使用模板分析工具了解真实数据的模板分布：
+
+```bash
+# 分析标注数据，统计模板出现频率
+python3 data/ner/simulator/analyze_templates.py \
+    data/ner/raw_data/第三次训练/线上数据-第三次训练-01-标注结果.csv
+
+# 生成基于真实数据的模板配置
+python3 data/ner/simulator/analyze_templates.py \
+    data/ner/raw_data/第三次训练/线上数据-第三次训练-01-标注结果.csv \
+    --output data/ner/simulator/uae/config/templates_from_analysis.json
+```
+
+**优势**：
+- ✅ 数据驱动的模板配置
+- ✅ 自动计算权重（基于真实出现频率）
+- ✅ 提供优化建议
+
+详见：[模板分析工具文档](TEMPLATE_ANALYSIS.md)
+
 ### 2. 配置生成器规则
 
 编辑 `{country}/config/generator_config.json`，配置：
@@ -202,9 +224,9 @@ address = apply_case_variations(address)
 - [x] ✅ 支持多语言变体（阿拉伯语/英语混合）
 - [x] ✅ 实体词典提取工具
 - [x] ✅ 配置化生成流程（T1->T2->T3->T4）
+- [x] ✅ 地址模板分析工具（数据驱动的模板配置）
 
 ## 下一步改进
 
-- [ ] 添加数据分布分析工具
 - [ ] 添加实体共现规则
 

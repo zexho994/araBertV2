@@ -187,7 +187,6 @@ Jumeirah Village
 Jumeirah Village Circle
 Jumeirah Village Circle JVC
 Jumeriah 1
-Jvc
 Kalba
 Khalifa City
 Liwan
@@ -271,7 +270,7 @@ Zone 1
 Zone 5
 Zone I
 Zone J
-a l majaz 3
+al majaz 3
 abu Dhabi city
 al furjan
 al nadha2
@@ -294,7 +293,6 @@ qusais
 satwa roundabout
 sonapur
 the gardens
-ا
 الجرينة 1
 الروضة 3
 الزهراء
