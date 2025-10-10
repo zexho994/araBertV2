@@ -116,36 +116,41 @@ class AddressGenerator:
         
         return pattern, entity_types
     
-    def _generate_t1(self) -> Tuple[str, Dict[str, str]]:
+    def _generate_t1(self) -> Tuple[str, Dict[str, str], List[str]]:
         """
         T1: 从模板和词典生成原始地址
         
         Returns:
-            (地址字符串, 实体字典)
+            (地址字符串, 实体字典, 实体值列表（按模板顺序）)
         """
         # 选择模板
         pattern, entity_types = self._select_template()
         
         # 为每个实体类型随机选择一个值
         entities = {}
+        entity_values_ordered = []  # 保存实体值的顺序列表
+        
         for entity_type in entity_types:
             # 从对应词典中随机选择
             entity_value = random.choice(self.dictionaries[entity_type])
             entities[entity_type] = entity_value
+            entity_values_ordered.append(entity_value)
         
         # 填充模板（此时实体之间用空格分隔）
         address = pattern
         for entity_type, entity_value in entities.items():
             address = address.replace(f'{{{entity_type}}}', entity_value)
         
-        return address, entities
+        return address, entities, entity_values_ordered
     
-    def _generate_t2(self, address: str) -> str:
+    def _generate_t2(self, address: str, entity_values: List[str]) -> str:
         """
         T2: 为实体间添加分隔符
+        注意：只在实体之间添加分隔符，不破坏实体内部的空格
         
         Args:
             address: T1生成的地址
+            entity_values: 实体值列表（按在地址中出现的顺序）
             
         Returns:
             添加分隔符后的地址
@@ -158,23 +163,44 @@ class AddressGenerator:
         if random.random() > probability:
             return address
         
-        # 将空格替换为 "分隔符 + 空格"
         # 随机选择一个分隔符
         separator = random.choice(separator_options)
         
-        # 在每个空格位置，有概率添加分隔符
-        parts = address.split(' ')
-        result_parts = []
+        # 在实体之间添加分隔符
+        # 策略：找到每个实体在地址中的位置，在实体之间插入分隔符
+        result = address
+        offset = 0  # 由于插入分隔符导致的位置偏移
         
-        for i, part in enumerate(parts):
-            result_parts.append(part)
-            # 不在最后一个元素后添加
-            if i < len(parts) - 1:
-                # 添加分隔符（概率性）
-                if random.random() < 0.7:  # 70%概率在该位置添加分隔符
-                    result_parts.append(separator)
+        for i in range(len(entity_values) - 1):
+            current_entity = entity_values[i]
+            next_entity = entity_values[i + 1]
+            
+            # 找到当前实体的结束位置
+            current_pos = result.find(current_entity, offset)
+            if current_pos == -1:
+                continue
+            
+            current_end = current_pos + len(current_entity)
+            
+            # 找到下一个实体的开始位置
+            next_pos = result.find(next_entity, current_end)
+            if next_pos == -1:
+                continue
+            
+            # 在两个实体之间插入分隔符
+            # 提取实体之间的间隔部分（通常是空格）
+            between = result[current_end:next_pos]
+            
+            # 如果实体之间有空格，在空格后添加分隔符
+            if between.strip() == '':
+                # 替换为: 空格 + 分隔符 + 空格
+                new_between = f' {separator} '
+                result = result[:current_end] + new_between + result[next_pos:]
+                offset = next_pos + len(new_between) - len(between)
+            else:
+                offset = next_pos
         
-        return ' '.join(result_parts)
+        return result
     
     def _apply_case_variation(self, text: str) -> str:
         """
@@ -383,10 +409,10 @@ class AddressGenerator:
             (最终地址字符串, 实体字典)
         """
         # T1: 生成原始地址
-        address_t1, entities = self._generate_t1()
+        address_t1, entities, entity_values_ordered = self._generate_t1()
         
-        # T2: 添加分隔符
-        address_t2 = self._generate_t2(address_t1)
+        # T2: 添加分隔符（传入实体值列表，确保只在实体之间添加）
+        address_t2 = self._generate_t2(address_t1, entity_values_ordered)
         
         # T3: 应用大小写变体
         address_t3, entities_t3 = self._generate_t3(address_t2, entities)
