@@ -117,12 +117,12 @@ class AddressGenerator:
         
         return pattern, entity_types
     
-    def _generate_t1(self) -> Tuple[str, Dict[str, str], List[str]]:
+    def _generate_t1(self) -> Tuple[str, Dict[str, str], List[str], List[str]]:
         """
         T1: 从模板和词典生成原始地址
         
         Returns:
-            (地址字符串, 实体字典, 实体值列表（按模板顺序）)
+            (地址字符串, 实体字典, 实体值列表（按模板顺序）, 实体类型列表（按模板顺序）)
         """
         # 选择模板
         pattern, entity_types = self._select_template()
@@ -142,7 +142,7 @@ class AddressGenerator:
         for entity_type, entity_value in entities.items():
             address = address.replace(f'{{{entity_type}}}', entity_value)
         
-        return address, entities, entity_values_ordered
+        return address, entities, entity_values_ordered, entity_types
     
     def _generate_t2(self, address: str, entity_values: List[str]) -> str:
         """
@@ -337,7 +337,7 @@ class AddressGenerator:
         
         return ''.join(chars)
     
-    def _generate_t3(self, address: str, entities: Dict[str, str]) -> Tuple[str, Dict[str, str]]:
+    def _generate_t3(self, address: str, entities: Dict[str, str], entity_types: List[str]) -> Tuple[str, Dict[str, str], List[str]]:
         """
         T3: 应用拼写错误和大小写变体
         包括：
@@ -347,18 +347,22 @@ class AddressGenerator:
         Args:
             address: T2生成的地址
             entities: 原始实体字典
+            entity_types: 实体类型列表（按模板顺序）
             
         Returns:
-            (变体后的地址, 更新后的实体字典)
+            (变体后的地址, 更新后的实体字典, 变体后的实体值列表（按模板顺序）)
         """
         typo_config = self.config['typo_injection']
         
         if not typo_config['enabled']:
-            return address, entities
+            # 按原顺序提取实体值
+            entity_values_ordered = [entities[et] for et in entity_types if et in entities]
+            return address, entities, entity_values_ordered
         
         # 按全局概率决定是否进行typo注入
         if random.random() > typo_config['global_probability']:
-            return address, entities
+            entity_values_ordered = [entities[et] for et in entity_types if et in entities]
+            return address, entities, entity_values_ordered
         
         # 步骤1: 为每个实体应用拼写错误
         entities_with_typos = {}
@@ -382,7 +386,10 @@ class AddressGenerator:
         for entity_type, entity_value in entities_with_typos.items():
             entities_t3[entity_type] = self._apply_case_variation(entity_value)
         
-        return address_t3, entities_t3
+        # 按原顺序提取T3后的实体值
+        entity_values_ordered_t3 = [entities_t3[et] for et in entity_types if et in entities_t3]
+        
+        return address_t3, entities_t3, entity_values_ordered_t3
     
     def _generate_noise_punctuation(self) -> str:
         """生成标点噪音"""
@@ -426,13 +433,14 @@ class AddressGenerator:
         word_config = self.config['noise_injection']['noise_types']['meaningless_words']
         return random.choice(word_config['word_list'])
     
-    def _generate_t4(self, address: str) -> str:
+    def _generate_t4(self, address: str, entity_values: List[str]) -> str:
         """
         T4: 注入噪音（标点、数字、无意义词）
-        注意：噪音注入在实体之间，不破坏实体本身
+        注意：噪音只在实体之间注入，不破坏实体本身的完整性
         
         Args:
             address: T3生成的地址
+            entity_values: T3后的实体值列表（已应用拼写错误和大小写变体）
             
         Returns:
             注入噪音后的地址
@@ -446,31 +454,60 @@ class AddressGenerator:
         if random.random() > noise_config['global_noise_probability']:
             return address
         
-        # 将地址按分隔符和空格分割成部分
-        # 使用正则保留分隔符
-        parts = re.split(r'(\s+|,\s*|/\s*|-\s*)', address)
+        # 如果没有实体，不注入噪音
+        if not entity_values or len(entity_values) < 2:
+            return address
         
         # 确定注入噪音的数量
         max_noise = noise_config['max_noise_per_address']
         noise_count = random.randint(1, max_noise)
         
-        # 收集可以注入噪音的位置（分隔符位置）
-        separator_indices = [i for i, part in enumerate(parts) 
-                           if re.match(r'^\s+|,\s*|/\s*|-\s*$', part)]
+        # 找到所有实体之间的间隔位置
+        # 策略：找到每个实体的结束位置，在实体之间插入噪音
+        injection_points = []  # 存储 (position, gap_text) 元组
+        offset = 0
         
-        if not separator_indices:
+        for i in range(len(entity_values) - 1):
+            current_entity = entity_values[i]
+            next_entity = entity_values[i + 1]
+            
+            # 找到当前实体的位置
+            current_pos = address.find(current_entity, offset)
+            if current_pos == -1:
+                continue
+            
+            current_end = current_pos + len(current_entity)
+            
+            # 找到下一个实体的位置
+            next_pos = address.find(next_entity, current_end)
+            if next_pos == -1:
+                continue
+            
+            # 记录实体之间的间隔位置和内容
+            gap_text = address[current_end:next_pos]
+            if gap_text.strip():  # 只在有间隔的地方注入
+                injection_points.append((current_end, next_pos, gap_text))
+            
+            offset = next_pos
+        
+        # 如果没有可注入的位置，返回原地址
+        if not injection_points:
             return address
         
         # 随机选择注入位置
-        inject_positions = random.sample(
-            separator_indices,
-            min(noise_count, len(separator_indices))
+        selected_points = random.sample(
+            injection_points,
+            min(noise_count, len(injection_points))
         )
+        
+        # 按位置倒序排序，从后往前注入（避免位置偏移问题）
+        selected_points.sort(key=lambda x: x[0], reverse=True)
         
         # 在选定位置注入噪音
         noise_types = noise_config['noise_types']
+        result = address
         
-        for pos in inject_positions:
+        for start_pos, end_pos, gap_text in selected_points:
             # 根据概率选择噪音类型
             noise_options = []
             noise_weights = []
@@ -503,11 +540,12 @@ class AddressGenerator:
             else:
                 continue
             
-            # 在分隔符位置添加噪音
-            # 格式: "原分隔符 噪音 "
-            parts[pos] = parts[pos] + noise + ' '
+            # 在间隔中注入噪音
+            # 保留原有的间隔符号，在其后添加噪音
+            new_gap = gap_text.rstrip() + ' ' + noise + ' '
+            result = result[:start_pos] + new_gap + result[end_pos:]
         
-        return ''.join(parts).strip()
+        return result.strip()
     
     def generate_one_address(self) -> Tuple[str, Dict[str, str]]:
         """
@@ -518,16 +556,16 @@ class AddressGenerator:
             (最终地址字符串, 实体字典)
         """
         # T1: 生成原始地址
-        address_t1, entities, entity_values_ordered = self._generate_t1()
+        address_t1, entities, entity_values_ordered, entity_types = self._generate_t1()
         
         # T2: 添加分隔符（传入实体值列表，确保只在实体之间添加）
         address_t2 = self._generate_t2(address_t1, entity_values_ordered)
         
-        # T3: 应用大小写变体
-        address_t3, entities_t3 = self._generate_t3(address_t2, entities)
+        # T3: 应用拼写错误和大小写变体
+        address_t3, entities_t3, entity_values_ordered_t3 = self._generate_t3(address_t2, entities, entity_types)
         
-        # T4: 注入噪音
-        address_t4 = self._generate_t4(address_t3)
+        # T4: 注入噪音（传入T3后的实体值列表，确保不破坏实体）
+        address_t4 = self._generate_t4(address_t3, entity_values_ordered_t3)
         
         return address_t4, entities_t3
     
