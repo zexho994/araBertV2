@@ -6,7 +6,7 @@
 生成流程:
 T1: 从模板和词典生成原始地址
 T2: 为实体间添加分隔符
-T3: 应用大小写变体
+T3: 应用拼写错误和大小写变体
 T4: 注入噪音（标点、数字、无意义词）
 """
 
@@ -342,7 +342,8 @@ class AddressGenerator:
         T3: 应用拼写错误和大小写变体
         包括：
         1. 为每个实体应用拼写错误（swap, deletion, insertion, substitution）
-        2. 应用大小写变体
+        2. 应用大小写变体（对整个地址）
+        3. 从变体后的地址中提取实体值，确保CSV中的实体值与地址文本一致
         
         Args:
             address: T2生成的地址
@@ -368,26 +369,65 @@ class AddressGenerator:
         entities_with_typos = {}
         address_with_typos = address
         
+        # 先为所有实体生成拼写错误版本
         for entity_type, entity_value in entities.items():
-            # 应用拼写错误
             entity_with_typo = self._apply_typo_to_entity(entity_value, entity_type)
             entities_with_typos[entity_type] = entity_with_typo
-            
-            # 在地址中替换实体值
-            # 注意：这里需要小心处理，避免误替换
-            if entity_value in address_with_typos:
-                address_with_typos = address_with_typos.replace(entity_value, entity_with_typo, 1)
         
-        # 步骤2: 应用大小写变体（对整个地址）
+        # 按实体在模板中的顺序进行替换，避免文本重叠问题
+        # 例如："Dubai Studio City" 包含 "Dubai"，需要按顺序替换
+        offset = 0
+        for entity_type in entity_types:
+            if entity_type not in entities:
+                continue
+            
+            entity_value = entities[entity_type]
+            entity_with_typo = entities_with_typos[entity_type]
+            
+            # 从当前offset开始查找实体
+            pos = address_with_typos.find(entity_value, offset)
+            if pos != -1:
+                # 精确替换该位置的实体
+                address_with_typos = (
+                    address_with_typos[:pos] + 
+                    entity_with_typo + 
+                    address_with_typos[pos + len(entity_value):]
+                )
+                # 更新offset到替换后的位置
+                offset = pos + len(entity_with_typo)
+        
+        # 步骤2: 应用大小写变体（只对整个地址应用一次）
         address_t3 = self._apply_case_variation(address_with_typos)
         
-        # 同时更新实体值（应用大小写变体）
+        # 步骤3: 从变体后的地址中提取实体值
+        # 关键：实体值必须从最终地址中提取，确保与地址文本一致
         entities_t3 = {}
-        for entity_type, entity_value in entities_with_typos.items():
-            entities_t3[entity_type] = self._apply_case_variation(entity_value)
+        entity_values_ordered_t3 = []
         
-        # 按原顺序提取T3后的实体值
-        entity_values_ordered_t3 = [entities_t3[et] for et in entity_types if et in entities_t3]
+        # 按实体类型顺序提取
+        for entity_type in entity_types:
+            if entity_type not in entities_with_typos:
+                continue
+            
+            # 获取拼写错误后的实体值（还未应用大小写变体）
+            entity_with_typo = entities_with_typos[entity_type]
+            
+            # 在变体后的地址中查找该实体
+            # 需要考虑大小写变化，使用不区分大小写的查找
+            # 找到实体在地址中的位置，然后提取实际的字符串
+            lower_address = address_t3.lower()
+            lower_entity = entity_with_typo.lower()
+            
+            pos = lower_address.find(lower_entity)
+            if pos != -1:
+                # 从地址中提取实际的字符串（包含正确的大小写）
+                actual_entity = address_t3[pos:pos + len(entity_with_typo)]
+                entities_t3[entity_type] = actual_entity
+                entity_values_ordered_t3.append(actual_entity)
+            else:
+                # 如果找不到（理论上不应该发生），使用原值
+                entities_t3[entity_type] = entity_with_typo
+                entity_values_ordered_t3.append(entity_with_typo)
         
         return address_t3, entities_t3, entity_values_ordered_t3
     
