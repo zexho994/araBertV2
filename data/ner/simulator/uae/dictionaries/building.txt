@@ -214,8 +214,7 @@ Black Ramada
 Black White
 Bldg 104
 Bldg No 20
-Block B  Th Regents Townsquare
-Block C
+Block B Th Regents Townsquare
 Bluewater Residences
 Bos Alkhan bulding 1903
 Bos al khan tower 406
@@ -294,7 +293,6 @@ Damac Ghalia No1615
 Damac Reva Residence
 Damac Towers By Paramount Tower B
 Damac rave residance
-Dania
 Danube resortz
 Dar Al-Jawhara 319
 Dar Sultan Building 3
@@ -695,7 +693,21 @@ Tiara East Tower
 Tiara Residences
 Tiger Building 6
 Tikka and Rob
+Tower 1
 Tower 2
+Tower 3
+Tower 4
+Tower 5
+Tower 6
+Tower 7
+Tower 8
+Tower 9
+Tower 10
+Tower 11
+Tower 12
+Tower 13
+Tower 14
+Tower 15
 Tower A
 Tower B
 Tower B Rimmal Residences
@@ -1534,7 +1546,6 @@ Bin Kamil Building
 Tiffany Tower
 Al Owais Tower
 بناية المندوس
-HQ - Street 54
 Nasser Tower
 China H03
 Al Rostamani Building (Al Qiyada Building)
@@ -1624,7 +1635,7 @@ My City Centre
 Zakhir Tower - 1
 Morocco I10
 Faizal Tower 1
-Villa 12, Street 38, Sharqan, Sharjah
+Villa 12
 DM Labour Housing
 مسجد عيد
 Al Baraha Building
@@ -1673,7 +1684,6 @@ Tamani Arts Offices
 Swiss Tower
 Al Mizhar Mall
 Business Center
-Bank Street Building
 Single Business Tower
 Villa 11
 JBC 3
@@ -1825,7 +1835,6 @@ HDS Business Centre
 100 العَبِير
 Garden Tower
 Phase-1
-Khalidiya Street
 Gate C27
 Metha Plaza Building
 Tuscan Residences Florence 1
@@ -1888,7 +1897,6 @@ Rashidiya Central Market
 La Riviera
 Alfa Building
 Building 10
-Bank Street
 29 Burj Dubai Boulevard
 Dr Abdul Karim Building
 Villa 252
@@ -2031,7 +2039,6 @@ Dubai City Tower
 Al Taawun Mall
 Twin Towers
 Souk Madinat
-10 19dStreet
 Obaidullah Building
 04
 ZEE SUPER MARKET
@@ -2407,7 +2414,6 @@ Sandoval Lane
 Wasl Green Park
 Skycourts Tower B
 Al Bayan Building
-E 108 Corniche St
 Etisalat Tower 2
 Rimal 4
 Rimal 5
@@ -2458,7 +2464,6 @@ Etihad Building
 مسجد أم المؤمنين زينب بنت خزيمة
 International Royal Bakery
 England X12
-Al Qusais street
 AU Tower
 Emaar Residence
 Prestige 8
@@ -2859,7 +2864,6 @@ Lulu Logistics
 Makateb 4
 Spain S06
 NASA Building
-Damac Maison, Dubai Mall Street
 China D07
 Khalidiya Towers
 Al Badia Residence, Building 8
@@ -3047,7 +3051,6 @@ France Q09
 Anantara Downtown Hotel Dubai
 R.A. Residence
 Twin Villa
-sajaya center, 1street
 Murabba Heritage Fort
 The Residences
 Terraced Apartments
@@ -3883,7 +3886,6 @@ GOLD WING BUILDING
 The Fairways West Tower
 Marina Parking
 number 6
-Happiness Street Parking
 ميلنيوم بلازا
 Detroit House Building
 Kempinski Central Avenue
@@ -4093,7 +4095,6 @@ Abdulla Khalifa Building
 Main Building M11
 Barton House 1
 M25 Building
-Boulevard Street
 Palm Jumeirah Mall
 Nation Towers
 Villa166
@@ -4104,7 +4105,6 @@ France R22
 China A02
 Sowwah Square Tower 2
 Banks Building
-JVC Street 1
 Lamcy Parking
 Villa 238
 Al Ghazal Equipment & Machinery
@@ -4535,7 +4535,6 @@ Gate Village, Building 3
 Ahmed Murad Villa
 Makeen Tower
 Nabooda Building
-F 13 54b St
 Mall Hotel
 Morocco J07
 The palace of Sheikh Hamdan bin Rashid Al Maktoum
@@ -4547,7 +4546,6 @@ DG179
 W5
 مسجد المغيرة بن شعبة
 Al Nakheel Tower
-District 11 Street
 BM Tower
 Sport City Amec Building
 Al Narah Apartments - Block A
@@ -4690,7 +4688,6 @@ Al Meraikhi Towers
 API Business Suites
 Dubai Bay Avenue Mall
 لؤلؤة المجاز
-W 15 Julnar St
 Oasis Mall
 Dubai Pearl
 Home
@@ -4922,7 +4919,6 @@ A building C64
 Blue Building
 France R15
 Building No. 158
-C8 - Khalifa St.
 Garden City Tower
 Al Nahyan Compound F
 Matter Plaza
@@ -5195,7 +5191,6 @@ Al Kawakeb Building Block E
 85-77
 Khalifa Residential Complex B
 Al Kawakeb Building Block D
-59 Street 1 Springs 10
 Khalifa Bu Dahoom Building
 DEWA Mosque
 Al Saqr Business Tower
@@ -5230,7 +5225,6 @@ Sheik Khalifa Energy Complex
 Palladium Tower
 Al Kawther Building
 Coral Residence
-828 Al Manhal Street
 China F14
 GULF TOWER
 Al Khazna Centre
@@ -5398,7 +5392,6 @@ Tamani Arts Office - Office No. 1011
 5 building
 Juma Al Majid Building
 venukavala
-P 57 Nisreen3 St
 Al Butina
 Greece K05
 الليوان 2
@@ -5440,7 +5433,6 @@ Mashwi Building
 Rawdhat
 Abdulla Bin Darwish Building
 Villa179
-Tiara Residence - Street
 Al Hamed Building
 Buhaleeba Plaza
 Platinum Building
@@ -5525,7 +5517,6 @@ Awkhaf Building
 Yansoon 6
 Warehouse F15
 DAMAC PARK TOWER,TOWER B
-Marina Creek Street
 Fire Station
 Summer 1
 Geepas
@@ -5571,11 +5562,9 @@ No 6-9
 Park Tower
 Dubai Dolphinarium Children's City
 سيليكون جيت 1
-Nakheel Street
 Razeen 1
 The Galleries 1
 Silicon Heights II
-24/22/21 37b St
 Rose 2 Emirates Gardens
 Sahara Centre
 City Towers Tower
@@ -5614,7 +5603,6 @@ Greece K07
 Al Thush Residence
 Dubai Avenue Mall
 Hili Bldg 63
-F 12 54b St
 Police Impound
 Marina Park
 Al Hawai Twin Towers
@@ -5626,7 +5614,6 @@ Hameem Labor City
 Al Quoz Park 1
 Building 42 Dubai Healthcare City
 England X01
-Villa 11, Street 5
 Villa 278
 Shabiyya Center
 Canal Bay
@@ -5771,7 +5758,7 @@ Spain S24
 Alsharid Building
 Dynatrade Regency M Block
 al midfa
-Al Hamed Building, Al Nasr St, Opp All Prints
+Al Hamed Building
 Al Hosn Tower
 Qatami tower
 Al Nakheel Plaza
@@ -5970,7 +5957,7 @@ Villa152
 Building08
 Shaya Building
 Dubai Museum
-Bldg 53 Khalifa St.
+Bldg 53 Khalifa
 Rehma Al Masaood Building
 DIC 1
 مبنى الخواجة
@@ -6044,7 +6031,6 @@ Al Bayan Residence Building
 Al Mafraq
 The Address Downtown
 SAJAYA 20 BUILDING
-Al Reem 2 Park Street 5
 DIC Building @2
 France Q07
 Building entrance
@@ -6107,16 +6093,13 @@ Buhairah
 Al Ain Insurance Building
 Burj Residences Tower 7
 NYU Abu Dhabi A6 Arts & Humanities Bldg
-7 & 8
 Anabeeb GRP Pipes Factory
 Al Reem 3 Park
 Gate Village 8
-31-33
 Dubai JVC
 Al Wafa Hyper Market
 Golden Sands 8
 Delma Plaza
-East Street 2
 Al Rashid Building
 Grand Shopping Mall
 Bennett House I
@@ -6196,7 +6179,6 @@ Masjid Eid Madya
 Office No G-1
 dubai DEIRA
 مسجد محمد بن أبي بكر
-F 10 54 B St
 Al Tayyeb Building
 Universal Apartment Cbd B2
 Marabe
@@ -6285,7 +6267,6 @@ Casablanca 3 Villa Compound
 Behasa building
 Russia V9
 جامعة زايد
-ST.24
 Earth supermarket building
 Wahla Fort
 مسجد عبدالله علي الشعفار
@@ -6374,7 +6355,6 @@ Villa A13
 Arabian Marble Company
 England X20
 UAB Tower
-Street No: 59
 Al Ain Dates Factory
 Juma Amman
 Almas East
@@ -6632,7 +6612,6 @@ Burj Mansour Tower
 Building - Al Reyamai
 Lenaid Building
 Al Gaz Building
-Al Ittlihad Street
 Morocco I08
 Globally Green View
 Elegant Industries LLC
@@ -6753,7 +6732,6 @@ Toufiq Y Building
 Autumn Cluster
 API Jumeirah Villas
 Healthpoint Hospital
-A 5 29c St
 K4 Building
 Old Teacher's Building 1
 مسجد سيد الشهداء: حمزة بن عبدالمطلب
@@ -6890,7 +6868,6 @@ Miami Gym Building
 292-300
 Nadd Al Hamar Park 2
 Al Jimi Avenue
-al barsha 3, street 50, villa 9
 Men's College of Business
 Sheraton Dubai Creek Hotel & Towers
 khalidiya central block
@@ -6970,7 +6947,6 @@ Building International City
 Speedex Center Building
 Al Fahidi Heights
 Miska 3
-Villa 1 Street 10
 Al Khawaneej Park
 Sharjah Cricket Stadium
 The 77 Valley
@@ -7020,12 +6996,10 @@ Ras Al Khaimah Central Prison
 Golden hill spa
 ADNOC Car Park
 Executive Bay
-92 15c St
 Dar Al Wasl Mall
 Al Massoud Building
 Canon Bldg
 West Avenue
-No. 29
 Mubrooka
 Lavender Tower
 Golden Beach Tower
@@ -7094,16 +7068,13 @@ Axa mall
 المصمم العالمي رضا حسن
 Dar Al Salam
 Dubai Heights Academy
-M4V
 Canal Views Hotel Apartments 1
-JB-02
 Mazaya Center
 Mirdif 35 mall
 Noura Tower
 Tux - 55 70D Al-Rashidiya
 Building 179
 Khalifa B
-W14C
 Al Maqam Tower
 Bin Taryem 8 Building
 Atlantis Hotel The Palm Island
@@ -7143,12 +7114,10 @@ Skycourts Tower
 Parking Paid Building
 Springs 4
 City Apartments
-AFRA
 Hotoon Building
 Air Traffic Control Tower
 Tower by Omniyat
 Steet address 67
-Dubai 25
 برج طارق أ
 Anantara Downtown Hotel
 Umm Al Quwain Grave Yard
@@ -7186,20 +7155,15 @@ Al Salam center
 M7 Building
 Ajman Gate Tower
 Princess Tower
-The Offices 5 One Central
 API 1000 Building
 the park hotel
 Ras Al Khaimah, South
-4 19dStreet
 The Square 1 by Bukhatir building
-Office 43
-١٨
 Mayfair Business Center
 Building 16 - DHCC
 GASCO Habshan
 Buhaira Oasis Tower
 Al Sharhan Apartments
-I 07
 Wasl square
 Sajaya 01
 Al moosa business center
@@ -7219,26 +7183,20 @@ EBC Warehouse - #8
 Hamza Ibn Abdulmuttalib Mosque
 NML B20
 Hamdan Building
-Office 5
 HubCanal1
 Al Mansoor Tower
 Yansoon 5
-BB05
 Vikram Villa
 Wind Tower 1
 Ruler's Palace
-C block
 مسجد الخيال
-A BLOCK
 Villa 270
 Old Wasl Building
 Al Hamidiya Building
 Ali & Sons Marine Engineering Factory
 Al Thouraya Building
 District 1 Block J
-1a
 Al Dahri Building
-Women’s
 Al Meraikhi 3
 District 14- Views
 warehouse 40
@@ -7250,7 +7208,6 @@ Nad Al Sheba Crest
 METRO DUBAI
 Sharjah BLDG
 La plage tower
-C70 - Falah St.
 برج العويس
 Al fattan sky tower 1
 Parking - Terminal 3
@@ -7263,14 +7220,12 @@ Old AD Co-operative Society
 Dubai Television Office
 Al Khoory Courtyard Hotel
 Le Solarium Building
-Hub 2
 Corniche Tower Building
 Al Fadhalani Building
 Gold AE DMCC
 TMKN Villa Compound
 France Q4
 Emirates NBD Office buildings
-21 building
 France P28
 Saheel Tower 2
 Al Muntaz Plaza
@@ -7281,7 +7236,6 @@ Spain S12
 بناية الجرنين
 AL GOZE IND.FIRST
 Wasit Council
-Phase 2, 2-1
 The Tower Plaza
 Offices Block A
 Hadia Tower
@@ -7293,7 +7247,6 @@ Residential Buildings (Biomass and Wave Blocks)
 KEY Business Building
 Villanova
 Sheikha Maryam Bint Ghanem Tower
-SB-02
 Hili Bldg 45
 Arafa Oasis Trading
 Residence 0363
@@ -7309,12 +7262,8 @@ Muhaisnah 1 Park 1
 The Beach Centre
 Greece K3
 Aman Villa
-Al Soor Street
 Al Telal 2
-14 19dStreet
 Bahar Plaza
-الروابي "5"
-RB1
 Umm Al Quwain Chamber of Commerce
 Murjan 3
 Springs 3
@@ -7325,16 +7274,13 @@ Palm View East
 Ghaya Residence
 Villa No 21
 W7 Building
-15A
 Dar Al Aman 12
-7012:Al Deya School
+Al Deya School
 EMPIRE PLAZA
 China D06
 Ubora Office Tower
 Rose Residence
-Noor 3
 Asas Garden City 2 Building
-Building 64 Street 5
 سد وادي شعم
 Hili Bldg 11
 School Health Centre
@@ -7348,7 +7294,6 @@ Khalid plaza
 Hili Bldg 32
 مدرسة الرحبة
 Al Ain Center, Computer Plaza - M05
-23-17
 Gheyath Tower
 City Walk Bldg 22
 Orra residence
@@ -7360,9 +7305,7 @@ Plaza Offices
 8 صُوغِيَّة
 Silicon Oasis
 Spain T09
-Phase(2
 Palazzo Versace Dubai
-Gardenia (Al Murooj complex
 Al Moosa Compound Villas
 Building 24 Dubai Healthcare City
 South Zone 2
@@ -7384,14 +7327,12 @@ London hotel building
 France Q5
 Egyptian Club
 Villa190
-Dubai 1
 ASGRC - AL SHAFAR GRC L.L.C
 Al Twar 3 Park 1
 Ayhaco building
 Bulding 3A
 Phase II Accommodation
 Sama 2 Bldg
-SB-10
 Al Thahni Used Furniture
 JLT Central Park
 Bay Central
@@ -7424,7 +7365,6 @@ Building No. 14
 Building 9, The Sterling
 Flora Residence
 District 7 Park B
-The Offices 4
 Adco Complex
 MALL MALL
 Khaleefa city
@@ -7450,13 +7390,10 @@ Fujairah Police Station
 EMR 11, Emarati Cluster
 Dubai 1205
 Rakia Amenity Business Tower 1
-9J
 Morocco I03
 New Rashid Building
 Al Ghuwair 3 Building
-16 19dStreet
 Spain S1
-روز 6
 Mediterranean Tower
 Al Refaee Building
 Bin Shougat
@@ -7473,14 +7410,12 @@ Fatma Building
 The Grand Avenue D
 Abul Jadayel Beverages Limited
 Palace of His Highness Sheikh Ahmed the Emir of Qatar
-Office 706
 القرية الإماراتية
 Najmat Plot C14 by Aabar Properties
 El Reem Complex aka Reem Villas
 Hamriyah Free Zone
 Al Canary
 Abdullah Al Gobash
-TH 6
 Adnoc's Park
 Al Noaf Park
 China E06
@@ -7530,7 +7465,6 @@ Kanoo Bldg
 Jurf -1
 Jumeirah 1
 Mall Road 2
-Dubai street 313
 Golden Mile 4
 Sharjah Healthcare city
 Greece Cluster L13
@@ -7543,12 +7477,10 @@ Bin Haider Building
 Warehouse 14
 Al-Shorouk Tower
 One Business bay by Omniyat
-phase 2 - 1
 ASAS M6
 Hamdancenter shopping mall
 Dubai Pearl Tower 1
 Building T-02
-N202
 Skynet Cargo Bldg
 Um Roman School For Girl's
 Al Satwa Basketball Court 2
@@ -7560,16 +7492,13 @@ AMESCO Tower
 H3VS-12, Jumeriah Park
 G4S Accomodation
 Palm Deira
-160-166
 Hili Bldg 84
 Safeerhypermarket Building
 Tijara 1 Building
-23B
 Saeed Suhail Building
 Al Barsha Star
 RAK Building
 Al Zamalak Building
-C1-04
 C24 Building
 AL THANI BUILDING 5946
 Al Hina Apartment
@@ -7602,27 +7531,22 @@ Labour Park
 Derby Record Management
 مسجد المقداد بن عمرو
 Jumeirah Emirates Towers, Offices Tower
-59-65
 Sarab 2 Community
 Safiya Park
 L2 - Dubai Mall
-M22
 Spain S2
 Burj Dar Al Salam
 مسجد السيدة عائشة ام المؤمنين رضي الله عنها
-D1 - Street 9
 Corniche One Deira
 Villa 266
 Building number 11
 Yansoon 2
 Al Rasis Business Centre
-47/H
 Muneerpp
 Emirates NBD Bank Building
 Villa 301
 Al Manara Plaza
 Bin Ham Tower C
-Y Cluster
 All Manar Model School For Girl's
 Warehouse Number C05
 Ibrahim Tower
@@ -7633,7 +7557,6 @@ Kamali Building
 Nation Towers Mall
 Al Thamam 61
 Courtyard of Building 7
-F-033
 Toufiq O
 Corniche Plaza Tower
 Al Khiyami Bldg. - 1
@@ -7641,13 +7564,11 @@ Al Huda 1 Building
 Hili Bldg 31
 Villa 218
 Garden Residence
-11 & 12
 Al Islami Foods
 SIJI Residences
 Wasl Square Block 2
 Building 56
 Villa No. 1
-L2 P7
 Al Basha 3
 Fanan Al Mamzer
 Sarab 4
@@ -7660,7 +7581,6 @@ Gate -A Entrance
 SKN DXB NO.2378
 Fire Fighter Company
 NetExpress
-21-17
 Multiplex Warehouse
 Abu Hail Park 4
 Mövenpick Media City
@@ -7697,7 +7617,6 @@ International Quarries And Cement
 KG Tower
 IBN Battuta Shopping Mall
 District One Gate 1
-77-59
 Maryam Plaza Parking
 Khalifa Building
 Rokane G24 Tower
@@ -7715,7 +7634,6 @@ rose 9 Building
 Cluster Shop #9
 The Dubai Creek Residences
 Thenseer's
-M32
 Jumeirah 3 Park 1
 Hili Bldg 89
 Al Naeem Twin Tower Offices entrance
@@ -7729,7 +7647,6 @@ Ahmed Abdulla Alhameli Building
 Villa 226
 Makateb 2 Building
 Lake Promenade
-Block 12
 PHASE I
 M3 Building
 Al Shafar Investment Building Entrance B
@@ -7754,7 +7671,6 @@ Al Gaizi plaza
 Lago Vista Tower
 Al-Ghilala Building
 Centro Shopping Mall
-A 4 29c St
 Al Rwatea
 Al Sila Park
 Qalaat Al Remal
@@ -7763,31 +7679,25 @@ Warehouse 74
 England X10
 Medical Centre
 Persia O-4
-26 B
 Wasl Quarts Building
 Dubai Land Dubai Land
 Al Ghanem Business Center
 Noora Bint Sultan Secondary Girls School
 Tower Etisalat
 Corniche Building
-077
 Damac Park Tower A Office 409
 Building01
 Building P14
 Saraya Building
 Al ekhlas Mosque
 Burjman Business tower
-56-64
 Project 382
 Al Razooki Building
-C01
 Buildings C31
 Mirdif City Centre
-JB-7
 Burj Nahar Views Building
 Abu Dhabi Hill
 AL Zarouni Business Center
 The Beach Mall
-Y 08
 Villa 281
 Anantara Tower

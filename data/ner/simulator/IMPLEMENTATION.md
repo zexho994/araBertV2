@@ -46,36 +46,55 @@
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
-│ T3: 大小写变体                                            │
+│ T3: 拼写错误 + 大小写变体                                  │
 │                                                          │
-│ 1. 按概率决定是否应用变体                                 │
+│ 第一步：拼写错误注入（typo_injection）                     │
+│ 1. 按全局概率决定是否应用拼写错误                          │
+│ 2. 为每个实体应用per_entity_config配置的错误               │
+│ 3. 在地址中替换原实体为包含错误的实体                       │
+│                                                          │
+│ 拼写错误类型:                                             │
+│   - swap:        交换相邻字符 (Dubai → Duabi)            │
+│   - deletion:    删除字符 (Villa → Vila)                 │
+│   - insertion:   插入随机字符 (276 → 2766)              │
+│   - substitution: 替换字符 (Yalayis → Yalayiz)           │
+│                                                          │
+│ 第二步：大小写变体（case_variations）                       │
+│ 1. 按概率决定是否应用大小写变体                            │
 │ 2. 选择变体策略（4种）                                    │
-│ 3. 应用到整个地址                                         │
+│ 3. 应用到整个地址和所有实体                               │
 │                                                          │
-│ 策略:                                                    │
+│ 大小写策略:                                               │
 │   - normal_case:    保持原样                             │
 │   - all_lowercase:  全小写                               │
 │   - all_uppercase:  全大写                               │
 │   - random_case:    随机大小写                           │
 │                                                          │
 │ 输入: Villa 276, Al Yalayis 4, Dubai, UAE               │
-│ 输出: villa 276, al yalayis 4, dubai, uae               │
+│ 中间: Vila 276, Al Yalayiz 4, Duabi, UAE  (拼写错误)     │
+│ 输出: vila 276, al yalayiz 4, duabi, uae  (小写变体)     │
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
 │ T4: 噪音注入                                              │
 │                                                          │
 │ 1. 按概率决定是否注入噪音                                 │
-│ 2. 确定注入位置（实体间的分隔符处）                       │
-│ 3. 选择噪音类型并生成                                     │
+│ 2. 找到所有实体边界（基于entity_values_ordered_t3）       │
+│ 3. 在实体之间的间隔处注入噪音                             │
+│ 4. 从后往前注入，避免位置偏移                             │
 │                                                          │
 │ 噪音类型:                                                │
-│   - punctuation:       标点符号                          │
+│   - punctuation:       标点符号 (!@#$%^&*...)            │
 │   - numbers:           数字/电话/P.O. Box                │
-│   - meaningless_words: 无意义词                          │
+│   - meaningless_words: 无意义词 (Near/Close to/Flat...) │
 │                                                          │
-│ 输入: villa 276, al yalayis 4, dubai, uae               │
-│ 输出: villa 276, Near al yalayis 4, 1234 dubai, uae     │
+│ 关键特性: 保护实体完整性                                  │
+│   ✓ 支持包含空格的实体（不会在实体内部注入）               │
+│   ✓ 基于实体边界精确定位                                  │
+│   ✓ 拼写错误的实体也能正确识别                            │
+│                                                          │
+│ 输入: vila 276, al yalayiz 4, duabi, uae                │
+│ 输出: vila 276, Near al yalayiz 4, +971... duabi, uae   │
 └─────────────────────────────────────────────────────────┘
                           ↓
                     最终输出
@@ -108,10 +127,20 @@ if config['noise_injection']['enabled']:
 ```python
 def generate_one_address(self):
     """生成一个完整的地址"""
-    address_t1, entities = self._generate_t1()  # 原始地址
-    address_t2 = self._generate_t2(address_t1)  # 添加分隔符
-    address_t3, entities_t3 = self._generate_t3(address_t2, entities)  # 变体
-    address_t4 = self._generate_t4(address_t3)  # 注入噪音
+    # T1: 生成原始地址
+    address_t1, entities, entity_values_ordered, entity_types = self._generate_t1()
+    
+    # T2: 添加分隔符（基于实体边界，不破坏实体内部空格）
+    address_t2 = self._generate_t2(address_t1, entity_values_ordered)
+    
+    # T3: 应用拼写错误和大小写变体
+    address_t3, entities_t3, entity_values_ordered_t3 = self._generate_t3(
+        address_t2, entities, entity_types
+    )
+    
+    # T4: 注入噪音（基于实体边界，保护实体完整性）
+    address_t4 = self._generate_t4(address_t3, entity_values_ordered_t3)
+    
     return address_t4, entities_t3
 ```
 
@@ -222,16 +251,21 @@ if unique_only and address in self.generated_addresses:
 - 易于调优
 - 支持实体级差异化
 
-### 4. 噪音注入策略
+### 4. 实体边界保护策略
 
-**问题**: 真实世界地址包含各种噪音
+**问题**: 如何在注入分隔符、噪音时保护实体完整性？
 
-**解决方案**: 在实体间注入噪音，不破坏实体本身
+**解决方案**: 
+- 传递有序的实体值列表（entity_values_ordered）
+- 在地址中精确定位每个实体的边界
+- 只在实体之间的间隔处进行操作
+- 支持包含空格的多词实体（如 "Al Barsha 1"）
 
 **优势**:
-- 保证实体标注准确
-- 提高模型鲁棒性
-- 模拟真实场景
+- ✅ 保证实体标注100%准确
+- ✅ 支持复杂的多词实体
+- ✅ 避免破坏实体内部结构
+- ✅ 提高模型鲁棒性
 
 ---
 
