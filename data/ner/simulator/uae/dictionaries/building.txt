@@ -2040,7 +2040,6 @@ Al Taawun Mall
 Twin Towers
 Souk Madinat
 Obaidullah Building
-04
 ZEE SUPER MARKET
 Jahwara Building
 Apricot Tower
@@ -2072,7 +2071,6 @@ Residence 3A
 Ibn Battuta Mall
 Al Wuheida Area
 Red Avenue Building
-06
 Al Jimi Kindergarten
 France P19
 Al Owais
@@ -2158,7 +2156,6 @@ Al Zafranah Park
 Bin Daher Centre
 Ajman Free Zone, Gate No.4
 Tawain Dam
-١
 Spain S04
 برج لؤلؤة الخليج
 Hili Bldg 66
@@ -2285,7 +2282,6 @@ Al Fahad Building
 Greece L08
 Al wazir building Nahda
 Building 71
-١١٥
 Sheikh Rashid Tower
 R/A
 Magnolia Bldg. 2 - Shop G03
@@ -2555,7 +2551,6 @@ District4JPlot8
 1 & 2
 5-169
 Hili Building
-07
 Al Thamam 63
 al ain central
 Sarah Center
@@ -2618,7 +2613,6 @@ Jundub Ibn Abdullah Mosque
 Al Ain
 JLT Cluster D
 JVC D16 Block F
-001
 Icon Towers 2
 Hili Apartments
 Russia W05
@@ -3803,7 +3797,6 @@ Villa 288
 Al Ghozlan 1
 The Curve
 Sahara Tower
-02
 مسجد طوي الزبير
 المزروع
 لاند مارك
@@ -4340,7 +4333,6 @@ Dubai Insurance Building
 Habshan Building
 Villa 274
 Panasonic Building
-03
 Souq Extra
 Mothercare Center
 Building 20
@@ -4448,7 +4440,6 @@ Block 2
 نصب الساعة في الرولة
 DU Mobile Tower
 مسجد آمنة بنت عبيد
-05
 CI Tower
 Emirates Office Tower
 Arenco Tower
@@ -5180,7 +5171,6 @@ Discovery Gardens, Building 45
 Churchill Executive Towers
 Al Qasidiya
 Jabel Ali Cricket Ground
-09
 Rizwan Tower
 Masjid Umar Bin Abdul Azeez
 34 Mall
@@ -5425,7 +5415,6 @@ The grand avenue
 The Square Complex
 Shoreline 10
 Gold Centre Bldg., Gold Souk
-٢
 Al Badri
 Plot No. 2
 Burj Residences Tower
@@ -5558,7 +5547,6 @@ Tani Villa
 Bahawan Plaza building
 Al Ferdous Tower
 No 6-9
-08
 Park Tower
 Dubai Dolphinarium Children's City
 سيليكون جيت 1
@@ -6342,7 +6330,6 @@ Al Joud Center
 Union Avenue
 NBQ Bank Building
 Al Naseem A
-٣٣
 Sheikh Majid Building
 Al Itihad Tower
 Hili Bldg 38
@@ -6841,7 +6828,6 @@ Latifa Bin Hamdan Building
 plaza - tower
 Toufiq F
 Burj Daman
-01
 Al Dhilly Building
 51-49
 Villa Complex

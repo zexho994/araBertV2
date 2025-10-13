@@ -745,8 +745,6 @@ Al Ghurfah Street
 61B Street
 33rd Street
 سوق ديرة القديم - بر دبي
-2
-1
 31B Street
 شارع عمار بن ياسر
 Merashid - Madhab Road
@@ -831,7 +829,6 @@ Crescent Road
 44 Street
 9C Street
 شارع بيروت
-10
 Baniyas Square
 Al Hisn Street
 شارع أبو بكر الصديق
@@ -1055,7 +1052,6 @@ Al Soor Street
 شارع 2 ب
 37D Street
 شارع الأعمال
-13
 شارع - ٣١٨
 D67
 329th Road
@@ -1140,7 +1136,6 @@ Al Shahd Street
 شارع مسقط
 شارع معاذ
 16th St
-14
 Souk Al Bahar Bridge
 Rebat Street
 شارع جميرا
@@ -1290,7 +1285,6 @@ Cluster O
 Al Quds Street
 Al Daghaya St
 شارع البطين
-8
 شارع الخليج
 شارع جمال عبدالناصر
 Al Nahar 2 St
@@ -1369,7 +1363,6 @@ Al Intifada Street
 Buheira Corniche Road
 Manama Street
 طريق دبي - الغويفات الدولي
-5
 21D Street
 شارع ٥
 AL HASSAN AL BASRI Street
@@ -1442,7 +1435,6 @@ Cluster B
 E66
 شارع اليَحَر
 Sa-id Street
-٢
 شارع السوايب
 Marasi Drive street
 شارع القاسمي
