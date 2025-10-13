@@ -3083,7 +3083,7 @@ business center building
 West Zone Plaza Hotel Apartments
 SAS 2 Building
 Al Owais Residences
-Villa 4 Room 2
+Villa 4
 Gate 1 Tower
 Sharjah Co-Operative Society
 Twin Villa Plot
@@ -3266,7 +3266,6 @@ K13
 Al Safa Toll Gate
 Twin Tower
 Office Court Building
-Classrooms - Women
 Creative Tower
 Ibn Seena school
 Delphine
@@ -12598,7 +12597,6 @@ chaimaa avenue 2
 china cluster a01
 china cluster f04
 china cluster h07
-china cluster room
 circle amsa 2
 circle binghatti corner
 circle bloom tower
@@ -13190,7 +13188,6 @@ royal continental hotel
 saeed bn hm
 saeed city avenue
 saeed city centre
-saeed deira room
 saeed port saeed
 saeed united arab
 said port said
@@ -15883,7 +15880,6 @@ satwa bus station
 satwa south heights
 sharjah american school
 sheikh hamdan complex
-sima hotel room 101
 sky court tower
 square warda 2
 tala 1
@@ -16205,7 +16201,6 @@ nad tower nad al
 nahda al bustan
 naif murshed bazar joana
 nasser lootah villas villa
-night stay room
 office 1003al owais
 office 1003al owais tower
 plaza office
@@ -16874,7 +16869,6 @@ majid property
 mazda showroom
 mercure city
 metha garden home
-metha room
 metha sultan centre
 moosa abdul rahman
 muteena al ghurair
