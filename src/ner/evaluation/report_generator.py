@@ -114,27 +114,36 @@ class NERReportGenerator:
                 
                 # 检查是否有识别错误
                 if true_entity_text != pred_entity_text:
-                    # 有错误，使用高亮格式
+                    # 有差异，使用不同格式展示
                     if true_entity_text and pred_entity_text:
-                        # 都有值但不同
-                        cell_content = f"{true_entity_text}（{pred_entity_text}）"
+                        # 都有值但不同：真正的误识别
+                        cell_content = f"正确: {true_entity_text} | 预测: {pred_entity_text}"
                         cell_style = "error"
                     elif true_entity_text and not pred_entity_text:
-                        # 漏识别
-                        cell_content = f"{true_entity_text}（未识别）"
-                        cell_style = "error"
+                        # 标注有值但未识别：漏识别 - 使用灰色
+                        cell_content = f"正确: {true_entity_text}"
+                        cell_style = "missing"  # 使用missing样式（灰色）
                     else:
-                        # 误识别
-                        cell_content = f"（误识别：{pred_entity_text}）"
-                        cell_style = "error"
+                        # 标注无值但预测有值：可能是标注缺失或真的误识别
+                        # 使用中性的展示方式，让用户自行判断
+                        cell_content = f"预测: {pred_entity_text}"
+                        cell_style = "warning"  # 使用warning样式（黄色）
                 else:
-                    # 正确识别
-                    cell_content = true_entity_text or ""
-                    cell_style = "correct"
+                    # 完全一致
+                    if true_entity_text:
+                        # 正确识别
+                        cell_content = true_entity_text
+                        cell_style = "correct"
+                    else:
+                        # 都为空
+                        cell_content = ""
+                        cell_style = "correct"
                 
                 row_result['entity_columns'][entity_type] = {
                     'content': cell_content,
-                    'style': cell_style
+                    'style': cell_style,
+                    'true': true_entity_text,
+                    'pred': pred_entity_text
                 }
             
             detailed_results.append(row_result)
@@ -153,7 +162,7 @@ class NERReportGenerator:
             tokens: 对应的词序列
             
         Returns:
-            实体类型到实体文本的映射
+            实体类型到实体文本的映射（同一类型多个实体用 " | " 连接）
         """
         entities = {}
         current_entity = None
@@ -164,7 +173,12 @@ class NERReportGenerator:
                 # 开始新实体
                 if current_entity:
                     # 保存之前的实体
-                    entities[current_entity] = ' '.join(current_tokens)
+                    entity_text = ' '.join(current_tokens)
+                    if current_entity in entities:
+                        # 如果该类型已存在，追加
+                        entities[current_entity] += f" | {entity_text}"
+                    else:
+                        entities[current_entity] = entity_text
                 current_entity = label[2:]  # 去掉 'B-' 前缀
                 current_tokens = [token]
             elif label.startswith('I-') and current_entity == label[2:]:
@@ -173,13 +187,23 @@ class NERReportGenerator:
             else:
                 # 结束当前实体
                 if current_entity:
-                    entities[current_entity] = ' '.join(current_tokens)
+                    entity_text = ' '.join(current_tokens)
+                    if current_entity in entities:
+                        # 如果该类型已存在，追加
+                        entities[current_entity] += f" | {entity_text}"
+                    else:
+                        entities[current_entity] = entity_text
                     current_entity = None
                     current_tokens = []
         
         # 处理最后一个实体
         if current_entity:
-            entities[current_entity] = ' '.join(current_tokens)
+            entity_text = ' '.join(current_tokens)
+            if current_entity in entities:
+                # 如果该类型已存在，追加
+                entities[current_entity] += f" | {entity_text}"
+            else:
+                entities[current_entity] = entity_text
         
         return entities
     
@@ -293,7 +317,7 @@ class NERReportGenerator:
         writer.writerow([])
         
         # 写入表头
-        headers = ['Sample ID', 'Text'] + [f"{entity} (True)" for entity in specified_entities] + [f"{entity} (Pred)" for entity in specified_entities]
+        headers = ['Sample ID', 'Text'] + [f"{entity} (正确值)" for entity in specified_entities] + [f"{entity} (预测)" for entity in specified_entities]
         writer.writerow(headers)
         
         # 写入数据行
@@ -392,6 +416,42 @@ class NERReportGenerator:
         """写入 Excel 汇总信息"""
         row = 1
         
+        # 添加颜色图例说明
+        try:
+            from openpyxl.styles import PatternFill, Font
+            
+            ws.cell(row=row, column=1, value="颜色图例 / Color Legend:")
+            ws.cell(row=row, column=1).font = Font(bold=True)
+            row += 1
+            
+            # 红色：真正的错误（标注和预测都有值但不同）
+            error_fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
+            ws.cell(row=row, column=1, value="红色 Red")
+            ws.cell(row=row, column=1).fill = error_fill
+            ws.cell(row=row, column=2, value="识别错误：标注和预测都有值但不同")
+            row += 1
+            
+            # 灰色：漏识别（标注有值但未预测）
+            missing_fill = PatternFill(start_color="D3D3D3", end_color="D3D3D3", fill_type="solid")
+            ws.cell(row=row, column=1, value="灰色 Gray")
+            ws.cell(row=row, column=1).fill = missing_fill
+            ws.cell(row=row, column=2, value="漏识别：标注有值但模型未预测出来")
+            row += 1
+            
+            # 黄色：可能是标注缺失
+            warning_fill = PatternFill(start_color="FFE699", end_color="FFE699", fill_type="solid")
+            ws.cell(row=row, column=1, value="黄色 Yellow")
+            ws.cell(row=row, column=1).fill = warning_fill
+            ws.cell(row=row, column=2, value="预测有值但标注为空（可能是标注缺失，需人工判断）")
+            row += 1
+            
+            # 无颜色：正确
+            ws.cell(row=row, column=1, value="无颜色 White")
+            ws.cell(row=row, column=2, value="正确识别或都为空")
+            row += 2
+        except ImportError:
+            pass
+        
         # 标题
         ws.cell(row=row, column=1, value="=== EVALUATION SUMMARY ===")
         row += 2
@@ -484,9 +544,13 @@ class NERReportGenerator:
         data_start_row = summary_end_row + 1
         try:
             from openpyxl.styles import PatternFill
-            error_fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
+            error_fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")  # 红色：真正的错误
+            missing_fill = PatternFill(start_color="D3D3D3", end_color="D3D3D3", fill_type="solid")  # 灰色：漏识别
+            warning_fill = PatternFill(start_color="FFE699", end_color="FFE699", fill_type="solid")  # 黄色：可能是标注缺失
         except ImportError:
             error_fill = None
+            missing_fill = None
+            warning_fill = None
         
         for idx, result in enumerate(detailed_results):
             row = data_start_row + idx
@@ -501,9 +565,39 @@ class NERReportGenerator:
                 entity_data = result['entity_columns'][entity_type]
                 cell = ws.cell(row=row, column=col, value=entity_data['content'])
                 
-                # 如果是错误，设置背景色
+                # 根据样式设置背景色
                 if entity_data['style'] == 'error' and error_fill is not None:
                     cell.fill = error_fill
+                elif entity_data['style'] == 'missing' and missing_fill is not None:
+                    cell.fill = missing_fill
+                elif entity_data['style'] == 'warning' and warning_fill is not None:
+                    cell.fill = warning_fill
+        
+        # 自动调整列宽
+        self._auto_adjust_column_width(ws)
+    
+    def _auto_adjust_column_width(self, ws):
+        """自动调整列宽以适应内容"""
+        try:
+            for column in ws.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                
+                for cell in column:
+                    try:
+                        if cell.value:
+                            # 考虑中文字符（占2个单位）和英文字符（占1个单位）
+                            cell_len = sum(2 if ord(c) > 127 else 1 for c in str(cell.value))
+                            max_length = max(max_length, cell_len)
+                    except (TypeError, ValueError, AttributeError):
+                        pass
+                
+                # 设置列宽，增加一些余量，并设置最大和最小值
+                adjusted_width = min(max(max_length + 2, 10), 100)
+                ws.column_dimensions[column_letter].width = adjusted_width
+        except Exception:
+            # 如果自动调整失败，静默跳过
+            pass
     
     def _generate_problematic_entities_data(
         self,
@@ -585,7 +679,7 @@ class NERReportGenerator:
         current_row += 2
         
         # 写入表头
-        headers = ['Sample ID', 'Text'] + [f"{entity} (True)" for entity in specified_entities] + [f"{entity} (Pred)" for entity in specified_entities]
+        headers = ['Sample ID', 'Text'] + [f"{entity} (正确)" for entity in specified_entities] + [f"{entity} (预测)" for entity in specified_entities]
         for col, header in enumerate(headers, 1):
             ws.cell(row=current_row, column=col, value=header)
         
@@ -617,13 +711,13 @@ class NERReportGenerator:
             for entity_type in specified_entities:
                 entity_issue = sample['entity_issues'][entity_type]
                 
-                # True 值
+                # 正确
                 ws.cell(row=current_row, column=col, value=entity_issue['true'] or "")
                 if error_fill is not None:
                     ws.cell(row=current_row, column=col).fill = error_fill
                 col += 1
                 
-                # Pred 值
+                # 预测值
                 ws.cell(row=current_row, column=col, value=entity_issue['pred'] or "")
                 if error_fill is not None:
                     ws.cell(row=current_row, column=col).fill = error_fill
