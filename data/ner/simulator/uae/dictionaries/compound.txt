@@ -136,6 +136,11 @@ Cluster A
 Cluster A Gate 2
 Cluster S
 Cluster T
+AI Cluster 1
+Cscec Cluster A office
+AI Cluster A Gate 2
+AI Cluster S
+CScec Cluster T
 Compound 3
 DIP 2
 DUBAI INDUSTRIAL CITY
