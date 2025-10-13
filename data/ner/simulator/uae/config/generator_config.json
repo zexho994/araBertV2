@@ -1,5 +1,5 @@
 {
-    "generate_size": 15000,
+    "generate_size": 20000,
     "unique_combinations_only": true,
     "dictionaries": {
         "COUNTRY": "data/ner/simulator/uae/dictionaries/country.txt",
