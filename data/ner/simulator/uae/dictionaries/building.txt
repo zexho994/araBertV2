@@ -64,7 +64,7 @@ Al Khazna Building
 Al Maas Building G21
 Al Maktoum International Airport
 Al Maktoum Intl airport
-Al Manarah Village  39-36
+Al Manarah Village 39-36
 Al Marwa Tower
 Al Mas Building
 Al Masood Building 14
@@ -100,7 +100,7 @@ Al Telal 20
 Al Telal Residence 24
 Al Wahda Mall
 Al Wahda Residential Tower
-Al Wasl Hub  Block 2
+Al Wasl Hub Block 2
 Al Whada mall
 Al Yemen Al Saeed Resturant
 Al Zahra Building
@@ -530,7 +530,7 @@ New Gate 2
 New World Center
 New villa
 Night And Night Hypermarket
-Nikki Beach Residence  Building 2
+Nikki Beach Residence Building 2
 Nilavara Restaurant
 Nitsetey hotel
 Nizami appartment
@@ -929,7 +929,6 @@ gold souk
 golf vita
 grand café
 grand emirates market
-ground floor
 gym building
 halla shawarma
 hamasat cafeteria
@@ -1737,7 +1736,7 @@ Andalus Building
 Jibarah building
 Building No. 16
 Jumeirah Business Center 5
-Nastaran Tower Floor p02
+Nastaran Tower
 Tower 400
 Ras Al Khor Complex
 Ontario Tower
@@ -3048,7 +3047,7 @@ Boulevard 47
 Sterling
 Villa 134
 Park Place
-First Floor , Commercial Bank Of Dubai Building
+Commercial Bank Of Dubai Building
 BMTC Building
 Office 12A08
 Al Hello Building
@@ -3389,8 +3388,6 @@ Sustainable Admin Facility 1
 Anantara Towers
 Buhaira tower
 Russia V04
-District 8 Block J
-M2
 Villa Residence
 Al Jazzat Park
 Jurf
@@ -3453,7 +3450,7 @@ Kheskani Residence
 Dubai Downtown Financial Center
 Square
 Garden city
-First Floor Entrance
+Entrance
 Golf Villas
 Building 39 Dubai Healthcare City
 Rise Tower
@@ -4382,8 +4379,6 @@ France Q2
 1 Marsa
 Hili Bldg 95
 Al Zumurrud Tower
-1 13
-District 11
 Trident Tower
 Villa 250
 Building 123
@@ -4484,7 +4479,7 @@ palace of Sheikh Hamdan bin Rashid Al Maktoum
 Old Town Avenue
 Majaz 3
 Windsor Manor Tower
-Al Gurg tower 3,12th floor ,VFS Global
+Al Gurg tower 3
 DG179
 مسجد المغيرة بن شعبة
 Al Nakheel Tower
@@ -4664,12 +4659,10 @@ Hili Bldg 17
 Al Jabri 1 Building
 Al Nasseriya School
 Al Rashidiya Park 1
-Mall 1st Floor
 Atlantis Staff Accommodation Block S2
 City Star Tower
 Gold Center
 Hili Bldg 18
-Business Tower - Floor
 Sundials Village
 Duran Tower B
 A.S.B. Tower
@@ -5059,7 +5052,6 @@ Dubai Properties Group Building
 Omniyat The Square Apartment
 FDH-501
 Sheika Alyaa
-I-rise tower Floor
 AD One Tower
 Westar Les Maisonettes
 ETISALAT SOUQ
@@ -5266,7 +5258,6 @@ Capital Centre
 Greece K03
 Special Tasks Department
 Santevill Dubai
-21st Floor, Festival Tower
 O-3
 Dubai Airport Terminal 2 Departures
 Emirates Post
@@ -6189,7 +6180,6 @@ Al Ghanem 153, Askan Holding
 Alkhatib Villas
 Russia W07
 Dubai Media City Building 14
-District 2
 Iris Bay Tower
 Hussain Haider Darwish Building
 China E02
@@ -6387,7 +6377,6 @@ Block 10
 AG House
 Rose 6
 Dusit Thani Hotel
-22-26
 INJAZAT DATA
 المركز المالي
 Building No: A06
@@ -6640,7 +6629,6 @@ Liwan 2
 EMR 12
 Dubai International Airport Terminal 3
 76 BUILDING
-119-111
 Plot 6
 API Residency
 Sheikha Noora Building
@@ -6859,7 +6847,6 @@ Marina Mall Area
 Hili Bldg 71
 Al sheeba
 Al Amal No. 1
-First floor
 A&F tower
 Russia W01
 Claverton House 1
@@ -7184,7 +7171,6 @@ Geepas Commercial Centre
 Mag Properties S05
 Jumeira 3 Park 2
 jessims clock tower
-Mall, G-Floor
 Palace Residences
 Shoukat Bin Soughat Building
 Atlantis Staff Accommodation Block M1
@@ -7349,7 +7335,6 @@ Dubai Health HQ
 Neelkamal
 Raddan Building
 Dubai Jumeirah Bay X2
-Mall - 1st floor
 مسجد الصفا
 Noora Building
 Business Center-1
@@ -9001,7 +8986,6 @@ Iris Blue
 Iris Park
 I-Rise
 I-Rise tower
-I-rise tower Floor
 IT PLAZA
 Italy cluster U-04 building
 Italy U03
@@ -9412,7 +9396,6 @@ Precinct Building 4
 Precinct Building 5
 Premier Composite Technologies
 Prime Business Centre
-Prime Business Tower - Floor
 Prime Residency I
 Prime Residency II
 Princess Tower
@@ -9707,7 +9690,6 @@ Naseer Lootah Building
 Naser Ahmed Building
 Nashwan Building
 Nasriya Building
-Nastaran Tower Floor p02
 Nastaran-G01 (D12)
 Nehal Residence Building
 NetExpress
@@ -9781,7 +9763,6 @@ Al Ghurair Building
 Al Ghurair Shopping Center
 Al Gurg Tower
 Al Gurg Tower 1
-Al Gurg tower 3,12th floor ,VFS Global
 Al Haidan Building
 Al Hamriya Oasis (Hor Al Anz Building)
 Al Hamriya Shopping Center
@@ -10749,7 +10730,6 @@ Wasl square
 Westar Vista Apartments 1
 White Crown Tower
 Yansoon 9
-21st Floor, Festival Tower
 Al Ain Center
 Al Ain Center, Computer Plaza - M27
 Al Mada’n 3
@@ -12542,7 +12522,6 @@ al marsha marina
 al murad towers
 al naseem 23
 al nujoom burj
-al nujoom floor
 al qarya tower
 al raha al
 al raha buildingbehind
@@ -13188,7 +13167,6 @@ llc shop 7 ascana
 london city hotel 20th
 maktoum 82 al maktoum
 maktoum city seasons hotel
-mezzanine floor khalid bin
 nayef kamal khalifa al
 park al karama united
 port saeed bn hm
@@ -13294,14 +13272,14 @@ Hayat Townhouses
 Noor Townhouses
 Sama Townhouses
 mpulse middle east FZ LLE
-DAMAC Hills 2  Janusia
-DAMAC Hills 2  Acuna
+DAMAC Hills 2 Janusia
+DAMAC Hills 2 Acuna
 Damac Hills 2 Sanctnary
 DAMAC Hills 2 Avencia
 DAMAC Hills 2 Basswood
 Damac Hills 2 Mimosa
 DAMAC Hills 2 Zinnia
-DAMAC Hills 2  Primrose
+DAMAC Hills 2 Primrose
 DAMAC Hills 2 Claret
 DAMAC Hills 2 Sycamore
 DAMAC Hills 2 Mulberry
@@ -14134,8 +14112,6 @@ heights united arab emirates
 khail mall al quoz
 la rive
 maple 2 hills estate
-almas 2st floor
-miraclz danube 16 floor
 murano 5
 nahda 1 burj
 park sheffield
@@ -15149,7 +15125,6 @@ ramth 5
 reem 3 1 villa
 residence mankhool
 rose residence 1
-sabkha 1st floor
 safi town house
 salah al din al
 sands 4
@@ -15339,7 +15314,6 @@ dar al aman 24
 dubailand windsor
 eastern star residence
 farah plaza
-floor al mankhool
 green house hotel
 gurg twin tower
 hessa damac hills golf
@@ -15572,7 +15546,6 @@ rashid lootah
 rayhaan rotana
 reem town
 rihab tower
-sabkha office 4th floor
 safa 5 villanova la
 sama residence al
 seas hotel
@@ -16953,7 +16926,6 @@ al yasmeen abu
 al yasmeen abu hail
 arabian orchard complex b
 arz lebanon
-burj nahar mall floor
 city night hypermarket
 civil defense
 dhiyafa residence

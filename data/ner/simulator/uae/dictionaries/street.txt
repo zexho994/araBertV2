@@ -1510,7 +1510,6 @@ Al Fasool Street
 Ibn Khaldon Street
 Claverton Street
 شارع الكرامة
-301-305
 طريق الحصن
 Sharaf DG Metro Footbridge
 Street 66
@@ -1975,7 +1974,6 @@ S18
 Al A'yad St
 SHOP 20
 Shop 14
-102-105
 AL Naser Street
 شارع ند كَوَّاس
 Al Taawun Round about
@@ -2113,7 +2111,6 @@ Street No 18A
 Al Farqad Street
 Units 706
 Sheikh Rasheed street
-1701-22
 2 Beach Walk
 Imam Al Shafee Street
 Humaid Bin Abdulaziz Street
@@ -2183,7 +2180,6 @@ Sheikh Zayed Al Nahyan Road
 Al Qasar Rd(F19)
 29 D Street
 55.4276277
-601-0320
 Al Resasi Street
 Al Marmoum
 Warehouse 7
