@@ -242,6 +242,18 @@
                     "Before", "After", "Front", "Back", "Left", "Right"
                 ],
                 "max_per_address": 2
+            },
+            "plus_code": {
+                "enabled": true,
+                "probability": 0.2,
+                "description": "Plus Code格式：X代表字母数字混合字符",
+                "format_types": {
+                    "standard_8char": {
+                        "pattern": "XXXX+XXX",
+                        "description": "标准8字符格式，如: 5CP4+CMM, 7GQR+2X",
+                        "probability": 1
+                    }
+                }
             }
         }
     },

@@ -473,10 +473,43 @@ class AddressGenerator:
         word_config = self.config['noise_injection']['noise_types']['meaningless_words']
         return random.choice(word_config['word_list'])
     
+    def _generate_plus_code(self) -> str:
+        """
+        生成 Plus Code 格式的地理编码
+        支持多种格式：
+        - XXXX+XXX (8字符标准格式)
+        - XXXX+XXXXX (10字符完整格式)
+        - XX+XX (6字符短格式)
+        """
+        plus_code_config = self.config['noise_injection']['noise_types']['plus_code']
+        format_types = plus_code_config['format_types']
+        
+        # 根据概率选择格式
+        format_names = list(format_types.keys())
+        format_weights = [format_types[f]['probability'] for f in format_names]
+        selected_format = random.choices(format_names, weights=format_weights)[0]
+        
+        pattern = format_types[selected_format]['pattern']
+        
+        # 生成符合格式的 Plus Code
+        # 使用大写字母和数字的组合（Plus Code 使用 23456789CFGHJMPQRVWX）
+        plus_code_chars = '23456789ABCDEFGHIJKLMNPQRSTUVWXYZ'
+        
+        result = ''
+        for char in pattern:
+            if char == 'X':
+                result += random.choice(plus_code_chars)
+            else:
+                result += char  # 保留 '+' 等特殊字符
+        
+        return result
+    
     def _generate_t4(self, address: str, entity_values: List[str]) -> str:
         """
-        T4: 注入噪音（标点、数字、无意义词）
-        注意：噪音只在实体之间注入，不破坏实体本身的完整性
+        T4: 注入噪音（标点、数字、无意义词、Plus Code等）
+        支持：
+        1. 在地址起始位置注入特殊噪音（如Plus Code）
+        2. 在实体之间注入噪音，不破坏实体本身的完整性
         
         Args:
             address: T3生成的地址
@@ -494,16 +527,27 @@ class AddressGenerator:
         if random.random() > noise_config['global_noise_probability']:
             return address
         
-        # 如果没有实体，不注入噪音
-        if not entity_values or len(entity_values) < 2:
-            return address
+        # 步骤1: 检查是否需要在起始位置注入 Plus Code
+        result = address
+        noise_types = noise_config['noise_types']
         
+        if 'plus_code' in noise_types and noise_types['plus_code']['enabled']:
+            plus_code_config = noise_types['plus_code']
+            if random.random() <= plus_code_config['probability']:
+                plus_code = self._generate_plus_code()
+                result = plus_code + ' ' + result
+        
+        # 如果没有实体，返回当前结果（可能已包含Plus Code）
+        if not entity_values or len(entity_values) < 2:
+            return result
+        
+        # 步骤2: 在实体之间注入噪音
         # 确定注入噪音的数量
         max_noise = noise_config['max_noise_per_address']
         noise_count = random.randint(1, max_noise)
         
         # 找到所有实体之间的间隔位置
-        # 策略：找到每个实体的结束位置，在实体之间插入噪音
+        # 注意：需要在result中查找实体（可能已包含Plus Code）
         injection_points = []  # 存储 (position, gap_text) 元组
         offset = 0
         
@@ -511,28 +555,28 @@ class AddressGenerator:
             current_entity = entity_values[i]
             next_entity = entity_values[i + 1]
             
-            # 找到当前实体的位置
-            current_pos = address.find(current_entity, offset)
+            # 在result中找到当前实体的位置
+            current_pos = result.find(current_entity, offset)
             if current_pos == -1:
                 continue
             
             current_end = current_pos + len(current_entity)
             
-            # 找到下一个实体的位置
-            next_pos = address.find(next_entity, current_end)
+            # 在result中找到下一个实体的位置
+            next_pos = result.find(next_entity, current_end)
             if next_pos == -1:
                 continue
             
             # 记录实体之间的间隔位置和内容
-            gap_text = address[current_end:next_pos]
+            gap_text = result[current_end:next_pos]
             if gap_text.strip():  # 只在有间隔的地方注入
                 injection_points.append((current_end, next_pos, gap_text))
             
             offset = next_pos
         
-        # 如果没有可注入的位置，返回原地址
+        # 如果没有可注入的位置，返回当前结果
         if not injection_points:
-            return address
+            return result
         
         # 随机选择注入位置
         selected_points = random.sample(
@@ -543,10 +587,7 @@ class AddressGenerator:
         # 按位置倒序排序，从后往前注入（避免位置偏移问题）
         selected_points.sort(key=lambda x: x[0], reverse=True)
         
-        # 在选定位置注入噪音
-        noise_types = noise_config['noise_types']
-        result = address
-        
+        # 在选定位置注入噪音（在实体之间）
         for start_pos, end_pos, gap_text in selected_points:
             # 根据概率选择噪音类型
             noise_options = []
