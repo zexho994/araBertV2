@@ -43,7 +43,7 @@ class EvaluatePredictCommand(BaseCommand):
             help="Path to evaluation data file"
         )
         parser.add_argument(
-            "--country","-d",
+            "--country", "-c",
             required=True,
             help="Country code for configuration"
         )
@@ -53,7 +53,7 @@ class EvaluatePredictCommand(BaseCommand):
             help="Output directory for evaluation results"
         )
         parser.add_argument(
-            "--confidence-threshold","-t",
+            "--confidence-threshold", "-t",
             type=float,
             default=0.5,
             help="Confidence threshold used by model.predict()"
@@ -62,6 +62,16 @@ class EvaluatePredictCommand(BaseCommand):
             "--limit",
             type=int,
             help="Limit number of samples for quick evaluation"
+        )
+        parser.add_argument(
+            "--detailed-report", "--dr",
+            action="store_true",
+            help="Generate detailed evaluation report (Excel format)"
+        )
+        parser.add_argument(
+            "--entity", "-e",
+            type=str,
+            help="Comma-separated list of entity types to focus on (e.g., 'COUNTRY,EMIRATE'). If specified, will create a special section for samples where all specified entities have issues."
         )
     
     def execute(self, args) -> bool:
@@ -135,7 +145,84 @@ class EvaluatePredictCommand(BaseCommand):
                     json.dump(results, f, ensure_ascii=False, indent=2)
                 self.logger.info(f"\nSaved evaluation (predict) metrics to: {metrics_path}")
             
+            # 生成详细报告
+            if getattr(args, 'detailed_report', False):
+                self._generate_detailed_report(
+                    results, texts, true_labels, config, out_dir, args
+                )
+            
             return True
         except Exception as e:
             self.logger.error(f"Evaluation (predict) failed: {e}")
             return False
+    
+    def _generate_detailed_report(self, results, texts, true_labels, config, out_dir, args):
+        """生成详细的评估报告"""
+        try:
+            from ..evaluation.report_generator import NERReportGenerator
+            from datetime import datetime
+
+            self.logger.info(f"Starting to generate detailed report to: {out_dir}")
+            
+            # 获取实体类型列表
+            label_mapping = config.get('labels', {}).get('label_mapping', {})
+            if not label_mapping:
+                self.logger.warning("No label mapping found in config, skipping detailed report")
+                return
+            
+            # 从BIO标签中提取实体类型（去掉B-/I-前缀）
+            entity_types = set()
+            for label in label_mapping.keys():
+                if label != 'O' and '-' in label:
+                    entity_type = label.split('-', 1)[1]  # 去掉B-/I-前缀
+                    entity_types.add(entity_type)
+            entity_types = sorted(list(entity_types))
+            
+            # 如果没有实体类型，则跳过详细报告
+            if not entity_types:
+                self.logger.warning("No entity types found in label mapping, skipping detailed report")
+                return
+            
+            self.logger.info(f"Extracted entity types: {entity_types}")
+            
+            predictions = results.get('predictions', [])
+            
+            if not texts:
+                self.logger.warning("No valid examples found for detailed report")
+                return
+            
+            # 确保预测结果与文本数量一致
+            if len(predictions) != len(texts):
+                self.logger.error(f"Prediction count ({len(predictions)}) != text count ({len(texts)}), truncating")
+                return
+            
+            # 生成报告文件路径
+            timestamp = datetime.now().strftime("%Y%m%d%H%M")
+            report_filename = f"evaluation_predict_report_{timestamp}.xlsx"
+            report_path = out_dir / report_filename if out_dir else report_filename
+            
+            # 解析指定的实体类型
+            specified_entities = None
+            if hasattr(args, 'entity') and args.entity:
+                specified_entities = [e.strip() for e in args.entity.split(',')]
+                # 验证指定的实体类型是否存在于配置中
+                invalid_entities = [e for e in specified_entities if e not in entity_types]
+                if invalid_entities:
+                    self.logger.warning(f"Invalid entity types specified: {invalid_entities}. Available types: {entity_types}")
+                    specified_entities = [e for e in specified_entities if e in entity_types]
+                if specified_entities:
+                    self.logger.info(f"Focusing on entity types: {specified_entities}")
+            
+            # 生成Excel报告
+            report_generator = NERReportGenerator(logger=self.logger)
+            report_path = report_generator.generate_excel_report(
+                texts, true_labels, predictions, results, entity_types, str(report_path), specified_entities
+            )
+            
+            if report_path:
+                self.logger.info(f"Detailed evaluation report generated: {report_path}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to generate detailed report: {e}")
+            import traceback
+            self.logger.debug(traceback.format_exc())
