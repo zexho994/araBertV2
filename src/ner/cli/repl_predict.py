@@ -113,6 +113,11 @@ class PredictREPL:
             self.model_path = model_path
 
             self._log_info(f"模型已加载: {model_path}")
+
+            if self.country:
+                self._log_info(f"已设置国家: {self.country}，预处理已启用")
+            else:
+                self._log_info("尚未设置国家，预处理未启用")
         except Exception as e:
             self._log_error(f"加载模型失败: {e}")
 
@@ -194,6 +199,7 @@ class PredictREPL:
         print(
             """
 可用命令：
+  country <code>            设置国家代码（例如：uae）
   load <model_path>         加载模型与分词器（懒加载重库，仅首次慢）
   predict <text>            预测单条文本；已加载模型时，直接输入文本也可预测
   threshold <float>         设置预测置信度阈值（0~1，默认 0.5）
