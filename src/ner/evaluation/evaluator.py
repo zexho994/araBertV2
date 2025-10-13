@@ -335,8 +335,17 @@ class NEREvaluator:
                 confidence_threshold=confidence_threshold,
                 device=self.device
             )
-            # 同步裁剪，确保与 true_seq 对齐
-            pred_labels = result['labels'][:len(true_seq)]
+            # 确保预测标签与真实标签长度完全一致
+            pred_labels = result['labels']
+            expected_length = len(true_seq)
+            
+            if len(pred_labels) < expected_length:
+                # 若预测标签不足，用 'O' 填充
+                pred_labels = pred_labels + ['O'] * (expected_length - len(pred_labels))
+            elif len(pred_labels) > expected_length:
+                # 若预测标签过长，截断
+                pred_labels = pred_labels[:expected_length]
+            
             predictions.append(pred_labels)
         
         token_metrics = self.metrics_calculator.compute_token_metrics(

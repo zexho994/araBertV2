@@ -1,11 +1,3 @@
-Road
-Rd
-Street
-St
-Road.
-Rd.
-Street.
-St.
 1 14D Street
 1 14D شارع
 1 Al Rawdah Street
@@ -585,7 +577,6 @@ SCF Family Accommodation
 Al Amal Street
 41st Street
 7th Street
-13th floor
 Street 9A
 Hassan Bin Haitham Street
 75c Street
@@ -729,7 +720,6 @@ Sheikh Rashid Bin Saeed Al Maktoum Street
 Al Rams Road
 65th Street
 15th B Street
-41st Floor
 Hamdan Bin Mohammed Street
 15th Street
 Al Manama - Ras Al Khaimah Road
@@ -758,7 +748,6 @@ Al Ghurfah Street
 2
 1
 31B Street
-2nd Floor
 شارع عمار بن ياسر
 Merashid - Madhab Road
 شارع الخليج العربي
@@ -806,7 +795,6 @@ Al Sadakah Street
 10 Street
 Rolla Street
 30th Street
-Exit 65
 12D Street
 Al Mussallah Road
 17 A Street
@@ -873,7 +861,6 @@ Al Faseel Rd(E99)
 44th Street
 Sheikh Zayed Bin Sultan Street
 شارع أبو ذر الغفاري
-9th Floor
 شارع ٧
 King Abdul Aziz Street
 11A شارع
@@ -884,7 +871,6 @@ Al Marija Street
 شارع زايد الأول
 27th Street
 59 Street
-Exit 1
 Sheikh Mohammed Bin Zayed Road
 Yas Marina Circuit
 Street 4
@@ -938,7 +924,6 @@ Al Afnan Street
 E44
 شارع ١٩
 Khalid Bin Al Waleed Road
-First Floor
 Street 38
 شارع الجَنَايِن
 79th Street
@@ -975,7 +960,6 @@ Al Wahda Street
 Al Khaleej Street
 14C Street
 28C Street
-7th Floor
 Dubai Fountain Street
 4a St
 25A Street
@@ -1021,7 +1005,6 @@ Lazuward North East
 إ99
 AL Shuaibah
 49C Street
-3rd Floor
 Amr Bin Al A'as Street
 شارع الكورنيش الشرقي
 Zabeel Street
@@ -1061,12 +1044,10 @@ Al Arouba Street
 Hassan Bin Thabit Street
 22 B Street
 شارع الرباط
-52nd Floor
 120th Street
 70 Street
 طريق الكورنيش
 شارع الشيخ راشد بن حميد
-11th Floor
 شارع هزاع بن سلطان
 38d St
 76C Street
@@ -1114,7 +1095,6 @@ Al Mankhal St
 Jebel Ali Race Course Road
 Al Maktoum Hospital Road
 Cluster U
-14th Floor
 شارع ١٥
 Mohammed Bin Rashid Al Maktoum City
 46 Street
@@ -1195,7 +1175,6 @@ Sheikh Mohammed Bin Saqr Al Qasimi Street
 Burj Khalifa St
 Etisalat Khalid Bin Sultan Street
 S115
-Mezannine floor
 45C Street
 S112
 26A st
@@ -1222,7 +1201,6 @@ Al Majaz
 Al Mireef Street
 Al Ezz Bin Abdulsalam Street
 Al Barsha 1
-طريق الذيد‎
 Al Barsha 2 Street
 8 شارع
 Al Barsha Road
@@ -1234,13 +1212,11 @@ Dubai Al Safa Road
 Al Ma'ali Street
 Discovery Gardens Street 8
 Al Madina St
-Second Floor
 شارع الضيافة
 Al Rahah Street
 47C Street
 3b St
 Cluster F
-10th Floor
 Sikkat Al Khail Road
 Al Emreef Street
 Ahmad Bin Majid Road
@@ -1261,7 +1237,6 @@ D54
 D591
 شارع ٢٦
 شارع الثنيه
-6th floor
 شارع الشرق
 Rosa Road
 D89
@@ -1276,7 +1251,6 @@ Service Road
 S108
 26 A Street
 Al A'amal St
-4th Floor
 Cluster D
 شارع - ٣٨
 شارع سيف الحمراني
@@ -1376,7 +1350,6 @@ West Corniche Road
 Riyadh Street
 Al Shahama - Abu Dhabi Road
 Butina
-Ground Floor
 20th St
 Fourth Industrial Street
 Street 82
@@ -1391,7 +1364,6 @@ Al Murar
 Cross Road
 Sheikh Khalifa Bin Zayed Road
 شارع الخَلِيج العَرَبي
-20th Floor
 Ahmed Bin Darwish Square
 Al Intifada Street
 Buheira Corniche Road
@@ -1420,7 +1392,6 @@ Al Badee Road
 21 B Street
 D94
 Al Arsad Street
-Exit 3
 شارع خالد بن سلطان
 22 A Street
 43C Street
@@ -1525,7 +1496,6 @@ Doha Road
 شارع المَمْلَحة
 towards DIFC Parking
 شارع الدوحه
-27th Floor
 شارع المُلْتَقى
 Jumeirah Beach Rd
 Main Road
@@ -1542,7 +1512,6 @@ OUD AL TOUBA STREET
 Sheikh Mohammad Bin Zayed Rd
 شارع محمد سالم بو خميس
 Al Kabeer Street
-8th Floor
 Al Thuraya Street
 Al Warqaa Rd
 Al Fasool Street
@@ -1552,9 +1521,6 @@ Claverton Street
 301-305
 طريق الحصن
 Sharaf DG Metro Footbridge
-1st Floor
-16th Floor
-Exit 60
 Street 66
 Saeed Bin Saif Al Falahi Street
 Yas Leisure Drive
@@ -1585,7 +1551,6 @@ Al Hejan St
 دائرة الفيحاء
 شارع الصفوح
 Sh.saud Bin Rashid Al Mualla Street
-03rd Floor
 شارع خادم بن بطي آل حامد
 Palm Jumeirah Road
 Al Nessnass Street
@@ -1638,10 +1603,8 @@ Al Khaznah Street
 Block A 1202
 شارع الخَزنة
 17 B Street
-63rd floor
 Al Manhal Street
 Zayed Al Awwal Street
-29th Floor
 Al Adaed Street
 Al Aamal Street
 Al Rigga Street
@@ -1827,7 +1790,6 @@ Mu'allaqat Boulevard
 شارع الأفنان
 شارع د. محمد سعيد البادي الظاهري
 4th Interchange
-24th Floor
 شارع المنامه
 Infinity Bridge Road
 Street-15
@@ -1836,7 +1798,6 @@ Street-15
 Al MajazAl
 7 B Street
 Malacca Street
-35th Floor
 Al Barraq St
 Vista Boulevard
 3 B Street
@@ -1848,7 +1809,6 @@ Omar Ibn Al Khattab Rd
 Al Istiqlal street
 Sheikh Rashid bin Humaid road
 Al Sullaj
-17th floor
 International City 2 St
 D53
 شارع سلطان آل الكبير الشرقية
@@ -1874,7 +1834,6 @@ Al Haif road
 Abu Hail Road
 Shaikh Ammar road
 Cluster P
-Third Floor
 D93
 شارع التأهيل
 Entrance 2
@@ -1907,7 +1866,6 @@ Abbad Bin Beshr
 Dubai Al A'amal street
 Abi Musa Al-Ash'ari Street
 Beach Walk
-40th Floor
 3 - Beach Walk
 Al Khawaneej Main Street
 Al Maqta'a Bridge
@@ -1943,12 +1901,9 @@ Al Khaleej Al Tejari
 Gate 19
 D83
 24a St
-34th floor
-Jemeirah
 Dubai 30 Street
 Mushrif Road
 Electricity Road
-shop # 7
 The Old Town Avenue
 Al Gouj Street
 Oakwood Road
@@ -1963,9 +1918,6 @@ Al Itihad Road
 Park Road
 Al Huwelat Street
 D95
-Floor 25th
-Exit 33
-122nd Floor
 Service Rd
 Kahraba South East
 Al Humaideya Rd
@@ -1973,7 +1925,6 @@ Al Humaideya Rd
 Al KhalidiyahW17-01
 كْوَار
 Unit B 4
-shop #6
 East 33
 Al Sheikh Zayed St
 street 414
@@ -2002,7 +1953,6 @@ Al Maqta Road
 شارع المدر
 Karwah Street
 1 Promenade
-21st floor
 62 B Street
 jamal abdul nasir road
 AL halil street
@@ -2015,14 +1965,11 @@ Ar Rahmah 6 Street
 apartment 2601
 Disal Street
 E 66
-shop 05
 Corniche Road West
 شارع الترحاب
-shop 5
 Shop Number 26
 Salahudeen Road
 Sheikh Khalid Street
-G Floor
 603A Mohammed Bin Rashid Al Maktoum City
 Baniyas Rd
 Widcombe Street
@@ -2030,7 +1977,6 @@ Al Marsa Road
 Ahalia Hospital Road
 Link Road
 شارع البروج
-22th floor
 King Khalid Bin Abdel Aziz Street
 S18
 9b St
@@ -2063,7 +2009,6 @@ Oud Al MuteenaArea 4
 Hajeb Bin Zayed St
 Al Abraj St
 شارع البَسُول
-31st floor
 Khalidia St
 شارع السَّنِع
 Al Tarres Street
@@ -2078,7 +2023,6 @@ Shop No. 21
 Al Hilton Street
 شارع الزخمي
 Shop No - SS001
-8 th floor
 Al Quawasim Corniche Rd
 LRH01-GU06
 Salam&hamdan Street
@@ -2086,17 +2030,13 @@ Diera Old Souk - Bur Dubai
 OFC 203
 Al Reef2
 Unit H33
-shop number 4
 Block B - 1101
 Al Mubari Street
 Shaikh Khalifa Street
 Moh'd Bin Rashed Blvd
 Muntasir Rd
-23rd Floor
-26th Floor
 King Salman Bin Abdulaziz Al Said Road
 1 Asas 1
-Entrance B 3rd Floor
 شارع أحمد بن عبدالله الرميثي
 new robbery شارع
 bin Malik street
@@ -2150,7 +2090,6 @@ Altabee'a Street
 Marina ring road
 Umm Al Quwain A-2
 802C Street
-The first floor
 Mohammed Bin Zayed Zone 19
 شارع, SO
 Sikka 21B
@@ -2165,7 +2104,6 @@ Al Sabbat Street
 Jumeirah Beach Street
 Cluster B Street
 Al Sediqe St
-21 FLOOR
 Al Tabee'a 1 Street
 Street number 109
 Mzaham Street
@@ -2183,7 +2121,6 @@ Street No 18A
 Al Farqad Street
 Units 706
 Sheikh Rasheed street
-IInd Floor
 1701-22
 2 Beach Walk
 Imam Al Shafee Street
@@ -2231,12 +2168,10 @@ Al Madheef Street
 Al ithihad road
 Al etihad Street
 Unit C1005
-SC201 First Floor
 Shop No. 16
 Al Ohood Street
 Al Zakhmi Street
 Esbigi st
-Mezzanine Floor
 Al Maamourah St
 Saheel Street
 3 Road
@@ -2255,11 +2190,9 @@ Oman-Hatta Road
 Sheikh Zayed Al Nahyan Road
 Al Qasar Rd(F19)
 29 D Street
-6a 1st Floor
 55.4276277
 601-0320
 Al Resasi Street
-9th and 10th Floor
 Al Marmoum
 Warehouse 7
 Al Aweer Road

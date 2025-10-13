@@ -43,7 +43,7 @@ class EvaluatePredictCommand(BaseCommand):
             help="Path to evaluation data file"
         )
         parser.add_argument(
-            "--country",
+            "--country","-d",
             required=True,
             help="Country code for configuration"
         )
@@ -53,7 +53,7 @@ class EvaluatePredictCommand(BaseCommand):
             help="Output directory for evaluation results"
         )
         parser.add_argument(
-            "--confidence-threshold",
+            "--confidence-threshold","-t",
             type=float,
             default=0.5,
             help="Confidence threshold used by model.predict()"
