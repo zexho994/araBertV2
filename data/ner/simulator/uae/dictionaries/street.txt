@@ -762,7 +762,6 @@ Sharjah-Kalba Road
 شارع 10
 Cluster T
 Al Fahidi Street
-إ89
 شارع الشيخ مكتوم بن راشد
 39B Street
 Jumeirah Beach Road
@@ -805,7 +804,6 @@ Al Khalidia Street
 شارع ١٣
 شارع الجامعة
 شارع دبي العين
-إ11
 D79
 S134
 شارع الإسكندرية
@@ -852,7 +850,6 @@ Lane 3707
 Street 12
 Marina Promenade
 شارع الملك سلمان بن عبدالعزيز آل سعود
-إ311
 شارع ٢٥
 Al Faseel Rd(E99)
 44th Street
@@ -999,7 +996,6 @@ Sheikh Zayed Bin Hamdan Al Nahyan Street
 A
 شارع الرفاعة
 Lazuward North East
-إ99
 AL Shuaibah
 49C Street
 Amr Bin Al A'as Street
@@ -1080,7 +1076,6 @@ King Abdullah Bin Abdulaziz Al Saud Street
 46B Street
 22nd Road
 23 A Street
-إ44
 23D Street
 Ibrahim Mohammed Al Medfa Street
 308th Road
@@ -1159,7 +1154,6 @@ Al Nasr Street
 Al Noor St
 S118
 29 St
-إ75
 ‘Uqdat Al Muwaij‘I Street
 C3 Street
 26b Sikka
