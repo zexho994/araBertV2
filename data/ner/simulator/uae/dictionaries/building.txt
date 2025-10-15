@@ -359,7 +359,6 @@ Flat E330
 Future 3
 GMC
 Gala supermarket
-Gallery villas r6-35
 Gate Tower
 Geco Complex
 Genuine Auto General Repairing
@@ -1312,7 +1311,6 @@ Khalidiya Tower
 SANTOSH TECHNICAL SERVICES LLC
 Clover Bay Tower
 Hamriyah Ground 1 - Phase 1
-France R09
 Al Ain Courts
 Marina Mall
 Universal Apartment Cbd D6
@@ -1516,7 +1514,6 @@ B8 Building
 Sheikh Mohammed Villas
 Silicon Residences
 Yas Bay
-Al Wasl Building (R421)
 Trafalgat Central CBD 8
 Beach Tower 1
 Marina Gate
@@ -1582,7 +1579,6 @@ khansaheb residence
 Bu Ameen Building
 Al Durrah Tower
 Liwa Building
-France R14
 City Mall
 Building No: 1935
 Dubai Star
@@ -1762,7 +1758,6 @@ One Central
 Park Residences
 سيليكون جيت 4
 Al Thanayah - 1
-France R08
 Greece L01
 Light Industrial Units
 Greece K15
@@ -1770,7 +1765,6 @@ phase 2
 Emaar Square Building 3
 White Palace
 Zero Zero Building
-France R23
 China H07
 Abjar Towers
 Al Rawabi "5"
@@ -2063,7 +2057,6 @@ Hamad Building
 Revier Hotel
 Post Office
 Al Kandary Building
-France R21
 Al Yasmeen Tower
 Harbours Views 2
 Heliport
@@ -2146,7 +2139,6 @@ Nastaran-G01 (D12)
 Mesk 01
 Lama Building
 France P25
-France R02
 Lootah Buildings
 Manipal Univerity - Dubai Campus
 Manhattan
@@ -2406,7 +2398,6 @@ Al Watan Building (Mankhool)
 Blue Waters Residence
 Al Asmawi Bldg
 Building 57
-France R07
 Residential Building (Geothermal Block and Hydropower Block)
 Abou Jemeza Building
 England X08
@@ -2864,7 +2855,6 @@ Spain S3
 Siji Dam
 Shuwaihean Plaza
 Point
-France R27
 مول الامارات
 Mall
 Cartel 333
@@ -2964,11 +2954,9 @@ Spring Oasis Tower
 Building 30
 Persia N13
 Al Dana Center Building
-R015
 my home hossam
 Fujairah City Centre
 Babylon Tower
-France R20
 Manor Hotel
 مطعم البيت العود
 Al Nahda Residential Tower Block B
@@ -3115,7 +3103,6 @@ Al Hamda Building
 ITHRA 2
 Al rais building
 Desert Home
-France R17
 Arbah Investment Building
 Villa 294
 Italy U21
@@ -3163,7 +3150,6 @@ Al Najah Building
 Villa 26
 Waghit Residence
 مسجد حارثة بن الحارث
-Building No. R239-1
 Mag 218 Tower
 Bin Hendi Tower
 Oudah tower
@@ -3208,7 +3194,6 @@ B19
 Emirates Towers Boulevard
 House of Ibrahim Al Madfa
 Dome Tower
-France R10
 No 2
 Business Bay Residences
 Al Bafta Plaza
@@ -3246,7 +3231,6 @@ Star 2
 Liberty Building
 Robot Parrk Tower
 Sheik Mariyam Building
-France R05
 Sharaf Building
 Villa 75
 Manarat Al Saadiyat
@@ -3293,7 +3277,6 @@ Aldar headquarters building
 Hydra Avenue Towers
 j8
 Sofitel Hotel Staff Residency
-Wasl Building R429
 مدرسة الرماقية للتعليم الأساسي للبنين
 Hili Bldg 64
 Al fulij
@@ -3504,7 +3487,6 @@ Aldana II
 Grand Hyatt Dubai
 Pinnacle Building
 Green House II
-France R19
 China F09
 Dutco Compound
 EMR 6
@@ -3563,7 +3545,6 @@ Al Ghubaiba
 Shahamah Abattoir
 France P 06
 Boulevard Crescent
-Wasl Ruby R1002
 Eagle Nest Warehouse
 Block G
 Al Waleed Hotel Apartments
@@ -3606,8 +3587,6 @@ Mall and Al Safa Center
 TwoFour54 Building 6
 Zahra Primary School
 Barsha Business Square
-France R11
-D4
 Comfort Building
 Villa181
 al jazeera building
@@ -3692,7 +3671,6 @@ Hills Avenue
 DEIRA GOLD SOUQ
 بناء زبيدة
 Block O
-Wasl Properties R389 Block C
 Mira Oasis 2
 I-Rise
 Hili Bldg. 10
@@ -3808,7 +3786,6 @@ Lake Side Tower
 Villa150
 Sama Residence
 North Tower 1
-France R04
 Al Ramth 28
 England Y15
 France Q08
@@ -3906,7 +3883,6 @@ Silicon Avenue
 Villa 240
 Tami 4 Bldg
 Khalid Building
-Wasl Building R438
 مسجد عمرو بن عاص
 CBD 29
 Falcon Building
@@ -3939,7 +3915,6 @@ Gate Village 6
 Al Shuebi Tower
 Al Thayal 2
 Deira Shopping Mall
-France R16
 Block D
 Dunes
 Building 112
@@ -4045,7 +4020,6 @@ Villa166
 Al Tayer Tower
 Navitas Tower
 حديقة الخزنة للعائلات
-France R22
 China A02
 Sowwah Square Tower 2
 Banks Building
@@ -4112,7 +4086,6 @@ Masjid Abdullah Ali Al-Chaafar
 Dar Wasl Mall
 مسجد عثمان بن مظعون
 Gate District 4
-France R01
 Al Marwa Building
 Cedre Shopping Centre
 UAE Exchange Building
@@ -4493,7 +4466,6 @@ JLT Cluster P
 East Tower
 FDH-96
 Al Masood Complex,Musaffah
-France R26
 Al Turath Souq
 MM Towers
 Italy U12
@@ -4603,7 +4575,6 @@ Buildings C57
 J3VS
 مسجد المسعود
 Silicon Star
-Wasl Bldg R434
 فندق جي دبليو ماريوت ماركيز دبي
 Lechocola Building
 Danet Tower B
@@ -4709,7 +4680,6 @@ Grosvenor Commercial Tower
 Lootah Building Al Nakheel
 Al Rostamani Building
 Kutta Residence
-Wasl Building R439
 Building C59
 Discovery Gardens, Building 50
 Hili Bldg 78
@@ -4747,7 +4717,7 @@ New Zubaidi
 England Y02
 Indigo Central 5
 Al Arbash Tower 1
-Wasl Oasis North - R446
+Wasl Oasis North
 Summer 1A
 Building C19
 API World Tower
@@ -4842,7 +4812,6 @@ Building C76
 Yansoon 7
 A building C64
 Blue Building
-France R15
 Building No. 158
 Garden City Tower
 Al Nahyan Compound F
@@ -4995,7 +4964,6 @@ HQ 105
 AB PLAZA 9
 MSM 2 Building
 Burj Al Alam
-France R8
 fortune pearl hotel
 Old Better Homes
 Building 1948
@@ -5247,7 +5215,6 @@ Maniyara Abu Dhabi 7/37
 GEMS Systems LLC
 Bani Yas Tower
 Faisal Tower-II
-France R03
 Atlantis Staff Accommodation Block S4
 Al Khan Fort
 Alfurqan Mosque
@@ -5395,7 +5362,6 @@ Foxhill 9
 RAK Trading Mall
 مسجد الشفاء بنت عبدالله
 Hili Bldg 3
-France R06
 مسجد الإمام الباقلاني
 Celeste Industries
 Villa203
@@ -5581,7 +5547,6 @@ Villa No. 2
 City Centre Mall
 Dubai Digital Park U66
 Al Fara Tower
-France R12
 London Crown 1
 Villa 239
 Hangar 4
@@ -5806,7 +5771,6 @@ Rose 2
 132/1
 Heritage Village and Madhab Park
 Durrat Al Marsa
-R 23
 twofour54 Pink Building
 Al Safi Building
 Burj Al Noor
@@ -5871,7 +5835,6 @@ Spain T08
 Jafza One
 Decolight Trading Co. LLC
 مسجد سلطان بن أحمد لوتاه
-Wasl Bldg R432
 Dubai 11
 Hili Bldg 39
 Fakhree Centre
@@ -5943,7 +5906,6 @@ Dubai Gold Souk
 Style Bldg
 Abu Baker Alsiddiq Mosque
 Al Salam Kindergarten
-Wasl Building R147
 قرية واحة النخيل
 Lagoon B12
 Masseera Electrical Switchgear Industry Co. LLC
@@ -6385,7 +6347,6 @@ Al Lotus Tower
 Al Alka 3
 Emirates 238
 Alshiba Tower
-Office R5
 Qalqilia 4
 Khalifa Park
 Anantara Business Tower
@@ -6413,7 +6374,6 @@ Ibrahim Ahli Building
 Naser Al Junaibi Building
 BAYAN BUILDING
 Venetian Village
-Al Wasl Building | R366
 Etoile Building
 Ala'aber Mosque
 القرية اللبنانية
@@ -6438,7 +6398,6 @@ Crescent,Tower 3
 مسجد بلال بن رباح
 Loggia Plaza
 Hitoof
-France R13
 Al majaaz
 Villa 256
 Souq Alghuwair Mosque
@@ -6588,7 +6547,6 @@ Marco Emirates
 Hili Bldg 15
 Villa180
 business center 4
-France R25
 Gold & Diamond Park
 Bldg 201
 Saeed Mohammad Sultan Al Shamsi Building
@@ -6631,7 +6589,6 @@ API Residency
 Sheikha Noora Building
 Greece L12
 مدرسة القمة الخاصة
-France R18
 Complex Building
 Benaa
 Dubai Internet City
@@ -6663,7 +6620,6 @@ Ex-Customs Building
 Al Ramth 3
 China H06
 Al Fahidi Plaza
-Mirdif R22
 Discovery Gardens, Building 26
 RAK Port Liquor Store
 Latifa Bin Hamdan Building
@@ -6700,7 +6656,6 @@ E 80 شارع الكورنيش
 Al Rehab Plaza
 Etqan
 WARE HOUSE 58
-Bldg No R005
 Umm Al Daman
 مبنى فرع هندسة مرورالعين (الجديد)
 Noon building
@@ -6786,7 +6741,6 @@ Liwan Building. Al Nahda
 Ggico Residential Bldg
 Business Tower 1343
 Faraz
-France R24
 Al Taoufiq Bldg
 مسجد عبدالله بن السائب
 EMR 22
@@ -6962,7 +6916,6 @@ Warehouse 6
 2020 Building
 NBH Tower
 برج اتصالات
-Wasl Bldg R425
 building 08 -8
 Al Owais Business tower
 Russia V1
@@ -8823,26 +8776,6 @@ France Q05
 France Q07
 France Q2
 France Q3
-France R02
-France R04
-France R05
-France R06
-France R07
-France R09
-France R10
-France R11
-France R12
-France R14
-France R15
-France R17
-France R18
-France R19
-France R20
-France R22
-France R23
-France R24
-France R25
-France R27
 G Tower
 Gardenia (Al Murooj complex
 Gardenia 1 Emirates Gardens
@@ -9813,7 +9746,6 @@ Al Shoala Building
 Al Wahda Building
 Al Waheda Park
 Al Waleed 4
-Al Wasl Building | R366
 Al Zahid Building
 Al Zarooni Building
 Aldar Building
@@ -10480,7 +10412,6 @@ Umm Hurair Residence 3
 Union Square
 Vista City Hotel
 Wasl Amber R 507
-WASL BUILDING R305
 Wasl Business Central
 Wasl Ivory, Shop
 Wasl Ruby
@@ -10561,12 +10492,6 @@ Tux - 55 70D Al-Rashidiya
 U W Mall
 Wajihee Villa
 Ward 4 - IDU
-Wasl Bldg R425
-Wasl Bldg R432
-Wasl Bldg R434
-Wasl Building R429
-Wasl Building R438
-Wasl Building R439
 Wasl Oasis II
 Wasl P 550
 West Zone Mall
@@ -12241,7 +12166,6 @@ cluster morocco
 cluster p22
 cluster prime
 cluster q
-cluster r12
 cluster spain
 cluster u4
 cluster united
@@ -12410,7 +12334,6 @@ prive damac
 promenade aurora
 promenade paloma
 quays north
-r07 international
 raha buildingbehind
 reehan 4
 reehan 7
@@ -12535,7 +12458,6 @@ al sima tower
 al suwayeb marina
 al tarres marina
 al warsan 1
-al wasl r441
 al yahoom silverene
 al zarooni marina
 albarsha 1 albarsha
@@ -12668,8 +12590,6 @@ france cluster flat
 france cluster france
 france cluster international
 france cluster p22
-france cluster r08
-france cluster r12
 gardens jumeirah village
 global city france
 gmm tower 1
@@ -13035,7 +12955,6 @@ port said
 portsaeed deira
 prime express
 pullman creek
-r420 e
 rashid opp
 red roof
 rigga old
@@ -13536,7 +13455,6 @@ la riviera tower
 marina diamond 1
 royal residence 1
 warsan 4 warsan
-ar1 tower
 atlantis staff
 quoz al khail gate
 rashid city cp01
@@ -13669,7 +13587,6 @@ rabeea 2
 sports city olympic park
 tower al jaddaf
 villa lantana 2
-wasl r453
 cluster p armada
 crystal residence
 harmony 1 villa
@@ -14260,7 +14177,6 @@ al qiyadah metro station
 al safa 2 liwan
 al sayyah residence b
 al seef 2
-al wasl r453
 al zahrawi azurite
 arjan c2
 baniyas complex
@@ -14422,7 +14338,6 @@ tower baniyas
 uptown mirdif mall
 villanova la rosa 6
 wasl 51 1
-wasl r432
 al fareej courtyard b
 al hamar al telal
 al hammar nad
@@ -14459,7 +14374,6 @@ old rolla
 oxford school
 pacifica cluster villa
 plaza 5
-r453 2
 ranches savannah
 saba 3
 sarab 4a
@@ -14675,7 +14589,6 @@ sondos lilac
 town square sama
 townhouses nshama
 v goldcrest
-wasl r446
 western residence
 al barsha south science
 al ghurair 658
@@ -14957,7 +14870,6 @@ park bella rose
 park orchid
 r al waleed paradise
 r mag
-r446 flat
 ramth 13
 ramth 6
 reem 3 1
@@ -14978,7 +14890,6 @@ townsquare zahra
 u jlt
 u tamweel
 vigor shop
-wasl r436
 walk marina
 alya al owais
 al aman 24
@@ -15029,7 +14940,6 @@ p jlt
 palm jumeirah seven
 police officers club
 production city sol golf
-r453 1
 ramth 4
 ramth 49
 ramth 8
@@ -15051,7 +14961,6 @@ thamam 13
 thamam 41
 tiara residence amber
 violeta 1
-wasl r434
 wharf tower
 zahra breeze 4b1
 al bustan center residence
@@ -15137,7 +15046,6 @@ al bateen residence
 al habtoor al nahda
 al jaddaf azurite tower
 al mulla 9
-al nahda 1 ar1
 al nawras hotel
 al ramth 4
 al ramth 8
@@ -15174,7 +15082,6 @@ mankhool uae
 mazaya 27
 mizin 3
 nad tower nad
-nahda 1 ar1 tower
 nayefkamal khalifa al saudi
 nshama town square al
 opp al mulla
@@ -15202,7 +15109,6 @@ tower jumeirah lake towers
 townsquare reem
 trade center 1
 wasl crystal 4
-wasl r440
 world solar shop
 zahra breeze 3b
 zayed sheikh zayed difc
@@ -15247,7 +15153,6 @@ north heights al
 one jlt
 opalz danube
 qusais 1 al bustan
-r453 4
 ramth 55
 residence inn
 residence sbk
@@ -15407,7 +15312,6 @@ joana office 304
 jumeirah golf
 karachi darbar
 last exit al
-link r1063
 little diamond
 liwan entrance
 liwan kay 2
@@ -15452,8 +15356,6 @@ town square alqudra
 town square rawda 2
 town square reem townhouses
 village jumeirah accommodation
-wasl r413
-wasl r415
 zahra breeze 3a
 al asayel murano
 al doha al qusais
@@ -15530,7 +15432,6 @@ office 406 deira souk
 plaza jebel
 qudra town square zahra
 quoz oasis village
-r453 5
 rabia tower flat
 ramth 21
 ramth 32
@@ -15559,7 +15460,6 @@ valerie gardens
 vienna hotel back side
 vigor shop modern
 village al barari
-wasl link r1063
 deira city center dcc
 al furjan candace aster
 al furjan starz
@@ -15629,7 +15529,6 @@ orchard complex
 palace hotel deira
 palmera 3 arabian
 pont 3
-r453 3
 rais shopping center
 rolex tower sheikh
 rose rayhaan
@@ -15903,7 +15802,6 @@ al jaddaf ayedh tower
 al ramth 32
 al ramth 51
 al warsan 4 al
-al wasl r415
 al waleed paradise tower
 abu baker metro
 abu hail royal
@@ -15971,7 +15869,6 @@ phase2 united arab
 police colony villa
 port saeed united
 queue point al
-r432 flat
 radisson blu hotel
 raffa new
 ramth remraam
@@ -16008,8 +15905,6 @@ wasl al mur
 wasl al mur residence
 wasl 51 apartments
 wasl jumeirah apartments
-wasl r439
-wasl r453 2
 wasl village b09
 waleed paradise tower
 x jlt
@@ -16030,7 +15925,6 @@ al satwa bus station
 al suhail tower
 al thamam 32
 al wasl al mur
-al wasl r413
 al waleed paradise cluster
 al worood 2 jumeirah
 abu hail residence
@@ -16105,7 +15999,6 @@ u cluster
 u jumeirah lake
 view liwan
 wasl r
-wasl r369
 wasl village g46
 waleed paradise cluster
 waleed paradise cluster r
@@ -16127,7 +16020,6 @@ al ramth 20
 al ramth 37
 al thamam 11
 al thamam 53
-al wasl r446
 abidos hotel apartment
 abu hail park
 ahmed creek residence
@@ -16204,8 +16096,6 @@ plaza office
 polo residence nad al
 pulse boulevard 1 c2
 q saba 3
-r453 1 flat
-r453 2 flat
 ramth 11
 ramth 20
 ramth 37
@@ -16336,7 +16226,6 @@ umm suqeim al
 villa lantana 1 al
 villageal qusais industrial
 wholesale plaza
-yarmouk r099
 al boom jumeirah 3
 al jabri tower 8
 al jamal tower
@@ -16423,9 +16312,6 @@ point liwan liwan
 port de lamer
 pulse boulevard apartments c3
 q point mazaya
-r413 flat
-r436 flat
-r446 c
 rabia tower apartment
 rabia tower room
 rainbow residence
@@ -16455,7 +16341,6 @@ view villas gardens
 wadi alsafa 2
 warsan 4 sandy signature
 wasl gate community sheikh
-wasl oasis 3 r500
 wasl properties
 wasl village e40
 wasl village g45
@@ -16583,7 +16468,6 @@ valley hotel
 waha al quoz al
 wasl crystal 2
 wasl gate gardenia
-wasl r453 5
 wasl village c21
 wasl village c24
 wasl village d28
@@ -16679,7 +16563,6 @@ metha bus station
 metro station al rigga
 mizhar 1 20b
 moon valley hotel
-muhaisnah 4 wasl r432
 new al safiya
 parcel id 6714181 al
 palm strip
@@ -16688,7 +16571,6 @@ private hospital
 qaizi residence b
 qouz 1 hadaeq
 queue point al liwan
-r453 5 flat
 ramth 09
 ramth 14
 rashid oud
@@ -16709,8 +16591,6 @@ thamam 41 remraam
 villageal qusais industrial area
 villanova la rosa 1
 wasl gate nook
-wasl r432 flat
-wasl r438
 wasl village c20
 wasl village c22
 wasl village e38
