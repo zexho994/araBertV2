@@ -254,6 +254,54 @@
                     }
                 }
             }
+        },
+        "entity_specific_noise": {
+            "enabled": true,
+            "description": "为特定实体添加噪音，训练模型识别实体边界",
+            "BUILDING": {
+                "enabled": true,
+                "probability": 0.4,
+                "position": "after",
+                "description": "在建筑物名称后添加公寓号/楼层等信息，但不包含在BUILDING标签中",
+                "patterns": [
+                    {"template": " Flat {num}", "weight": 0.15},
+                    {"template": " Apartment {num}", "weight": 0.1},
+                    {"template": " Apt {num}", "weight": 0.08},
+                    {"template": " Apt. {num}", "weight": 0.06},
+                    {"template": " Unit {num}", "weight": 0.1},
+                    {"template": " Floor {num}", "weight": 0.07},
+                    {"template": " Fl {num}", "weight": 0.04},
+                    {"template": " Fl. {num}", "weight": 0.03},
+                    {"template": " Room {num}", "weight": 0.04},
+                    {"template": " #{num}", "weight": 0.06},
+                    {"template": " -{num}", "weight": 0.07},
+                    {"template": " {num}", "weight": 0.08},
+                    {"template": " شقة {num}", "weight": 0.04},
+                    {"template": " طابق {num}", "weight": 0.03},
+                    {"template": " الطابق {num}", "weight": 0.02},
+                    {"template": " وحدة {num}", "weight": 0.02},
+                    {"template": " Flat {num}, Floor {num2}", "weight": 0.015},
+                    {"template": " Floor {num} Unit {num2}", "weight": 0.015}
+                ],
+                "number_range": {
+                    "min": 1,
+                    "max": 2000
+                }
+            },
+            "STREET": {
+                "enabled": true,
+                "probability": 0.2,
+                "position": "before",
+                "description": "在街道名称前添加街道号/门牌号，但不包含在STREET标签中",
+                "patterns": [
+                    {"template": "{num} ", "weight": 1.0}
+                ],
+                "number_range": {
+                    "min": 1,
+                    "max": 999
+                },
+                "max_digits": 4
+            }
         }
     },
     

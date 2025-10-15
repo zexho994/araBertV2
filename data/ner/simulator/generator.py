@@ -504,6 +504,184 @@ class AddressGenerator:
         
         return result
     
+    def _generate_building_noise(self) -> str:
+        """
+        生成建筑物特定噪音（公寓号、楼层等）
+        用于训练模型识别BUILDING实体边界，不将这些信息包含在标签中
+        
+        Returns:
+            噪音字符串，如 " Flat 807", " Unit 1504", " شقة 203"
+        """
+        entity_noise_config = self.config['noise_injection'].get('entity_specific_noise', {})
+        if not entity_noise_config.get('enabled', False):
+            return ''
+        
+        building_config = entity_noise_config.get('BUILDING', {})
+        if not building_config.get('enabled', False):
+            return ''
+        
+        # 获取模板和权重
+        patterns = building_config['patterns']
+        templates = [p['template'] for p in patterns]
+        weights = [p['weight'] for p in patterns]
+        
+        # 根据权重选择模板
+        selected_template = random.choices(templates, weights=weights)[0]
+        
+        # 生成随机数字
+        num_range = building_config['number_range']
+        num_min = num_range['min']
+        num_max = num_range['max']
+        
+        # 替换模板中的{num}占位符
+        result = selected_template
+        
+        # 处理可能有多个数字占位符的情况 (如 "Flat {num}, Floor {num2}")
+        if '{num}' in result:
+            num1 = random.randint(num_min, num_max)
+            result = result.replace('{num}', str(num1))
+        
+        if '{num2}' in result:
+            num2 = random.randint(1, 50)  # 楼层数通常较小
+            result = result.replace('{num2}', str(num2))
+        
+        return result
+    
+    def _generate_street_noise(self) -> str:
+        """
+        生成街道特定噪音（街道号/门牌号）
+        用于训练模型识别STREET实体边界，不将门牌号包含在标签中
+        
+        Returns:
+            噪音字符串，如 "74 ", "123 "
+        """
+        entity_noise_config = self.config['noise_injection'].get('entity_specific_noise', {})
+        if not entity_noise_config.get('enabled', False):
+            return ''
+        
+        street_config = entity_noise_config.get('STREET', {})
+        if not street_config.get('enabled', False):
+            return ''
+        
+        # 获取数字范围
+        num_range = street_config['number_range']
+        num_min = num_range['min']
+        num_max = num_range['max']
+        max_digits = street_config.get('max_digits', 4)
+        
+        # 生成随机门牌号，确保不超过最大位数
+        num = random.randint(num_min, min(num_max, 10**max_digits - 1))
+        
+        # 获取模板（通常是 "{num} "）
+        patterns = street_config['patterns']
+        templates = [p['template'] for p in patterns]
+        weights = [p['weight'] for p in patterns]
+        
+        selected_template = random.choices(templates, weights=weights)[0]
+        result = selected_template.replace('{num}', str(num))
+        
+        return result
+    
+    def _apply_entity_specific_noise(
+        self, 
+        address: str, 
+        entities: Dict[str, str], 
+        entity_types: List[str]
+    ) -> str:
+        """
+        为特定实体应用噪音，但不更新实体标签
+        这样可以训练模型学习实体的正确边界
+        
+        处理逻辑：
+        1. 遍历所有实体，找到其在地址中的位置
+        2. 根据实体类型和配置概率决定是否添加噪音
+        3. 根据position配置决定在实体前面还是后面添加噪音
+        4. 更新地址字符串，但不更新entities字典
+        
+        Args:
+            address: 当前地址字符串
+            entities: 实体字典 (不会被修改)
+            entity_types: 实体类型列表（按模板顺序）
+            
+        Returns:
+            添加实体特定噪音后的地址字符串
+        """
+        entity_noise_config = self.config['noise_injection'].get('entity_specific_noise', {})
+        if not entity_noise_config.get('enabled', False):
+            return address
+        
+        result = address
+        offset = 0  # 跟踪由于插入噪音导致的位置偏移
+        
+        # 按实体在模板中的顺序处理（从前往后）
+        # 需要记录每个实体的位置，然后从后往前插入噪音（避免位置偏移问题）
+        noise_insertions = []  # 存储 (position, noise_text, insert_before) 元组
+        
+        for entity_type in entity_types:
+            if entity_type not in entities:
+                continue
+            
+            entity_value = entities[entity_type]
+            if not entity_value:  # 跳过空值
+                continue
+            
+            # 检查该实体类型是否有配置
+            if entity_type not in entity_noise_config:
+                continue
+            
+            type_config = entity_noise_config[entity_type]
+            if not type_config.get('enabled', False):
+                continue
+            
+            # 按概率决定是否为该实体添加噪音
+            if random.random() > type_config['probability']:
+                continue
+            
+            # 在地址中查找该实体的位置
+            entity_pos = result.find(entity_value, offset)
+            if entity_pos == -1:
+                continue
+            
+            # 生成噪音
+            if entity_type == 'BUILDING':
+                noise = self._generate_building_noise()
+            elif entity_type == 'STREET':
+                noise = self._generate_street_noise()
+            else:
+                continue
+            
+            if not noise:
+                continue
+            
+            # 根据position配置决定插入位置
+            position = type_config.get('position', 'after')
+            
+            if position == 'after':
+                # 在实体后面插入噪音
+                insert_pos = entity_pos + len(entity_value)
+                noise_insertions.append((insert_pos, noise, False))
+            elif position == 'before':
+                # 在实体前面插入噪音
+                insert_pos = entity_pos
+                noise_insertions.append((insert_pos, noise, True))
+            
+            # 更新offset，继续查找下一个实体
+            offset = entity_pos + len(entity_value)
+        
+        # 按位置倒序排序，从后往前插入（避免位置偏移）
+        noise_insertions.sort(key=lambda x: x[0], reverse=True)
+        
+        # 执行噪音插入
+        for insert_pos, noise, insert_before in noise_insertions:
+            if insert_before:
+                # 在实体前面插入
+                result = result[:insert_pos] + noise + result[insert_pos:]
+            else:
+                # 在实体后面插入
+                result = result[:insert_pos] + noise + result[insert_pos:]
+        
+        return result
+    
     def _generate_t4(self, address: str, entity_values: List[str]) -> str:
         """
         T4: 注入噪音（标点、数字、无意义词、Plus Code等）
@@ -631,7 +809,7 @@ class AddressGenerator:
     def generate_one_address(self) -> Tuple[str, Dict[str, str]]:
         """
         生成一个完整的地址
-        执行 T1 -> T2 -> T3 -> T4 的完整流程
+        执行 T1 -> T2 -> T3 -> T4 -> T5 的完整流程
         
         Returns:
             (最终地址字符串, 实体字典)
@@ -648,7 +826,11 @@ class AddressGenerator:
         # T4: 注入噪音（传入T3后的实体值列表，确保不破坏实体）
         address_t4 = self._generate_t4(address_t3, entity_values_ordered_t3)
         
-        return address_t4, entities_t3
+        # T5: 为特定实体应用噪音（如BUILDING后的公寓号、STREET前的门牌号）
+        # 关键：只修改地址字符串，不修改entities_t3字典，训练模型学习正确的实体边界
+        address_t5 = self._apply_entity_specific_noise(address_t4, entities_t3, entity_types)
+        
+        return address_t5, entities_t3
     
     def _validate_address(self, address: str) -> bool:
         """
