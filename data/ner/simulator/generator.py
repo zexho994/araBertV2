@@ -682,6 +682,112 @@ class AddressGenerator:
         
         return result
     
+    def _apply_entity_repetition(
+        self,
+        address: str,
+        entities: Dict[str, str],
+        entity_types: List[str]
+    ) -> str:
+        """
+        T6: 实体重复处理
+        将某些实体在地址中重复出现，训练模型识别连续重复的实体
+        
+        例如: "House 20 Al Qarayen 4" -> "House 20 House 20 Al Qarayen 4"
+        
+        处理逻辑：
+        1. 遍历所有实体，找到其在地址中的位置
+        2. 根据配置概率决定是否重复该实体
+        3. 确定重复次数（min_repeat ~ max_repeat）
+        4. 使用分隔符将实体重复连接
+        5. 更新地址字符串，但不更新entities字典
+        
+        Args:
+            address: 当前地址字符串
+            entities: 实体字典 (不会被修改)
+            entity_types: 实体类型列表（按模板顺序）
+            
+        Returns:
+            包含重复实体的地址字符串
+        """
+        repetition_config = self.config.get('entity_repetition', {})
+        if not repetition_config.get('enabled', False):
+            return address
+        
+        # 按全局概率决定是否进行实体重复
+        if random.random() > repetition_config.get('global_probability', 0.3):
+            return address
+        
+        result = address
+        
+        # 收集需要重复的实体及其位置
+        # 格式: [(position, entity_value, repeated_text)]
+        repetitions = []
+        offset = 0
+        
+        per_entity_config = repetition_config.get('per_entity_config', {})
+        
+        for entity_type in entity_types:
+            if entity_type not in entities:
+                continue
+            
+            entity_value = entities[entity_type]
+            if not entity_value:
+                continue
+            
+            # 检查该实体类型是否有重复配置
+            if entity_type not in per_entity_config:
+                continue
+            
+            type_config = per_entity_config[entity_type]
+            if not type_config.get('enabled', False):
+                continue
+            
+            # 按概率决定是否重复该实体
+            if random.random() > type_config.get('probability', 0.3):
+                continue
+            
+            # 在地址中查找该实体的位置
+            entity_pos = result.find(entity_value, offset)
+            if entity_pos == -1:
+                continue
+            
+            # 确定重复次数
+            min_repeat = type_config.get('min_repeat', 2)
+            max_repeat = type_config.get('max_repeat', 3)
+            repeat_count = random.randint(min_repeat, max_repeat)
+            
+            # 选择分隔符
+            separator_options = type_config.get('separator_options', [' '])
+            separator_prob = type_config.get('separator_probability', 1.0)
+            
+            if random.random() <= separator_prob:
+                separator = random.choice(separator_options)
+            else:
+                separator = ' '
+            
+            # 生成重复文本
+            repeated_parts = [entity_value] * repeat_count
+            repeated_text = separator.join(repeated_parts)
+            
+            # 记录重复信息（位置、原文本长度、新文本）
+            repetitions.append((entity_pos, len(entity_value), repeated_text))
+            
+            # 更新offset
+            offset = entity_pos + len(entity_value)
+        
+        # 如果没有需要重复的实体，返回原地址
+        if not repetitions:
+            return result
+        
+        # 按位置倒序排序，从后往前替换（避免位置偏移）
+        repetitions.sort(key=lambda x: x[0], reverse=True)
+        
+        # 执行重复替换
+        for pos, original_len, repeated_text in repetitions:
+            result = result[:pos] + repeated_text + result[pos + original_len:]
+        
+        return result
+    
     def _generate_t4(self, address: str, entity_values: List[str]) -> str:
         """
         T4: 注入噪音（标点、数字、无意义词、Plus Code等）
@@ -809,7 +915,7 @@ class AddressGenerator:
     def generate_one_address(self) -> Tuple[str, Dict[str, str]]:
         """
         生成一个完整的地址
-        执行 T1 -> T2 -> T3 -> T4 -> T5 的完整流程
+        执行 T1 -> T2 -> T3 -> T4 -> T5 -> T6 的完整流程
         
         Returns:
             (最终地址字符串, 实体字典)
@@ -830,7 +936,11 @@ class AddressGenerator:
         # 关键：只修改地址字符串，不修改entities_t3字典，训练模型学习正确的实体边界
         address_t5 = self._apply_entity_specific_noise(address_t4, entities_t3, entity_types)
         
-        return address_t5, entities_t3
+        # T6: 实体重复（训练模型识别连续重复的实体）
+        # 关键：只修改地址字符串，不修改entities_t3字典，让模型学习识别重复实体
+        address_t6 = self._apply_entity_repetition(address_t5, entities_t3, entity_types)
+        
+        return address_t6, entities_t3
     
     def _validate_address(self, address: str) -> bool:
         """
