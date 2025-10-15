@@ -206,7 +206,7 @@
         "noise_types": {
             "punctuation": {
                 "enabled": true,
-                "probability": 0.2,
+                "probability": 0.3,
                 "characters": [".", ",", ";", "-", "—", "/", "\\", "@", "#", "%", "*", "&"],
                 "max_consecutive": 3
             },
@@ -231,12 +231,12 @@
             },
             "meaningless_words": {
                 "enabled": true,
-                "probability": 0.08,
+                "probability": 0.1,
                 "word_list": [
                     "Near", "Opposite", "Behind", "Next to", "Close to", "beside",
                     "بجانب", "قريب من", "مقابل", "خلف", "أمام",
                     "North", "South", "East", "West", "Central",
-                    "Before", "After", "Front", "Back", "Left", "Right"
+                    "Before", "After", "Front", "Back", "Left", "Right","al"
                 ],
                 "max_per_address": 2
             },
@@ -292,7 +292,12 @@
                 "position": "before",
                 "description": "在街道名称前添加街道号/门牌号，但不包含在STREET标签中",
                 "patterns": [
-                    {"template": "{num} ", "weight": 1.0}
+                    {"template": "{num} ", "weight": 0.8},
+                    {"template": "block {num} ", "weight": 0.05},
+                    {"template": "block #{num} ", "weight": 0.02},
+                    {"template": "Block -{num} ", "weight": 0.03},
+                    {"template": "Block A {num} ", "weight": 0.05},
+                    {"template": "Block B {num} ", "weight": 0.05}
                 ],
                 "number_range": {
                     "min": 1,

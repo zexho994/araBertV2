@@ -216,7 +216,6 @@ Bani yas street
 Bank of Egypt Street
 Bhukhara street
 Birayh Street
-Block B
 Boulevard Mohammad Bin Rashed
 Buhaira Streeat
 Bukhara St
@@ -1585,7 +1584,6 @@ Sheikh Humaid Al Mohammad Al Qasimi Road
 17a St
 Farhat Street
 Al Khaznah Street
-Block A 1202
 شارع الخَزنة
 17 B Street
 Al Manhal Street
@@ -1751,7 +1749,6 @@ Al Wasl
 42nd St
 Al Reema Street
 Marjan Street
-Block E Street
 شارع الساقي
 Juma Bin Kasla Al Rumaithi Street
 Al Bidyah Street
@@ -2013,7 +2010,6 @@ Diera Old Souk - Bur Dubai
 OFC 203
 Al Reef2
 Unit H33
-Block B - 1101
 Al Mubari Street
 Shaikh Khalifa Street
 Moh'd Bin Rashed Blvd
@@ -2040,7 +2036,6 @@ Latifa Bint-E-Hamdan Street
 Shop number 02
 شارع المنقول
 R09A QAMASHA STREET
-Block A 101
 Rashid Bin Saeed Al Maktoum St(2nd Street)
 5Sheik zayad road
 شارع د ٥١
@@ -2056,7 +2051,6 @@ S 116
 Sanaya Street
 Sheikh Zayed Zayed Road
 53 E 22
-Block B, Fountain Street
 Al Jamia Street
 Al Inshirah Street
 Shkzayed Rd
