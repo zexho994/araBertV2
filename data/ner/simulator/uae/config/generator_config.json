@@ -114,7 +114,7 @@
     
     "typo_injection": {
         "enabled": true,
-        "global_probability": 0.4,
+        "global_probability": 0.5,
         "case_variations": {
             "enabled": true,
             "probability": 0.3,
@@ -127,18 +127,18 @@
         },
         "per_entity_config": {
             "BUILDING": {
-                "probability": 0.3,
-                "max_char_error_ratio": 0.15,
+                "probability": 0.1,
+                "max_char_error_ratio": 0.1,
                 "typo_types": {
-                    "swap": 0.4,
-                    "deletion": 0.3,
-                    "insertion": 0.2,
-                    "substitution": 0.1
+                    "swap": 0.5,
+                    "deletion": 0.05,
+                    "insertion": 0.15,
+                    "substitution": 0.3
                 }
             },
             "STREET": {
                 "probability": 0,
-                "max_char_error_ratio": 0.12,
+                "max_char_error_ratio": 0.1,
                 "typo_types": {
                     "swap": 0.4,
                     "deletion": 0.3,
@@ -201,23 +201,23 @@
     
     "noise_injection": {
         "enabled": true,
-        "global_noise_probability": 0.5,
+        "global_noise_probability": 0.6,
         "max_noise_per_address": 3,
         "noise_types": {
             "punctuation": {
                 "enabled": true,
-                "probability": 0.3,
+                "probability": 0.2,
                 "characters": [".", ",", ";", "-", "—", "/", "\\", "@", "#", "%", "*", "&"],
                 "max_consecutive": 3
             },
             "numbers": {
                 "enabled": true,
-                "probability": 0.25,
+                "probability": 0.3,
                 "patterns": {
                     "random_digits": {
                         "min_length": 1,
                         "max_length": 3,
-                        "probability": 0.8
+                        "probability": 0.1
                     },
                     "phone_like": {
                         "format": "+971XXXXXXXXX",
@@ -231,7 +231,7 @@
             },
             "meaningless_words": {
                 "enabled": true,
-                "probability": 0.05,
+                "probability": 0.08,
                 "word_list": [
                     "Near", "Opposite", "Behind", "Next to", "Close to", "beside",
                     "بجانب", "قريب من", "مقابل", "خلف", "أمام",
@@ -256,7 +256,6 @@
             }
         }
     },
-    
     
     "output": {
         "format": "csv",
