@@ -1143,7 +1143,6 @@ South 77
 Al Dana St
 68E شارع
 29C Street
-Road to Jithu Tailoring Shop
 Camino 3
 شارع المكتوم
 Al Rolla Street
@@ -1862,7 +1861,6 @@ Al Rayfah St
 Mohammed Al Zuhre Street
 Nifayr Street
 Al Sufouh Rd
-Shop Number 15
 Al Mireejib Street
 4 Road
 E 55
@@ -1949,7 +1947,6 @@ Disal Street
 E 66
 Corniche Road West
 شارع الترحاب
-Shop Number 26
 Salahudeen Road
 Sheikh Khalid Street
 603A Mohammed Bin Rashid Al Maktoum City
@@ -1963,8 +1960,6 @@ King Khalid Bin Abdel Aziz Street
 S18
 9b St
 Al A'yad St
-SHOP 20
-Shop 14
 AL Naser Street
 شارع ند كَوَّاس
 Al Taawun Round about
@@ -1999,10 +1994,8 @@ E 11
 Dickens Circus
 Furaya'a Bint Malek St
 Al Bathniyyah Street
-Shop No. 21
 Al Hilton Street
 شارع الزخمي
-Shop No - SS001
 Al Quawasim Corniche Rd
 LRH01-GU06
 Salam&hamdan Street
@@ -2033,7 +2026,6 @@ Mira 5
 tawoon street
 Ahmed Bin Hebel street
 Latifa Bint-E-Hamdan Street
-Shop number 02
 شارع المنقول
 R09A QAMASHA STREET
 Rashid Bin Saeed Al Maktoum St(2nd Street)
@@ -2126,7 +2118,6 @@ Nadd Al Shiba Street
 Al Omlaat St
 Maliha Rd
 Almadr Street
-Shop number 14
 Street 33c
 Bin Khattab St
 Bay Avenue
@@ -2144,7 +2135,6 @@ Al Madheef Street
 Al ithihad road
 Al etihad Street
 Unit C1005
-Shop No. 16
 Al Ohood Street
 Al Zakhmi Street
 Esbigi st

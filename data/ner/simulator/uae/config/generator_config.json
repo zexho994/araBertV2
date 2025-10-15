@@ -231,7 +231,7 @@
             },
             "meaningless_words": {
                 "enabled": true,
-                "probability": 0.1,
+                "probability": 0.15,
                 "word_list": [
                     "Near", "Opposite", "Behind", "Next to", "Close to", "beside",
                     "بجانب", "قريب من", "مقابل", "خلف", "أمام",
