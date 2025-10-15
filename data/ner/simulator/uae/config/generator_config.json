@@ -305,12 +305,12 @@
     
     "entity_repetition": {
         "enabled": true,
-        "global_probability": 0.5,
+        "global_probability": 0.2,
         "description": "训练模型识别重复实体（如 House 20 House 20 应识别为两个独立的BUILDING）",
         "per_entity_config": {
             "BUILDING": {
                 "enabled": true,
-                "probability": 0.2,
+                "probability": 0.5,
                 "min_repeat": 2,
                 "max_repeat": 2,
                 "separator_options": [" ", " , "],
@@ -318,7 +318,7 @@
             },
             "STREET": {
                 "enabled": true,
-                "probability": 0.1,
+                "probability": 0.2,
                 "min_repeat": 2,
                 "max_repeat": 2,
                 "separator_options": [" "],
