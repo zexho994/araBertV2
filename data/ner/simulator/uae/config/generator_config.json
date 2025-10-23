@@ -206,13 +206,13 @@
         "noise_types": {
             "punctuation": {
                 "enabled": true,
-                "probability": 0.3,
+                "probability": 0.2,
                 "characters": [".", ",", ";", "-", "—", "/", "\\", "@", "#", "%", "*", "&"],
                 "max_consecutive": 3
             },
             "numbers": {
                 "enabled": true,
-                "probability": 0.3,
+                "probability": 0.4,
                 "patterns": {
                     "random_digits": {
                         "min_length": 1,
@@ -221,11 +221,11 @@
                     },
                     "phone_like": {
                         "format": "+971XXXXXXXXX",
-                        "probability": 0.1
+                        "probability": 0.05
                     },
                     "po_box": {
                         "format": "P.O. Box XXXXX",
-                        "probability": 0.1
+                        "probability": 0.05
                     }
                 }
             },
