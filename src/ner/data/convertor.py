@@ -108,11 +108,11 @@ class CSVAnnotationConvert:
         }
 
         self._entity_priority: Dict[str, int] = {
-            "BUILDING": 90,
-            "STREET": 80,
+            "BUILDING": 100,
+            "STREET": 90,
+            "COMPOUND": 80,
             "SUB_AREA": 70,
-            "COMPOUND": 60,
-            "EMIRATE": 55,
+            "EMIRATE": 60,
             "CITY": 50,
             "COUNTRY": 40,
         }
