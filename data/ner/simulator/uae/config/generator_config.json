@@ -236,7 +236,7 @@
                     "Near", "Opposite", "Behind", "Next to", "Close to", "beside",
                     "بجانب", "قريب من", "مقابل", "خلف", "أمام",
                     "North", "South", "East", "West", "Central",
-                    "Before", "After", "Front", "Back", "Left", "Right","al"
+                    "Before", "After", "Front", "Back", "Left", "Right","al", "Al"
                 ],
                 "max_per_address": 2
             },
