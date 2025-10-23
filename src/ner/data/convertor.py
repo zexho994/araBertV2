@@ -180,16 +180,11 @@ class CSVAnnotationConvert:
             elif cfg.validation_mode == "lenient" and validation_report.issues:
                 print(f"\n⚠️  警告: 发现 {len(validation_report.issues)} 个数据质量问题，但在宽松模式下继续处理。")
 
+        # Use entity priority from configuration
+        # Higher priority number means higher priority in BIO tagging
         dynamic_priority: Dict[str, int] = {}
-        for entity, actual_col in entity_to_actual_col.items():
-            try:
-                col_index = list(df.columns).index(actual_col)
-                # Base priority starts from 100, with column index as priority
-                # Later columns (higher index) get higher priority
-                dynamic_priority[entity.upper()] = 100 + col_index
-            except ValueError:
-                # Fallback to default priority if column not found
-                dynamic_priority[entity.upper()] = self._entity_priority.get(entity.upper(), 0)
+        for entity in entity_to_actual_col.keys():
+            dynamic_priority[entity.upper()] = self._entity_priority.get(entity.upper(), 0)
 
         examples: List[Dict[str, Any]] = []
         for _, row in df.iterrows():
@@ -652,6 +647,10 @@ class CSVAnnotationConvert:
         for entity, value in text_values.items():
             # Support multiple values separated by |
             parts = [p.strip() for p in re.split(r"\s*\|\s*", value) if p.strip()]
+            # Sort by length descending to prioritize longer values
+            # This prevents shorter values from blocking longer ones
+            # e.g., "khan building" should be tagged before "khan"
+            parts.sort(key=len, reverse=True)
             for part in parts:
                 # Find all occurrences of this part in the text
                 char_spans = self._find_all_char_spans(original_text, part)
