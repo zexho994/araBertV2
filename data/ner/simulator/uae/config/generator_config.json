@@ -233,10 +233,9 @@
                 "enabled": true,
                 "probability": 0.15,
                 "word_list": [
-                    "Near", "Opposite", "Behind", "Next to", "Close to", "beside",
+                    "Near", "Opposite", "Behind", "beside",
                     "بجانب", "قريب من", "مقابل", "خلف", "أمام",
-                    "North", "South", "East", "West", "Central",
-                    "Before", "After", "Front", "Back", "Left", "Right","al", "Al"
+                    "North", "South", "East", "West", "Central","al", "Al"
                 ],
                 "max_per_address": 2
             },
