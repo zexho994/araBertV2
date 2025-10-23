@@ -4231,7 +4231,6 @@ Mohammed Bin Rashid Al Maktoum City
 34 Corner City Building
 Al Jabri Building
 Anarco Limited
-Flat302
 Mustafwi Business Center
 Dorra Bay
 Tamcom
@@ -5011,7 +5010,6 @@ Bonnington Jumeirah Lakes Towers
 Hili Bldg 29
 Diyar Building
 MarinaScape
-Flat #305-Anas Meppurath
 Silicon Park 2
 Sheika Salama Tower
 PLOT-C8
@@ -7772,7 +7770,6 @@ Emirates Gardens Rose
 Rose 2 Emirates Gardens
 Alfa Villas
 Meat Zonica Butcher shop
-Elaganz 5 by Danube Flat
 Eleganz 2 by Danube
 Summer Season Villas
 Mall of the Emirates
@@ -8140,7 +8137,6 @@ ALDEA 6
 Al-Hawai Residence
 Ali AlHashemi Trading
 Ali Mohammad Sadiq Al Bolushi Mosque
-Alkhatib Flats Discovery Gardens
 Alkhatib Villas
 Alma 2
 Almas Tower
@@ -10941,7 +10937,6 @@ Fakhruddin Mall
 Falcon Towers
 Fazaan Towers
 FEWA Ajman Office
-Flat #305-Anas Meppurath
 Ghumlasi Tower
 GMC Hospital
 Goldcrest Dreams (Tower A)
@@ -12522,7 +12517,6 @@ emirates cluster 20
 emirates cluster emr
 emirates crown tower
 emirates garden 2
-emr 21 flat
 emr cluster emr
 emreef grosvenor house
 england cluster england
