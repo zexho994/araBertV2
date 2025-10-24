@@ -51,28 +51,9 @@ class ReportComparator:
         
         # 读取 Excel 文件
         if report_path.suffix.lower() in ['.xlsx', '.xls']:
-            # 查找 "=== DETAILED RESULTS ===" 标记所在行
-            wb = openpyxl.load_workbook(report_path, read_only=True)
-            ws = wb.active
-            
-            header_row = None
-            for row_idx, row in enumerate(ws.iter_rows(values_only=True), start=1):
-                if row[0] == "=== DETAILED RESULTS ===":
-                    # 详细结果的表头在标记后两行
-                    header_row = row_idx + 2
-                    break
-            
-            wb.close()
-            
-            if header_row is None:
-                raise ValueError(f"Cannot find '=== DETAILED RESULTS ===' marker in {report_path}")
-            
-            # 使用 pandas 读取，从找到的行开始
-            df = pd.read_excel(report_path, header=header_row - 1)
-            
-            # 删除第一列 Sample ID（因为我们只需要按 ADDRESS 匹配）
-            if 'Sample ID' in df.columns:
-                df = df.drop(columns=['Sample ID'])
+            # 新格式：直接从第一行开始就是表头（ADDRESS）
+            # 不再需要查找 "=== DETAILED RESULTS ===" 标记
+            df = pd.read_excel(report_path, header=0)
             
             # 删除完全为空的行
             df = df.dropna(how='all')
@@ -82,12 +63,8 @@ class ReportComparator:
             
         elif report_path.suffix.lower() == '.csv':
             # 读取 CSV 文件
-            # CSV 格式应该直接有列名在第一行，从 ADDRESS 开始
+            # 新格式：直接从第一行开始就是表头（ADDRESS）
             df = pd.read_csv(report_path, sep=',', skipinitialspace=True)
-            
-            # 删除 Sample ID 列（如果存在）
-            if 'Sample ID' in df.columns:
-                df = df.drop(columns=['Sample ID'])
             
             # 删除完全为空的行
             df = df.dropna(how='all')
@@ -168,8 +145,13 @@ class ReportComparator:
             report2 = report2.reindex(columns=all_columns, fill_value="")
             self.logger.warning("Reports have different columns, aligned automatically")
         
-        # 假设第一列是 ADDRESS 或 Text
+        # 第一列应该是 ADDRESS（新格式已统一命名）
         address_col = report1.columns[0]
+        
+        # 验证第一列是否为 ADDRESS
+        if address_col.upper() not in ['ADDRESS', 'TEXT']:
+            self.logger.warning(f"First column is '{address_col}', expected 'ADDRESS' or 'TEXT'")
+        
         entity_columns = report1.columns[1:].tolist()  # 其余列是实体类型
         
         merged_data = []
