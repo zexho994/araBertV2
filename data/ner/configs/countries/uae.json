@@ -58,13 +58,15 @@
         "eval_steps": 500,
         "logging_steps": 100,
         "loss": {
-            "type": "weighted_ce",
+            "type": "focal",
+            "alpha": 0.25,
+            "gamma": 2.0,
             "weight_multipliers": {
-                "B-BUILDING": 2.5,
-                "I-BUILDING": 2.5,
-                "B-STREET": 2.5,
-                "I-STREET": 2.5,
-                "O": 0.6
+                "B-BUILDING": 1.5,
+                "I-BUILDING": 1.5,
+                "B-STREET": 1.5,
+                "I-STREET": 1.5,
+                "O": 0.7
             }
         },
         "lora": {
