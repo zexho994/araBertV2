@@ -81,8 +81,8 @@
         }
     },
     "data": {
-        "train_file": "data/ner/datasets/uae/train_251011.jsonl",
-        "val_file": "data/ner/datasets/uae/eval_251011.jsonl",
+        "train_file": "data/ner/datasets/uae/train_251024.jsonl",
+        "val_file": "data/ner/datasets/uae/eval_251024.jsonl",
         "test_file": "data/ner/datasets/uae/test.jsonl",
         "max_length": 512,
         "doc_stride": 128,
