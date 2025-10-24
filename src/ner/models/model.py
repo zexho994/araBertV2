@@ -379,6 +379,8 @@ class BertNERModel(NERModel):
                         id2label=self.config.id2label,
                         num_labels=self.num_labels
                     )
+                    # Move loss function to the same device as the model
+                    self.loss_fct = self.loss_fct.to(logits.device)
                 else:
                     # Fallback to standard CrossEntropyLoss
                     self.loss_fct = CrossEntropyLoss(ignore_index=-100)

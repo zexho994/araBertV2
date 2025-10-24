@@ -94,11 +94,14 @@ class WeightedCrossEntropyLoss(nn.Module):
         valid_logits = active_logits[valid_mask]
         valid_labels = active_labels[valid_mask]
         
+        # Ensure weights are on the same device as logits
+        weights = self.weights.to(logits.device)
+        
         # Calculate weighted cross entropy
         loss = F.cross_entropy(
             valid_logits,
             valid_labels,
-            weight=self.weights,
+            weight=weights,
             reduction='mean'
         )
         
@@ -186,7 +189,9 @@ class FocalLoss(nn.Module):
         
         # Apply label weights if provided
         if self.label_weights is not None:
-            weight = self.label_weights[valid_labels]
+            # Ensure label weights are on the same device
+            label_weights = self.label_weights.to(logits.device)
+            weight = label_weights[valid_labels]
             focal_loss = focal_loss * weight
         
         return focal_loss.mean()
