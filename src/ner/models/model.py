@@ -255,6 +255,9 @@ class BertNERModel(NERModel):
         # 线性分类头
         self.classifier = nn.Linear(config.hidden_size, config.num_labels)
         
+        # Initialize loss function placeholder
+        self.loss_fct = None
+        
         # 初始化权重（遵循 transformers 约定）
         self.init_weights()
     
@@ -362,21 +365,26 @@ class BertNERModel(NERModel):
         # 分类
         logits = self.classifier(sequence_output)
         
+        # 计算损失
         loss = None
         if labels is not None:
-            loss_fct = CrossEntropyLoss()
-            # 仅在有效位置计算损失
-            if attention_mask is not None:
-                active_loss = attention_mask.view(-1) == 1
-                active_logits = logits.view(-1, self.num_labels)
-                active_labels = torch.where(
-                    active_loss,
-                    labels.view(-1),
-                    torch.tensor(loss_fct.ignore_index).type_as(labels)
-                )
-                loss = loss_fct(active_logits, active_labels)
-            else:
-                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            # Use custom loss function if configured, otherwise fallback to CrossEntropyLoss
+            if not hasattr(self, 'loss_fct') or self.loss_fct is None:
+                loss_config = getattr(self.config, 'loss_config', None)
+                if loss_config:
+                    from ..training.losses import LossFactory
+                    self.loss_fct = LossFactory.create_loss(
+                        config=loss_config,
+                        label2id=self.config.label2id,
+                        id2label=self.config.id2label,
+                        num_labels=self.num_labels
+                    )
+                else:
+                    # Fallback to standard CrossEntropyLoss
+                    self.loss_fct = CrossEntropyLoss(ignore_index=-100)
+            
+            # Calculate loss using the configured loss function
+            loss = self.loss_fct(logits, labels, attention_mask)
         
         # TODO：
         # - 可选引入 CRF 层提升序列一致性

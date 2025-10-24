@@ -8,7 +8,7 @@
     "model": {
         "name": "XLM-RoBERTa",
         "type": "bert",
-        "pretrained_model": "data/ner/models/uae/v0.1",
+        "pretrained_model": "xlm-roberta-base",
         "lora_adapter": "data/ner/models/uae/adapter/v0.2",
         "max_length": 512,
         "hidden_size": 768,
@@ -57,6 +57,16 @@
         "save_steps": 1000,
         "eval_steps": 500,
         "logging_steps": 100,
+        "loss": {
+            "type": "weighted_ce",
+            "weight_multipliers": {
+                "B-BUILDING": 2.5,
+                "I-BUILDING": 2.5,
+                "B-STREET": 2.5,
+                "I-STREET": 2.5,
+                "O": 0.6
+            }
+        },
         "lora": {
             "enabled": false,
             "r": 16,

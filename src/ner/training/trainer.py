@@ -298,6 +298,12 @@ class NERTrainer:
         else:
             raise ValueError(f"Unsupported model type: {model_config['type']}")
         
+        # Inject loss configuration into model config
+        loss_config = training_config.get('loss', None)
+        if loss_config:
+            self.model.config.loss_config = loss_config
+            self.logger.info(f"Configured custom loss function: {loss_config.get('type', 'unknown')}")
+        
         # 如果启用了LoRA并指定了基础适配器路径，加载之前的LoRA权重
         if use_lora:
             try:
