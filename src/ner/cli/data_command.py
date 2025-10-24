@@ -4,6 +4,7 @@
 - 数据校验（validate）
 - 数据预处理（process）
 - 数据转换（convert）- CSV转JSONL格式
+- 报告合并（merge）- 对比两个模型的评估报告
 - 数据划分（split，暂未实现）
 
 # TODO: 实现 `split`，并支持自定义随机种子与分层抽样。
@@ -20,6 +21,7 @@ class DataCommand(BaseCommand):
     - 数据校验（validate）
     - 数据预处理（process）
     - 数据转换（convert）- CSV转JSONL格式
+    - 报告合并（merge）- 对比两个模型的评估报告
     - 数据划分（split，暂未实现）
 
     # TODO: 实现 `split`，并支持自定义随机种子与分层抽样。
@@ -64,6 +66,14 @@ class DataCommand(BaseCommand):
         split_parser.add_argument("--val-ratio", type=float, default=0.1, help="Validation data ratio")
         split_parser.add_argument("--test-ratio", type=float, default=0.1, help="Test data ratio")
         split_parser.add_argument("--output-dir", required=True, help="Output directory")
+        
+        # Merge/Compare reports
+        merge_parser = subparsers.add_parser("merge", help="Merge and compare two model evaluation reports")
+        merge_parser.add_argument("--report-1", required=True, help="First model report path (xlsx)")
+        merge_parser.add_argument("--report-2", required=True, help="Second model report path (xlsx)")
+        merge_parser.add_argument("--output", required=True, help="Output merged report path (xlsx)")
+        merge_parser.add_argument("--model1-name", default="Model-1", help="First model name (default: Model-1)")
+        merge_parser.add_argument("--model2-name", default="Model-2", help="Second model name (default: Model-2)")
     
     def execute(self, args) -> bool:
         try:
@@ -150,6 +160,26 @@ class DataCommand(BaseCommand):
                 
             elif args.data_action == "split":
                 raise NotImplementedError("Data split not implemented")
+            
+            elif args.data_action == "merge":
+                from ..evaluation.compare_reports import compare_reports
+                
+                try:
+                    output_path = compare_reports(
+                        report1_path=args.report_1,
+                        report2_path=args.report_2,
+                        output_path=args.output,
+                        model1_name=args.model1_name,
+                        model2_name=args.model2_name,
+                        logger=self.logger
+                    )
+                    
+                    self.logger.info(f"Successfully merged reports to: {output_path}")
+                    return True
+                    
+                except Exception as e:
+                    self.logger.error(f"Failed to merge reports: {e}")
+                    return False
 
             else:
                 self.logger.error("Please specify a data action")

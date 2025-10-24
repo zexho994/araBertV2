@@ -221,8 +221,8 @@ class NERReportGenerator:
         with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
             writer = csv.writer(csvfile)
             
-            # 写入汇总信息
-            self._write_summary_section(writer, summary)
+            # 移除汇总信息，直接写入详细结果
+            # self._write_summary_section(writer, summary)  # 已注释
             
             # 写入详细结果
             self._write_detailed_section(writer, detailed_results, entity_types)
@@ -283,13 +283,13 @@ class NERReportGenerator:
         elif not isinstance(entity_types, list):
             entity_types = list(entity_types)
         
-        headers = ['Sample ID', 'Text'] + entity_types
+        # 移除 Sample ID 列，Text 改名为 ADDRESS
+        headers = ['ADDRESS'] + entity_types
         writer.writerow(headers)
         
         # 写入每行数据
         for result in detailed_results:
             row = [
-                result['sample_id'],
                 result['text']
             ]
             
@@ -316,14 +316,13 @@ class NERReportGenerator:
         writer.writerow([f"Samples where all specified entities ({', '.join(specified_entities)}) have issues"])
         writer.writerow([])
         
-        # 写入表头
-        headers = ['Sample ID', 'Text'] + [f"{entity} (正确值)" for entity in specified_entities] + [f"{entity} (预测)" for entity in specified_entities]
+        # 写入表头（移除 Sample ID，Text 改名为 ADDRESS）
+        headers = ['ADDRESS'] + [f"{entity} (正确值)" for entity in specified_entities] + [f"{entity} (预测)" for entity in specified_entities]
         writer.writerow(headers)
         
         # 写入数据行
         for sample in problematic_entities:
             row = [
-                sample['sample_id'],
                 sample['text']
             ]
             
@@ -366,7 +365,6 @@ class NERReportGenerator:
         """
         try:
             import openpyxl
-            from openpyxl.styles import PatternFill
         except ImportError:
             self.logger.error("openpyxl is required for Excel report generation. Install with: pip install openpyxl")
             return ""
@@ -413,112 +411,14 @@ class NERReportGenerator:
         return str(output_path)
     
     def _write_excel_summary(self, ws, summary: Dict[str, Any]):
-        """写入 Excel 汇总信息"""
-        row = 1
-        
-        # 添加颜色图例说明
-        try:
-            from openpyxl.styles import PatternFill, Font
-            
-            ws.cell(row=row, column=1, value="颜色图例 / Color Legend:")
-            ws.cell(row=row, column=1).font = Font(bold=True)
-            row += 1
-            
-            # 红色：真正的错误（标注和预测都有值但不同）
-            error_fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
-            ws.cell(row=row, column=1, value="红色 Red")
-            ws.cell(row=row, column=1).fill = error_fill
-            ws.cell(row=row, column=2, value="识别错误：标注和预测都有值但不同")
-            row += 1
-            
-            # 灰色：漏识别（标注有值但未预测）
-            missing_fill = PatternFill(start_color="D3D3D3", end_color="D3D3D3", fill_type="solid")
-            ws.cell(row=row, column=1, value="灰色 Gray")
-            ws.cell(row=row, column=1).fill = missing_fill
-            ws.cell(row=row, column=2, value="漏识别：标注有值但模型未预测出来")
-            row += 1
-            
-            # 黄色：可能是标注缺失
-            warning_fill = PatternFill(start_color="FFE699", end_color="FFE699", fill_type="solid")
-            ws.cell(row=row, column=1, value="黄色 Yellow")
-            ws.cell(row=row, column=1).fill = warning_fill
-            ws.cell(row=row, column=2, value="预测有值但标注为空（可能是标注缺失，需人工判断）")
-            row += 1
-            
-            # 无颜色：正确
-            ws.cell(row=row, column=1, value="无颜色 White")
-            ws.cell(row=row, column=2, value="正确识别或都为空")
-            row += 2
-        except ImportError:
-            pass
-        
-        # 标题
-        ws.cell(row=row, column=1, value="=== EVALUATION SUMMARY ===")
-        row += 2
-        
-        # 基本信息
-        eval_summary = summary['evaluation_summary']
-        ws.cell(row=row, column=1, value="Total Samples")
-        ws.cell(row=row, column=2, value=eval_summary['total_samples'])
-        row += 1
-        
-        ws.cell(row=row, column=1, value="Timestamp")
-        ws.cell(row=row, column=2, value=summary['timestamp'])
-        row += 2
-        
-        # Token 级指标
-        ws.cell(row=row, column=1, value="=== TOKEN-LEVEL METRICS ===")
-        row += 1
-        
-        token_metrics = eval_summary['token_metrics']
-        for metric, value in token_metrics.items():
-            ws.cell(row=row, column=1, value=f"Token {metric.title()}")
-            ws.cell(row=row, column=2, value=f"{value:.4f}")
-            row += 1
-        
-        row += 1
-        
-        # 实体级指标
-        ws.cell(row=row, column=1, value="=== ENTITY-LEVEL METRICS ===")
-        row += 1
-        
-        entity_metrics = eval_summary['entity_metrics']
-        for metric, value in entity_metrics.items():
-            ws.cell(row=row, column=1, value=f"Entity {metric.title()}")
-            ws.cell(row=row, column=2, value=f"{value:.4f}")
-            row += 1
-        
-        row += 1
-        
-        # 逐实体指标
-        ws.cell(row=row, column=1, value="=== PER-ENTITY METRICS ===")
-        row += 1
-        
-        per_entity_metrics = eval_summary['per_entity_metrics']
-        for entity, metrics in per_entity_metrics.items():
-            ws.cell(row=row, column=1, value=f"Entity: {entity}")
-            row += 1
-            for metric, value in metrics.items():
-                ws.cell(row=row, column=2, value=f"  {metric.title()}")
-                ws.cell(row=row, column=3, value=f"{value:.4f}")
-                row += 1
-        
-        row += 2
-        
-        # 详细结果标题
-        ws.cell(row=row, column=1, value="=== DETAILED RESULTS ===")
-        row += 2
-        
-        return row
+        """写入 Excel 汇总信息（已简化，仅返回起始行）"""
+        # 直接从第一行开始，不写入任何汇总信息
+        return 1
     
     def _write_excel_detailed(self, ws, detailed_results: List[Dict[str, Any]], entity_types: List[str]):
         """写入 Excel 详细结果"""
-        # 找到汇总部分的结束行
+        # 直接从第一行开始写入表头（已移除汇总部分）
         summary_end_row = 1
-        for row in range(1, ws.max_row + 1):
-            if ws.cell(row=row, column=1).value == "=== DETAILED RESULTS ===":
-                summary_end_row = row + 2
-                break
         
         # 写入表头
         # 确保 entity_types 是列表
@@ -527,7 +427,8 @@ class NERReportGenerator:
         elif not isinstance(entity_types, list):
             entity_types = list(entity_types)
         
-        headers = ['Sample ID', 'Text'] + entity_types
+        # 移除 Sample ID 列，Text 改名为 ADDRESS
+        headers = ['ADDRESS'] + entity_types
         for col, header in enumerate(headers, 1):
             ws.cell(row=summary_end_row, column=col, value=header)
         
@@ -555,13 +456,12 @@ class NERReportGenerator:
         for idx, result in enumerate(detailed_results):
             row = data_start_row + idx
             
-           # 基本信息
-            ws.cell(row=row, column=1, value=result['sample_id'])
-            ws.cell(row=row, column=2, value=result['text'])
+           # ADDRESS 列（移除了 Sample ID）
+            ws.cell(row=row, column=1, value=result['text'])
             
-            # 实体列
+            # 实体列（列索引从 2 开始）
             for j, entity_type in enumerate(entity_types):
-                col = 3 + j
+                col = 2 + j
                 entity_data = result['entity_columns'][entity_type]
                 cell = ws.cell(row=row, column=col, value=entity_data['content'])
                 
@@ -678,8 +578,8 @@ class NERReportGenerator:
         ws.cell(row=current_row, column=1, value=f"Samples where all specified entities ({', '.join(specified_entities)}) have issues")
         current_row += 2
         
-        # 写入表头
-        headers = ['Sample ID', 'Text'] + [f"{entity} (正确)" for entity in specified_entities] + [f"{entity} (预测)" for entity in specified_entities]
+        # 写入表头（移除 Sample ID，Text 改名为 ADDRESS）
+        headers = ['ADDRESS'] + [f"{entity} (正确)" for entity in specified_entities] + [f"{entity} (预测)" for entity in specified_entities]
         for col, header in enumerate(headers, 1):
             ws.cell(row=current_row, column=col, value=header)
         
@@ -702,12 +602,11 @@ class NERReportGenerator:
             error_fill = None
         
         for sample in problematic_entities:
-            # 基本信息
-            ws.cell(row=current_row, column=1, value=sample['sample_id'])
-            ws.cell(row=current_row, column=2, value=sample['text'])
+            # ADDRESS 列（移除了 Sample ID）
+            ws.cell(row=current_row, column=1, value=sample['text'])
             
-            # 实体列
-            col = 3
+            # 实体列（列索引从 2 开始）
+            col = 2
             for entity_type in specified_entities:
                 entity_issue = sample['entity_issues'][entity_type]
                 

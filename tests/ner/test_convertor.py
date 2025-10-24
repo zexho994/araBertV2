@@ -1,5 +1,6 @@
 """
 测试 CSVAnnotationConvert 的优先级和多值实体处理
+python3 -m pytest tests/ner/test_convertor.py -v -s
 """
 import json
 from pathlib import Path

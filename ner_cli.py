@@ -534,6 +534,42 @@ For more information on each command, use:
         default=0.1,
         help='Validation set ratio (default: 0.1)'
     )
+    
+    # Data merge/compare
+    data_merge_parser = data_subparsers.add_parser(
+        'merge',
+        help='Merge and compare two model evaluation reports'
+    )
+    data_merge_parser.add_argument(
+        '--report-1',
+        type=str,
+        required=True,
+        help='First model report path (xlsx or csv)'
+    )
+    data_merge_parser.add_argument(
+        '--report-2',
+        type=str,
+        required=True,
+        help='Second model report path (xlsx or csv)'
+    )
+    data_merge_parser.add_argument(
+        '--output',
+        type=str,
+        required=True,
+        help='Output merged report path (xlsx)'
+    )
+    data_merge_parser.add_argument(
+        '--model1-name',
+        type=str,
+        default='Model-1',
+        help='First model name (default: Model-1)'
+    )
+    data_merge_parser.add_argument(
+        '--model2-name',
+        type=str,
+        default='Model-2',
+        help='Second model name (default: Model-2)'
+    )
 
     #----------model command----------
     
