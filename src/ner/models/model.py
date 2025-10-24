@@ -383,10 +383,27 @@ class BertNERModel(NERModel):
                     self.loss_fct = self.loss_fct.to(logits.device)
                 else:
                     # Fallback to standard CrossEntropyLoss
-                    self.loss_fct = CrossEntropyLoss(ignore_index=-100)
+                    self.loss_fct = None
             
             # Calculate loss using the configured loss function
-            loss = self.loss_fct(logits, labels, attention_mask)
+            if self.loss_fct is not None:
+                # Custom loss function (accepts attention_mask)
+                loss = self.loss_fct(logits, labels, attention_mask)
+            else:
+                # Standard CrossEntropyLoss (doesn't accept attention_mask)
+                loss_fct = CrossEntropyLoss(ignore_index=-100)
+                # Only calculate loss on valid positions
+                if attention_mask is not None:
+                    active_loss = attention_mask.reshape(-1) == 1
+                    active_logits = logits.reshape(-1, self.num_labels)
+                    active_labels = torch.where(
+                        active_loss,
+                        labels.reshape(-1),
+                        torch.tensor(loss_fct.ignore_index).type_as(labels)
+                    )
+                    loss = loss_fct(active_logits, active_labels)
+                else:
+                    loss = loss_fct(logits.reshape(-1, self.num_labels), labels.reshape(-1))
         
         # TODO：
         # - 可选引入 CRF 层提升序列一致性

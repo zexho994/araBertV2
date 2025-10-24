@@ -49,7 +49,9 @@ This guide describes the custom loss functions implemented to improve NER model 
       "gamma": 2.0,
       "weight_multipliers": {
         "B-BUILDING": 2.0,
-        "I-BUILDING": 2.0
+        "I-BUILDING": 2.0,
+        "B-STREET":2.0,
+        "I-STREET":2.0
       }
     }
   }
