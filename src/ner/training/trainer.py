@@ -420,11 +420,13 @@ class NERTrainer:
             本轮平均训练损失
 
         # TODO: 支持 AMP 混合精度（torch.cuda.amp.autocast + GradScaler）降低显存/提升吞吐。
-        # TODO: 支持梯度累积，在大 batch 受限的设备上稳定训练。
         """
         self.model.train() # 设置模型为训练模式
         total_loss = 0.0
         num_batches = len(self.data_loaders['train'])
+        
+        # 梯度累积步数（用于在显存受限时模拟更大的 batch size）
+        gradient_accumulation_steps = self.config['training'].get('gradient_accumulation_steps', 1)
         
         # 进度条显示当前训练轮次、训练损失、学习率
         progress_bar = tqdm(
@@ -432,6 +434,9 @@ class NERTrainer:
             desc=f"Epoch {epoch + 1}", # 进度条显示当前训练轮次
             leave=False # 进度条不显示
         )
+        
+        # 在循环开始前清零梯度
+        self.optimizer.zero_grad()
         
         # 遍历训练数据集
         for batch_idx, batch in enumerate(progress_bar):
@@ -443,45 +448,66 @@ class NERTrainer:
             outputs = self.model(**batch)
             loss = outputs['loss'] if isinstance(outputs, dict) else outputs.loss
             
-            # 反向传播, 计算梯度
-            self.optimizer.zero_grad()
+            # 梯度累积：将损失除以累积步数，使得累积的梯度保持正确的平均值
+            loss = loss / gradient_accumulation_steps
+            
+            # 反向传播, 计算梯度（梯度会累积在参数上）
             loss.backward()
             
-            # 梯度裁剪，防止梯度爆炸
-            max_grad_norm = self.config['training'].get('max_grad_norm', 1.0)
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
+            # 更新总损失（记录时使用原始损失值）
+            total_loss += loss.item() * gradient_accumulation_steps
             
-            # 更新参数
-            self.optimizer.step()
+            # 只在累积了指定步数后才更新参数
+            if (batch_idx + 1) % gradient_accumulation_steps == 0:
+                # 梯度裁剪，防止梯度爆炸
+                max_grad_norm = self.config['training'].get('max_grad_norm', 1.0)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
+                
+                # 更新参数
+                self.optimizer.step()
+                
+                # 清零梯度，为下一次累积做准备
+                self.optimizer.zero_grad()
 
-            # 更新学习率
-            if self.scheduler:
-                self.scheduler.step()
-
-            # 更新总损失
-            total_loss += loss.item()
+                # 更新学习率
+                if self.scheduler:
+                    self.scheduler.step()
+                
+                # 更新全局步数（只在实际更新参数时增加）
+                self.global_step += 1
+                
+                # 获取当前学习率
+                current_lr = self.optimizer.param_groups[0]['lr']
+                
+                # TensorBoard: 记录当前批次损失与学习率
+                if self.tb_writer is not None:
+                    self.tb_writer.add_scalar('train/batch_loss', float(total_loss / (batch_idx + 1)), self.global_step)
+                    self.tb_writer.add_scalar('train/lr', float(current_lr), self.global_step)
             
             # 更新进度条（进度条显示当前 loss 与 lr）
             current_lr = self.optimizer.param_groups[0]['lr']
             progress_bar.set_postfix({
-                'loss': f"{loss.item():.4f}",
-                'lr': f"{current_lr:.2e}"
+                'loss': f"{loss.item() * gradient_accumulation_steps:.4f}",
+                'lr': f"{current_lr:.2e}",
+                'accum': f"{(batch_idx % gradient_accumulation_steps) + 1}/{gradient_accumulation_steps}"
             })
-            
-            # TensorBoard: 记录当前批次损失与学习率
-            if self.tb_writer is not None:
-                self.tb_writer.add_scalar('train/batch_loss', float(loss.item()), self.global_step)
-                self.tb_writer.add_scalar('train/lr', float(current_lr), self.global_step)
             
             # 记录当前批次损失与学习率
             if batch_idx % 100 == 0:
                 self.logger.debug(
                     f"Epoch {epoch + 1}, Batch {batch_idx}/{num_batches}, "
-                    f"Loss: {loss.item():.4f}, LR: {current_lr:.2e}"
+                    f"Loss: {loss.item() * gradient_accumulation_steps:.4f}, LR: {current_lr:.2e}, "
+                    f"Accum: {(batch_idx % gradient_accumulation_steps) + 1}/{gradient_accumulation_steps}"
                 )
-            
-            # 更新全局步数
-            self.global_step += 1
+        
+        # 处理最后不完整的累积步（如果有的话）
+        if num_batches % gradient_accumulation_steps != 0:
+            max_grad_norm = self.config['training'].get('max_grad_norm', 1.0)
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
+            self.optimizer.step()
+            self.optimizer.zero_grad()
+            if self.scheduler:
+                self.scheduler.step()
         
         # 计算平均损失
         avg_loss = total_loss / num_batches
