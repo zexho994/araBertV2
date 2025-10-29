@@ -8,9 +8,9 @@
     "model": {
         "name": "XLM-RoBERTa",
         "type": "bert",
-        "pretrained_model": "xlm-roberta-base",
+        "pretrained_model": "xlm-roberta-large",
         "lora_adapter": "data/ner/models/uae/adapter/v0.2",
-        "max_length": 512,
+        "max_length": 256,
         "hidden_size": 768,
         "num_attention_heads": 12,
         "num_hidden_layers": 12,
@@ -44,9 +44,10 @@
         }
     },
     "training": {
-        "epochs": 3,
-        "batch_size": 16,
-        "learning_rate": 1e-4,
+        "epochs": 4,
+        "batch_size": 8,
+        "gradient_accumulation_steps": 2,
+        "learning_rate": 2e-5,
         "weight_decay": 0.01,
         "warmup_steps": 500,
         "warmup_ratio": 0.1,
@@ -62,11 +63,11 @@
             "focal_alpha": 0.25,
             "focal_gamma": 2.0,
             "weight_multipliers": {
-                "B-BUILDING": 3.0,
-                "I-BUILDING": 3.0,
-                "B-STREET": 3.0,
-                "I-STREET": 3.0,
-                "O": 0.5
+                "B-BUILDING": 2.0,
+                "I-BUILDING": 2.0,
+                "B-STREET": 2.0,
+                "I-STREET": 2.0,
+                "O": 0.6
             },
             "boundary_weight": 0.2
         },
@@ -84,8 +85,8 @@
         }
     },
     "data": {
-        "train_file": "data/ner/raw_data/0.7.2/simulated_20251029_113658.jsonl",
-        "val_file": "data/ner/raw_data/0.7.2/simulated_20251029_113658.jsonl",
+        "train_file": "data/ner/datasets/uae/train_251024.jsonl",
+        "val_file": "data/ner/datasets/uae/eval_251024.jsonl",
         "test_file": "data/ner/datasets/uae/test.jsonl",
         "max_length": 512,
         "doc_stride": 128,
@@ -106,11 +107,12 @@
         ]
     },
     "labels": {
-        "num_labels": 13,
+        "num_labels": 15,
         "label_names": [
             "O",
             "B-COUNTRY", "I-COUNTRY",
             "B-EMIRATE", "I-EMIRATE",
+            "B-CITY", "I-CITY",
             "B-SUB_AREA", "I-SUB_AREA",
             "B-COMPOUND", "I-COMPOUND",
             "B-STREET", "I-STREET",
@@ -122,14 +124,16 @@
             "I-COUNTRY": 2,
             "B-EMIRATE": 3,
             "I-EMIRATE": 4,
-            "B-SUB_AREA": 5,
-            "I-SUB_AREA": 6,
-            "B-COMPOUND": 7,
-            "I-COMPOUND": 8,
-            "B-STREET": 9,
-            "I-STREET": 10,
-            "B-BUILDING": 11,
-            "I-BUILDING": 12
+            "B-CITY": 5,
+            "I-CITY": 6,
+            "B-SUB_AREA": 7,
+            "I-SUB_AREA": 8,
+            "B-COMPOUND": 9,
+            "I-COMPOUND": 10,
+            "B-STREET": 11,
+            "I-STREET": 12,
+            "B-BUILDING": 13,
+            "I-BUILDING": 14
         },
         "ignore_index": -100
     },

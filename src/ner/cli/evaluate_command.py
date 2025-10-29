@@ -75,7 +75,7 @@ class EvaluateCommand(BaseCommand):
         parser.add_argument(
             "--entity", "-e",
             type=str,
-            help="Comma-separated list of entity types to focus on (e.g., 'country,city'). If specified, will create a special section for samples where all specified entities have issues."
+            help="Comma-separated list of entity types to focus on (e.g., 'country'). If specified, will create a special section for samples where all specified entities have issues."
         )
     
     def execute(self, args) -> bool:
