@@ -106,13 +106,12 @@
         ]
     },
     "labels": {
-        "num_labels": 13,
+        "num_labels": 11,
         "label_names": [
             "O",
             "B-COUNTRY", "I-COUNTRY",
             "B-EMIRATE", "I-EMIRATE",
-            "B-SUB_AREA", "I-SUB_AREA",
-            "B-COMPOUND", "I-COMPOUND",
+            "B-COMMUNITY", "I-COMMUNITY",
             "B-STREET", "I-STREET",
             "B-BUILDING", "I-BUILDING"
         ],
@@ -122,14 +121,12 @@
             "I-COUNTRY": 2,
             "B-EMIRATE": 3,
             "I-EMIRATE": 4,
-            "B-SUB_AREA": 5,
-            "I-SUB_AREA": 6,
-            "B-COMPOUND": 7,
-            "I-COMPOUND": 8,
-            "B-STREET": 9,
-            "I-STREET": 10,
-            "B-BUILDING": 11,
-            "I-BUILDING": 12
+            "B-COMMUNITY":5,
+            "I-COMMUNITY":6,
+            "B-STREET": 7,
+            "I-STREET": 8,
+            "B-BUILDING": 9,
+            "I-BUILDING": 10
         },
         "ignore_index": -100
     },

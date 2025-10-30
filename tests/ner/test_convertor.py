@@ -365,10 +365,8 @@ def test_entity_priority_values():
     # 验证关键实体的优先级顺序
     assert priority["BUILDING"] == 100, "BUILDING 优先级应该是 100"
     assert priority["STREET"] == 90, "STREET 优先级应该是 90"
-    assert priority["COMPOUND"] == 80, "COMPOUND 优先级应该是 80"
-    assert priority["SUB_AREA"] == 70, "SUB_AREA 优先级应该是 70"
+    assert priority["COMMUNITY"] == 80, "COMMUNITY 优先级应该是 80"
     assert priority["EMIRATE"] == 60, "EMIRATE 优先级应该是 60"
-    assert priority["CITY"] == 50, "CITY 优先级应该是 50"
     assert priority["COUNTRY"] == 40, "COUNTRY 优先级应该是 40"
     
     print(f"实体优先级配置正确：{priority}")

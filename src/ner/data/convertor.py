@@ -110,8 +110,7 @@ class CSVAnnotationConvert:
         self._entity_priority: Dict[str, int] = {
             "BUILDING": 100,
             "STREET": 90,
-            "COMPOUND": 80,
-            "SUB_AREA": 70,
+            "COMMUNITY": 70,
             "EMIRATE": 60,
             "CITY": 50,
             "COUNTRY": 40,
@@ -506,12 +505,7 @@ class CSVAnnotationConvert:
 
     @staticmethod
     def _derive_entity_names_from_config(country_cfg: Dict[str, Any]) -> List[str]:
-        """Derive entity names from config labels section.
-
-        Supports two shapes:
-        - labels.entities = ["CITY", "STREET", ...]
-        - labels.label_names = ["O", "B-CITY", "I-CITY", ...]
-        """
+        """Derive entity names from config labels section."""
         labels_cfg = country_cfg.get("labels", {})
 
         entities: List[str] = []

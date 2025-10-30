@@ -1,11 +1,10 @@
 {
-    "generate_size": 50,
+    "generate_size": 100,
     "unique_combinations_only": true,
     "dictionaries": {
         "COUNTRY": "data/ner/simulator/uae/dictionaries/country.txt",
         "EMIRATE": "data/ner/simulator/uae/dictionaries/emirate.txt",
-        "SUB_AREA": "data/ner/simulator/uae/dictionaries/sub_area.txt",
-        "COMPOUND": "data/ner/simulator/uae/dictionaries/compound.txt",
+        "COMMUNITY": "data/ner/simulator/uae/dictionaries/community.txt",
         "STREET": "data/ner/simulator/uae/dictionaries/street.txt",
         "BUILDING": "data/ner/simulator/uae/dictionaries/building.txt"
     },
@@ -25,11 +24,15 @@
                 "weight": 0.119
             },
             {
-                "pattern": "{COMPOUND} {BUILDING} {EMIRATE} {COUNTRY}",
+                "pattern": "{COMMUNITY} {BUILDING} {EMIRATE} {COUNTRY}",
                 "weight": 0.083
             },
             {
-                "pattern": "{BUILDING} {COMPOUND} {EMIRATE} {COUNTRY}",
+                "pattern": "{STREET} {BUILDING} {CITY} {EMIRATE} {COUNTRY}",
+                "weight": 0.069
+            },
+            {
+                "pattern": "{BUILDING} {COMMUNITY} {EMIRATE} {COUNTRY}",
                 "weight": 0.046
             },
             {
@@ -45,19 +48,23 @@
                 "weight": 0.037
             },
             {
-                "pattern": "{COMPOUND} {BUILDING} {SUB_AREA} {EMIRATE} {COUNTRY}",
+                "pattern": "{COMMUNITY} {CITY} {EMIRATE} {COUNTRY}",
+                "weight": 0.03
+            },
+            {
+                "pattern": "{COMMUNITY} {BUILDING} {SUB_AREA} {EMIRATE} {COUNTRY}",
                 "weight": 0.028
             },
             {
-                "pattern": "{COMPOUND} {STREET} {BUILDING} {EMIRATE} {COUNTRY}",
+                "pattern": "{COMMUNITY} {STREET} {BUILDING} {EMIRATE} {COUNTRY}",
                 "weight": 0.028
             },
             {
-                "pattern": "{BUILDING} {COMPOUND} {SUB_AREA} {EMIRATE} {COUNTRY}",
+                "pattern": "{BUILDING} {COMMUNITY} {SUB_AREA} {EMIRATE} {COUNTRY}",
                 "weight": 0.025
             },
             {
-                "pattern": "{STREET} {BUILDING} {COMPOUND} {EMIRATE} {COUNTRY}",
+                "pattern": "{STREET} {BUILDING} {COMMUNITY} {EMIRATE} {COUNTRY}",
                 "weight": 0.025
             },
             {
@@ -65,7 +72,7 @@
                 "weight": 0.024
             },
             {
-                "pattern": "{STREET} {COMPOUND} {BUILDING} {EMIRATE} {COUNTRY}",
+                "pattern": "{STREET} {COMMUNITY} {BUILDING} {EMIRATE} {COUNTRY}",
                 "weight": 0.022
             },
             {
@@ -73,21 +80,29 @@
                 "weight": 0.021
             },
             {
-                "pattern": "{COMPOUND} {SUB_AREA} {EMIRATE} {COUNTRY}",
+                "pattern": "{COMMUNITY} {SUB_AREA} {EMIRATE} {COUNTRY}",
                 "weight": 0.019
             },
             {
-                "pattern": "{BUILDING} {STREET} {COMPOUND} {EMIRATE} {COUNTRY}",
+                "pattern": "{BUILDING} {STREET} {COMMUNITY} {EMIRATE} {COUNTRY}",
                 "weight": 0.019
             },
             {
-                "pattern": "{STREET} {COMPOUND} {EMIRATE} {COUNTRY}",
+                "pattern": "{STREET} {COMMUNITY} {EMIRATE} {COUNTRY}",
                 "weight": 0.018
             },
             {
-                "pattern": "{COMPOUND} {EMIRATE} {BUILDING} {COUNTRY}",
+                "pattern": "{STREET} {SUB_AREA} {CITY} {EMIRATE} {COUNTRY}",
                 "weight": 0.015
-            }
+            },
+            {
+                "pattern": "{STREET} {CITY} {EMIRATE} {COUNTRY}",
+                "weight": 0.015
+            },
+            {
+                "pattern": "{COMMUNITY} {EMIRATE} {BUILDING} {COUNTRY}",
+                "weight": 0.015
+            }        
         ],
         "separator_variations": {
             "options": [","],
@@ -129,7 +144,7 @@
                     "substitution": 0.1
                 }
             },
-            "COMPOUND": {
+            "COMMUNITY": {
                 "probability": 0.2,
                 "max_char_error_ratio": 0.1,
                 "typo_types": {
@@ -137,16 +152,6 @@
                     "deletion": 0.25,
                     "insertion": 0.15,
                     "substitution": 0.1
-                }
-            },
-            "SUB_AREA": {
-                "probability": 0.2,
-                "max_char_error_ratio": 0.08,
-                "typo_types": {
-                    "swap": 0.5,
-                    "deletion": 0.3,
-                    "insertion": 0.15,
-                    "substitution": 0.05
                 }
             },
             "EMIRATE": {
@@ -309,7 +314,7 @@
         "output_dir": "../raw_data/",
         "file_prefix": "simulated_",
         "timestamp_suffix": true,
-        "fields": ["formatted_address", "BUILDING", "STREET", "COMPOUND", "SUB_AREA", "EMIRATE", "COUNTRY"],
+        "fields": ["formatted_address", "BUILDING", "STREET", "COMMUNITY", "EMIRATE", "COUNTRY"],
         "deduplicate": true,
         "shuffle": false,
         "include_metadata": false,
