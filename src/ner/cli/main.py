@@ -11,7 +11,6 @@ from ..config import GlobalConfig
 from .evaluate_command import EvaluateCommand
 from .train_command import TrainCommand
 from .predict_command import PredictCommand
-from .evaluate_predict_command import EvaluatePredictCommand
 from .preprocess_command import PreprocessCommand
 from .data_command import DataCommand
 from .model_command import ModelCommand
@@ -54,7 +53,6 @@ class NERCLIManager:
         commands = [
             TrainCommand(),
             EvaluateCommand(),
-            EvaluatePredictCommand(),
             PredictCommand(),
             PreprocessCommand(),
             DataCommand(),

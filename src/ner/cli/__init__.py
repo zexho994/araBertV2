@@ -12,7 +12,6 @@ from .main import NERCLIManager
 from .evaluate_command import EvaluateCommand
 from .train_command import TrainCommand
 from .predict_command import PredictCommand
-from .evaluate_predict_command import EvaluatePredictCommand
 from .preprocess_command import PreprocessCommand
 from .data_command import DataCommand
 from .model_command import ModelCommand
@@ -22,7 +21,6 @@ __all__ = [
     'TrainCommand',
     'EvaluateCommand', 
     'PredictCommand',
-    'EvaluatePredictCommand',
     'PreprocessCommand',
     'DataCommand',
     'ModelCommand',

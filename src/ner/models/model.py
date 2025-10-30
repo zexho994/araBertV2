@@ -499,7 +499,4 @@ class BertNERModel(NERModel):
         model_path = os.path.join(save_directory, 'pytorch_model.bin')
         torch.save(self.state_dict(), model_path)
         
-        # 保存配置
-        config_path = os.path.join(save_directory, 'config.json')
-        # TODO：变量 config_path 未使用，可移除或用于手动写入配置文件路径
         self.config.save_pretrained(save_directory)

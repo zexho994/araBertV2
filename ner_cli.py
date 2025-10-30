@@ -251,57 +251,6 @@ For more information on each command, use:
         type=str,
         help='Comma-separated list of entity types to focus on (e.g., "country,city"). If specified, will create a special section for samples where all specified entities have issues and generate a separate JSONL file with problematic data.'
     )
-    
-    # Evaluate (predict) command
-    eval_predict_parser = subparsers.add_parser(
-        'evaluate-predict',
-        help='Evaluate a trained model using predict() decoding',
-        description='Evaluate a trained NER model with serving-like predict() + thresholding'
-    )
-    eval_predict_parser.add_argument(
-        '--model-path', '-m',
-        type=str,
-        required=True,
-        help='Path to trained model'
-    )
-    eval_predict_parser.add_argument(
-        '--data-path', '-d',
-        type=str,
-        required=True,
-        help='Path to evaluation data file'
-    )
-    eval_predict_parser.add_argument(
-        '--country',
-        type=str,
-        required=True,
-        help='Country configuration to use (ensures consistent labels and processing)'
-    )
-    eval_predict_parser.add_argument(
-        '--output-dir', '-o',
-        type=str,
-        help='Output directory for evaluation results'
-    )
-    eval_predict_parser.add_argument(
-        '--confidence-threshold',
-        type=float,
-        default=0.5,
-        help='Confidence threshold for predict() decoding (default: 0.5)'
-    )
-    eval_predict_parser.add_argument(
-        '--limit',
-        type=int,
-        help='Limit number of samples for quick evaluation'
-    )
-    eval_predict_parser.add_argument(
-        '--detailed-report',
-        action='store_true',
-        help='Generate detailed evaluation report (Excel format)'
-    )
-    eval_predict_parser.add_argument(
-        '--entity', '-e',
-        type=str,
-        help='Comma-separated list of entity types to focus on (e.g., "country,city"). If specified, will create a special section for samples where all specified entities have issues and generate a separate JSONL file with problematic data.'
-    )
 
     # Predict command
     predict_parser = subparsers.add_parser(
