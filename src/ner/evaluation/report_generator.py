@@ -32,7 +32,8 @@ class NERReportGenerator:
         predictions: List[List[str]],
         evaluation_results: Dict[str, Any],
         entity_types: List[str],
-        specified_entities: Optional[List[str]] = None
+        specified_entities: Optional[List[str]] = None,
+        tokens_list: Optional[List[List[str]]] = None
     ) -> Dict[str, Any]:
         """准备报告数据
         
@@ -44,7 +45,7 @@ class NERReportGenerator:
         
         # 生成逐行详细结果
         detailed_results = self._generate_detailed_results(
-            texts, true_labels, predictions, entity_types
+            texts, true_labels, predictions, entity_types, tokens_list
         )
         
         result = {
@@ -55,7 +56,7 @@ class NERReportGenerator:
         # 如果指定了实体类型，生成问题实体数据
         if specified_entities:
             problematic_entities = self._generate_problematic_entities_data(
-                texts, true_labels, predictions, specified_entities
+                texts, true_labels, predictions, specified_entities, tokens_list
             )
             result['problematic_entities'] = problematic_entities
         
@@ -84,24 +85,52 @@ class NERReportGenerator:
         texts: List[str],
         true_labels: List[List[str]],
         predictions: List[List[str]],
-        entity_types: List[str]
+        entity_types: List[str],
+        tokens_list: Optional[List[List[str]]] = None
     ) -> List[Dict[str, Any]]:
-        """生成逐行详细结果"""
+        """生成逐行详细结果
+        
+        Args:
+            texts: 文本列表
+            true_labels: 真实标签序列
+            predictions: 预测标签序列
+            entity_types: 实体类型列表
+            tokens_list: 可选的tokens列表，如果提供则使用，否则使用text.split()
+        """
         
         detailed_results = []
         
-        for text, true_seq, pred_seq in zip(texts, true_labels, predictions):
+        for idx, (text, true_seq, pred_seq) in enumerate(zip(texts, true_labels, predictions)):
+            # 使用提供的tokens列表或从text中split
+            if tokens_list and idx < len(tokens_list):
+                tokens = tokens_list[idx]
+            else:
+                tokens = text.split()
+            
+            # 确保tokens和labels长度一致
+            if len(tokens) != len(true_seq):
+                self.logger.warning(f"Tokens length ({len(tokens)}) != true_labels length ({len(true_seq)}) for sample {idx}, using min length")
+                min_len = min(len(tokens), len(true_seq))
+                tokens = tokens[:min_len]
+                true_seq = true_seq[:min_len]
+            
+            if len(tokens) != len(pred_seq):
+                self.logger.warning(f"Tokens length ({len(tokens)}) != predictions length ({len(pred_seq)}) for sample {idx}, using min length")
+                min_len = min(len(tokens), len(pred_seq))
+                tokens = tokens[:min_len]
+                pred_seq = pred_seq[:min_len]
+            
             # 提取实体信息
-            true_entities = self._extract_entities_from_sequence(true_seq, text.split())
-            pred_entities = self._extract_entities_from_sequence(pred_seq, text.split())
+            true_entities = self._extract_entities_from_sequence(true_seq, tokens)
+            pred_entities = self._extract_entities_from_sequence(pred_seq, tokens)
             
             # 生成每行的结果
             row_result = {
                 'sample_id': len(detailed_results) + 1,
                 'text': text,
-                'tokens': text.split(),
-                'true_labels': true_seq,
-                'pred_labels': pred_seq,
+                'tokens': tokens,
+                'true_labels': true_seq[:len(tokens)],
+                'pred_labels': pred_seq[:len(tokens)],
                 'true_entities': true_entities,
                 'pred_entities': pred_entities,
                 'entity_columns': {}
@@ -112,8 +141,12 @@ class NERReportGenerator:
                 true_entity_text = self._get_entity_text(true_entities, entity_type)
                 pred_entity_text = self._get_entity_text(pred_entities, entity_type)
                 
-                # 检查是否有识别错误
-                if true_entity_text != pred_entity_text:
+                # 规范化文本用于比较（去除首尾空格，统一空格）
+                true_normalized = ' '.join(true_entity_text.split()) if true_entity_text else ""
+                pred_normalized = ' '.join(pred_entity_text.split()) if pred_entity_text else ""
+                
+                # 检查是否有识别错误（使用规范化后的文本比较）
+                if true_normalized != pred_normalized:
                     # 有差异，使用不同格式展示
                     if true_entity_text and pred_entity_text:
                         # 都有值但不同：真正的误识别
@@ -347,7 +380,8 @@ class NERReportGenerator:
         evaluation_results: Dict[str, Any],
         entity_types: List[str],
         output_path: str,
-        specified_entities: Optional[List[str]] = None
+        specified_entities: Optional[List[str]] = None,
+        tokens_list: Optional[List[List[str]]] = None
     ) -> str:
         """生成 Excel 格式的评估报告（带颜色高亮）
         
@@ -359,6 +393,7 @@ class NERReportGenerator:
             entity_types: 实体类型列表
             output_path: 输出文件路径
             specified_entities: 指定的实体类型列表，如果提供，将创建特殊的问题实体部分
+            tokens_list: 可选的tokens列表，如果提供则使用，否则使用text.split()
             
         Returns:
             生成的报告文件路径
@@ -377,7 +412,7 @@ class NERReportGenerator:
         
         # 生成报告数据
         report_data = self._prepare_report_data(
-            texts, true_labels, predictions, evaluation_results, entity_types, specified_entities
+            texts, true_labels, predictions, evaluation_results, entity_types, specified_entities, tokens_list
         )
         
         # 创建 Excel 工作簿
@@ -504,7 +539,8 @@ class NERReportGenerator:
         texts: List[str],
         true_labels: List[List[str]],
         predictions: List[List[str]],
-        specified_entities: List[str]
+        specified_entities: List[str],
+        tokens_list: Optional[List[List[str]]] = None
     ) -> List[Dict[str, Any]]:
         """生成问题实体数据
         
@@ -515,6 +551,7 @@ class NERReportGenerator:
             true_labels: 真实标签序列
             predictions: 预测标签序列
             specified_entities: 指定的实体类型列表
+            tokens_list: 可选的tokens列表，如果提供则使用，否则使用text.split()
             
         Returns:
             问题实体数据列表
@@ -522,9 +559,26 @@ class NERReportGenerator:
         problematic_samples = []
         
         for i, (text, true_seq, pred_seq) in enumerate(zip(texts, true_labels, predictions)):
+            # 使用提供的tokens列表或从text中split
+            if tokens_list and i < len(tokens_list):
+                tokens = tokens_list[i]
+            else:
+                tokens = text.split()
+            
+            # 确保tokens和labels长度一致
+            if len(tokens) != len(true_seq):
+                min_len = min(len(tokens), len(true_seq))
+                tokens = tokens[:min_len]
+                true_seq = true_seq[:min_len]
+            
+            if len(tokens) != len(pred_seq):
+                min_len = min(len(tokens), len(pred_seq))
+                tokens = tokens[:min_len]
+                pred_seq = pred_seq[:min_len]
+            
             # 提取实体信息
-            true_entities = self._extract_entities_from_sequence(true_seq, text.split())
-            pred_entities = self._extract_entities_from_sequence(pred_seq, text.split())
+            true_entities = self._extract_entities_from_sequence(true_seq, tokens)
+            pred_entities = self._extract_entities_from_sequence(pred_seq, tokens)
             
             # 检查指定实体类型是否都有问题
             all_entities_problematic = True
@@ -534,8 +588,12 @@ class NERReportGenerator:
                 true_entity_text = self._get_entity_text(true_entities, entity_type)
                 pred_entity_text = self._get_entity_text(pred_entities, entity_type)
                 
-                # 检查是否有识别错误
-                has_error = true_entity_text != pred_entity_text
+                # 规范化文本用于比较（去除首尾空格，统一空格）
+                true_normalized = ' '.join(true_entity_text.split()) if true_entity_text else ""
+                pred_normalized = ' '.join(pred_entity_text.split()) if pred_entity_text else ""
+                
+                # 检查是否有识别错误（使用规范化后的文本比较）
+                has_error = true_normalized != pred_normalized
                 entity_issues[entity_type] = {
                     'true': true_entity_text,
                     'pred': pred_entity_text,
@@ -551,9 +609,9 @@ class NERReportGenerator:
                 problematic_samples.append({
                     'sample_id': i + 1,
                     'text': text,
-                    'tokens': text.split(),
-                    'true_labels': true_seq,
-                    'pred_labels': pred_seq,
+                    'tokens': tokens,
+                    'true_labels': true_seq[:len(tokens)],
+                    'pred_labels': pred_seq[:len(tokens)],
                     'entity_issues': entity_issues
                 })
         

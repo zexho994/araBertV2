@@ -108,6 +108,7 @@ class EvaluatePredictCommand(BaseCommand):
             # 构造 texts 与 true_labels
             texts = []
             true_labels = []
+            tokens_list = []  # 保存预处理后的tokens列表
             for ex in dataset[: (args.limit if getattr(args, 'limit', None) else None)]:
                 tokens = ex.get('tokens')
                 labels = ex.get('labels')
@@ -119,6 +120,7 @@ class EvaluatePredictCommand(BaseCommand):
                     continue
                 texts.append(' '.join(proc_tokens))
                 true_labels.append(proc_labels)
+                tokens_list.append(proc_tokens)  # 保存原始tokens列表
             
             if not texts:
                 raise ValueError("No valid examples found for evaluation")
@@ -148,7 +150,7 @@ class EvaluatePredictCommand(BaseCommand):
             # 生成详细报告
             if getattr(args, 'detailed_report', False):
                 self._generate_detailed_report(
-                    results, texts, true_labels, config, out_dir, args
+                    results, texts, true_labels, tokens_list, config, out_dir, args
                 )
             
             return True
@@ -156,7 +158,7 @@ class EvaluatePredictCommand(BaseCommand):
             self.logger.error(f"Evaluation (predict) failed: {e}")
             return False
     
-    def _generate_detailed_report(self, results, texts, true_labels, config, out_dir, args):
+    def _generate_detailed_report(self, results, texts, true_labels, tokens_list, config, out_dir, args):
         """生成详细的评估报告"""
         try:
             from ..evaluation.report_generator import NERReportGenerator
@@ -216,7 +218,7 @@ class EvaluatePredictCommand(BaseCommand):
             # 生成Excel报告
             report_generator = NERReportGenerator(logger=self.logger)
             report_path = report_generator.generate_excel_report(
-                texts, true_labels, predictions, results, entity_types, str(report_path), specified_entities
+                texts, true_labels, predictions, results, entity_types, str(report_path), specified_entities, tokens_list
             )
             
             if report_path:
