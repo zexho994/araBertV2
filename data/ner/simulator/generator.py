@@ -127,20 +127,42 @@ class AddressGenerator:
         # 选择模板
         pattern, entity_types = self._select_template()
         
-        # 为每个实体类型随机选择一个值
+        # 为每个实体类型随机选择一个值（支持重复的实体类型）
         entities = {}
         entity_values_ordered = []  # 保存实体值的顺序列表
+        entity_values_by_type = {}  # 按类型存储所有值（用于处理重复）
         
+        # 为每个占位符选择不同的值（即使是同一类型）
         for entity_type in entity_types:
             # 从对应词典中随机选择
             entity_value = random.choice(self.dictionaries[entity_type])
-            entities[entity_type] = entity_value
             entity_values_ordered.append(entity_value)
+            
+            # 如果该类型已存在，将值添加到列表中（用于后续CSV输出）
+            if entity_type in entity_values_by_type:
+                entity_values_by_type[entity_type].append(entity_value)
+            else:
+                entity_values_by_type[entity_type] = [entity_value]
         
-        # 填充模板（此时实体之间用空格分隔）
+        # 填充模板：按顺序替换每个占位符，确保重复实体类型也能正确替换
         address = pattern
-        for entity_type, entity_value in entities.items():
-            address = address.replace(f'{{{entity_type}}}', entity_value)
+        offset = 0
+        for i, entity_type in enumerate(entity_types):
+            entity_value = entity_values_ordered[i]
+            # 找到下一个占位符的位置
+            placeholder = f'{{{entity_type}}}'
+            pos = address.find(placeholder, offset)
+            if pos != -1:
+                # 替换该位置的占位符
+                address = address[:pos] + entity_value + address[pos + len(placeholder):]
+                offset = pos + len(entity_value)
+        
+        # 构建实体字典：如果同一类型有多个值，用 " | " 连接
+        for entity_type, values in entity_values_by_type.items():
+            if len(values) > 1:
+                entities[entity_type] = ' | '.join(values)
+            else:
+                entities[entity_type] = values[0]
         
         return address, entities, entity_values_ordered, entity_types
     
@@ -337,7 +359,7 @@ class AddressGenerator:
         
         return ''.join(chars)
     
-    def _generate_t3(self, address: str, entities: Dict[str, str], entity_types: List[str]) -> Tuple[str, Dict[str, str], List[str]]:
+    def _generate_t3(self, address: str, entities: Dict[str, str], entity_types: List[str], entity_values_ordered: List[str]) -> Tuple[str, Dict[str, str], List[str]]:
         """
         T3: 应用拼写错误和大小写变体
         包括：
@@ -347,8 +369,9 @@ class AddressGenerator:
         
         Args:
             address: T2生成的地址
-            entities: 原始实体字典
+            entities: 原始实体字典（可能包含 " | " 连接的重复实体值）
             entity_types: 实体类型列表（按模板顺序）
+            entity_values_ordered: 实体值列表（按模板顺序，每个占位符对应一个值）
             
         Returns:
             (变体后的地址, 更新后的实体字典, 变体后的实体值列表（按模板顺序）)
@@ -357,32 +380,66 @@ class AddressGenerator:
         
         if not typo_config['enabled']:
             # 按原顺序提取实体值
-            entity_values_ordered = [entities[et] for et in entity_types if et in entities]
-            return address, entities, entity_values_ordered
+            # 如果 entities 中有 " | " 连接的值，需要拆分
+            entity_values_ordered_result = []
+            for i, entity_type in enumerate(entity_types):
+                if i < len(entity_values_ordered):
+                    entity_values_ordered_result.append(entity_values_ordered[i])
+                elif entity_type in entities:
+                    # 如果 entities 中有 " | " 连接的值，使用第一个值
+                    value = entities[entity_type]
+                    if ' | ' in value:
+                        entity_values_ordered_result.append(value.split(' | ')[0])
+                    else:
+                        entity_values_ordered_result.append(value)
+            return address, entities, entity_values_ordered_result
         
         # 按全局概率决定是否进行typo注入
         if random.random() > typo_config['global_probability']:
-            entity_values_ordered = [entities[et] for et in entity_types if et in entities]
-            return address, entities, entity_values_ordered
+            entity_values_ordered_result = []
+            for i, entity_type in enumerate(entity_types):
+                if i < len(entity_values_ordered):
+                    entity_values_ordered_result.append(entity_values_ordered[i])
+                elif entity_type in entities:
+                    value = entities[entity_type]
+                    if ' | ' in value:
+                        entity_values_ordered_result.append(value.split(' | ')[0])
+                    else:
+                        entity_values_ordered_result.append(value)
+            return address, entities, entity_values_ordered_result
         
-        # 步骤1: 为每个实体应用拼写错误
-        entities_with_typos = {}
+        # 步骤1: 为每个独立的实体值应用拼写错误
+        entities_with_typos_ordered = []
         address_with_typos = address
         
-        # 先为所有实体生成拼写错误版本
-        for entity_type, entity_value in entities.items():
-            entity_with_typo = self._apply_typo_to_entity(entity_value, entity_type)
-            entities_with_typos[entity_type] = entity_with_typo
+        # 为每个实体值（按顺序）生成拼写错误版本
+        for i, entity_type in enumerate(entity_types):
+            if i < len(entity_values_ordered):
+                entity_value = entity_values_ordered[i]
+                entity_with_typo = self._apply_typo_to_entity(entity_value, entity_type)
+                entities_with_typos_ordered.append(entity_with_typo)
+            else:
+                # 如果索引超出范围，从 entities 中获取
+                if entity_type in entities:
+                    value = entities[entity_type]
+                    if ' | ' in value:
+                        entity_value = value.split(' | ')[0]
+                    else:
+                        entity_value = value
+                    entity_with_typo = self._apply_typo_to_entity(entity_value, entity_type)
+                    entities_with_typos_ordered.append(entity_with_typo)
+                else:
+                    entities_with_typos_ordered.append('')
         
         # 按实体在模板中的顺序进行替换，避免文本重叠问题
         # 例如："Dubai Studio City" 包含 "Dubai"，需要按顺序替换
         offset = 0
-        for entity_type in entity_types:
-            if entity_type not in entities:
+        for i, entity_type in enumerate(entity_types):
+            if i >= len(entity_values_ordered):
                 continue
             
-            entity_value = entities[entity_type]
-            entity_with_typo = entities_with_typos[entity_type]
+            entity_value = entity_values_ordered[i]
+            entity_with_typo = entities_with_typos_ordered[i]
             
             # 从当前offset开始查找实体
             pos = address_with_typos.find(entity_value, offset)
@@ -403,14 +460,15 @@ class AddressGenerator:
         # 关键：实体值必须从最终地址中提取，确保与地址文本一致
         entities_t3 = {}
         entity_values_ordered_t3 = []
+        entity_values_by_type = {}  # 按类型分组，用于处理重复实体
         
         # 按实体类型顺序提取
-        for entity_type in entity_types:
-            if entity_type not in entities_with_typos:
+        for i, entity_type in enumerate(entity_types):
+            if i >= len(entities_with_typos_ordered):
                 continue
             
             # 获取拼写错误后的实体值（还未应用大小写变体）
-            entity_with_typo = entities_with_typos[entity_type]
+            entity_with_typo = entities_with_typos_ordered[i]
             
             # 在变体后的地址中查找该实体
             # 需要考虑大小写变化，使用不区分大小写的查找
@@ -418,16 +476,41 @@ class AddressGenerator:
             lower_address = address_t3.lower()
             lower_entity = entity_with_typo.lower()
             
-            pos = lower_address.find(lower_entity)
+            # 从上一个查找位置之后开始查找（处理重复实体）
+            start_offset = 0
+            if i > 0 and entity_values_ordered_t3:
+                # 尝试找到上一个实体在地址中的位置
+                prev_value = entity_values_ordered_t3[-1]
+                prev_lower = prev_value.lower()
+                prev_pos = lower_address.find(prev_lower, start_offset)
+                if prev_pos != -1:
+                    start_offset = prev_pos + len(prev_value)
+            
+            pos = lower_address.find(lower_entity, start_offset)
             if pos != -1:
                 # 从地址中提取实际的字符串（包含正确的大小写）
                 actual_entity = address_t3[pos:pos + len(entity_with_typo)]
-                entities_t3[entity_type] = actual_entity
                 entity_values_ordered_t3.append(actual_entity)
+                
+                # 按类型分组
+                if entity_type in entity_values_by_type:
+                    entity_values_by_type[entity_type].append(actual_entity)
+                else:
+                    entity_values_by_type[entity_type] = [actual_entity]
             else:
                 # 如果找不到（理论上不应该发生），使用原值
-                entities_t3[entity_type] = entity_with_typo
                 entity_values_ordered_t3.append(entity_with_typo)
+                if entity_type in entity_values_by_type:
+                    entity_values_by_type[entity_type].append(entity_with_typo)
+                else:
+                    entity_values_by_type[entity_type] = [entity_with_typo]
+        
+        # 构建最终的实体字典：如果同一类型有多个值，用 " | " 连接
+        for entity_type, values in entity_values_by_type.items():
+            if len(values) > 1:
+                entities_t3[entity_type] = ' | '.join(values)
+            else:
+                entities_t3[entity_type] = values[0]
         
         return address_t3, entities_t3, entity_values_ordered_t3
     
@@ -586,7 +669,8 @@ class AddressGenerator:
         self, 
         address: str, 
         entities: Dict[str, str], 
-        entity_types: List[str]
+        entity_types: List[str],
+        entity_values_ordered: List[str]
     ) -> str:
         """
         为特定实体应用噪音，但不更新实体标签
@@ -600,8 +684,9 @@ class AddressGenerator:
         
         Args:
             address: 当前地址字符串
-            entities: 实体字典 (不会被修改)
+            entities: 实体字典 (不会被修改，可能包含 " | " 连接的重复实体值)
             entity_types: 实体类型列表（按模板顺序）
+            entity_values_ordered: 实体值列表（按模板顺序，每个占位符对应一个值）
             
         Returns:
             添加实体特定噪音后的地址字符串
@@ -617,11 +702,11 @@ class AddressGenerator:
         # 需要记录每个实体的位置，然后从后往前插入噪音（避免位置偏移问题）
         noise_insertions = []  # 存储 (position, noise_text, insert_before) 元组
         
-        for entity_type in entity_types:
-            if entity_type not in entities:
+        for i, entity_type in enumerate(entity_types):
+            if i >= len(entity_values_ordered):
                 continue
             
-            entity_value = entities[entity_type]
+            entity_value = entity_values_ordered[i]
             if not entity_value:  # 跳过空值
                 continue
             
@@ -686,7 +771,8 @@ class AddressGenerator:
         self,
         address: str,
         entities: Dict[str, str],
-        entity_types: List[str]
+        entity_types: List[str],
+        entity_values_ordered: List[str]
     ) -> str:
         """
         T6: 实体重复处理
@@ -703,8 +789,9 @@ class AddressGenerator:
         
         Args:
             address: 当前地址字符串
-            entities: 实体字典 (不会被修改)
+            entities: 实体字典 (不会被修改，可能包含 " | " 连接的重复实体值)
             entity_types: 实体类型列表（按模板顺序）
+            entity_values_ordered: 实体值列表（按模板顺序，每个占位符对应一个值）
             
         Returns:
             包含重复实体的地址字符串
@@ -726,11 +813,11 @@ class AddressGenerator:
         
         per_entity_config = repetition_config.get('per_entity_config', {})
         
-        for entity_type in entity_types:
-            if entity_type not in entities:
+        for i, entity_type in enumerate(entity_types):
+            if i >= len(entity_values_ordered):
                 continue
             
-            entity_value = entities[entity_type]
+            entity_value = entity_values_ordered[i]
             if not entity_value:
                 continue
             
@@ -927,18 +1014,18 @@ class AddressGenerator:
         address_t2 = self._generate_t2(address_t1, entity_values_ordered)
         
         # T3: 应用拼写错误和大小写变体
-        address_t3, entities_t3, entity_values_ordered_t3 = self._generate_t3(address_t2, entities, entity_types)
+        address_t3, entities_t3, entity_values_ordered_t3 = self._generate_t3(address_t2, entities, entity_types, entity_values_ordered)
         
         # T4: 注入噪音（传入T3后的实体值列表，确保不破坏实体）
         address_t4 = self._generate_t4(address_t3, entity_values_ordered_t3)
         
         # T5: 为特定实体应用噪音（如BUILDING后的公寓号、STREET前的门牌号）
         # 关键：只修改地址字符串，不修改entities_t3字典，训练模型学习正确的实体边界
-        address_t5 = self._apply_entity_specific_noise(address_t4, entities_t3, entity_types)
+        address_t5 = self._apply_entity_specific_noise(address_t4, entities_t3, entity_types, entity_values_ordered_t3)
         
         # T6: 实体重复（训练模型识别连续重复的实体）
         # 关键：只修改地址字符串，不修改entities_t3字典，让模型学习识别重复实体
-        address_t6 = self._apply_entity_repetition(address_t5, entities_t3, entity_types)
+        address_t6 = self._apply_entity_repetition(address_t5, entities_t3, entity_types, entity_values_ordered_t3)
         
         return address_t6, entities_t3
     
