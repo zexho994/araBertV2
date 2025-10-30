@@ -100,6 +100,8 @@ class EvaluatePredictCommand(BaseCommand):
             # 加载国家配置与数据
             config = self.get_country_config(args.country)
             processor = NERDataProcessor(config, logger=self.logger)
+
+            # 加载预测数据集
             dataset = processor.load_data_file(args.data_path)
 
             # 构建预处理器
@@ -107,8 +109,10 @@ class EvaluatePredictCommand(BaseCommand):
             
             # 构造 texts 与 true_labels
             texts = []
-            true_labels = []
+            true_labels = [] # 真实标签
             tokens_list = []  # 保存预处理后的tokens列表
+
+            # 遍历数据集，构造 texts 与 true_labels
             for ex in dataset[: (args.limit if getattr(args, 'limit', None) else None)]:
                 tokens = ex.get('tokens')
                 labels = ex.get('labels')
@@ -142,10 +146,6 @@ class EvaluatePredictCommand(BaseCommand):
                 out_dir = Path(config['output']['results_dir'])
             if out_dir is not None:
                 out_dir.mkdir(parents=True, exist_ok=True)
-                metrics_path = out_dir / 'metrics_predict.json'
-                with open(metrics_path, 'w', encoding='utf-8') as f:
-                    json.dump(results, f, ensure_ascii=False, indent=2)
-                self.logger.info(f"\nSaved evaluation (predict) metrics to: {metrics_path}")
             
             # 生成详细报告
             if getattr(args, 'detailed_report', False):
