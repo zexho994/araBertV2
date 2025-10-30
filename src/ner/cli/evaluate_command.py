@@ -18,8 +18,7 @@ class EvaluateCommand(BaseCommand):
     - 当前实现默认从模型目录读取 tokenizer 与标签映射，从而进行文本级评估。
     - 支持 `--output-dir` 持久化评估指标 JSON；可选 `--detailed-report` 生成详细报告（未实现）。
 
-    # TODO: 支持基于 DataLoader 的批量评估，并尊重 `--batch-size`。
-    # TODO: 将 `--metrics` 与 `--detailed-report` 真正接入评估与报告逻辑（当前未使用）。
+    # TODO: 支持基于 DataLoader 的批量评估，并使用 `--batch-size`。
     """
     
     @property
@@ -71,11 +70,6 @@ class EvaluateCommand(BaseCommand):
             "--detailed-report","--dr",
             action="store_true",
             help="Generate detailed evaluation report (Excel format)"
-        )
-        parser.add_argument(
-            "--entity", "-e",
-            type=str,
-            help="Comma-separated list of entity types to focus on (e.g., 'country'). If specified, will create a special section for samples where all specified entities have issues."
         )
     
     def execute(self, args) -> bool:
