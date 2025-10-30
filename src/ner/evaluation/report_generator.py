@@ -141,12 +141,11 @@ class NERReportGenerator:
                 true_entity_text = self._get_entity_text(true_entities, entity_type)
                 pred_entity_text = self._get_entity_text(pred_entities, entity_type)
                 
-                # 规范化文本用于比较（去除首尾空格，统一空格）
-                true_normalized = ' '.join(true_entity_text.split()) if true_entity_text else ""
-                pred_normalized = ' '.join(pred_entity_text.split()) if pred_entity_text else ""
+                # 使用集合比较来判断实体是否匹配（忽略顺序）
+                entities_match = self._compare_entity_sets(true_entity_text, pred_entity_text)
                 
-                # 检查是否有识别错误（使用规范化后的文本比较）
-                if true_normalized != pred_normalized:
+                # 检查是否有识别错误
+                if not entities_match:
                     # 有差异，使用不同格式展示
                     if true_entity_text and pred_entity_text:
                         # 都有值但不同：真正的误识别
@@ -214,11 +213,25 @@ class NERReportGenerator:
                         entities[current_entity] = entity_text
                 current_entity = label[2:]  # 去掉 'B-' 前缀
                 current_tokens = [token]
-            elif label.startswith('I-') and current_entity == label[2:]:
-                # 继续当前实体
-                current_tokens.append(token)
+            elif label.startswith('I-'):
+                # 处理I-标签
+                entity_type = label[2:]  # 去掉 'I-' 前缀
+                if current_entity == entity_type:
+                    # 继续当前实体
+                    current_tokens.append(token)
+                else:
+                    # 不匹配的I-标签：先保存当前实体，然后将此I-视为新的B-
+                    if current_entity:
+                        entity_text = ' '.join(current_tokens)
+                        if current_entity in entities:
+                            entities[current_entity] += f" | {entity_text}"
+                        else:
+                            entities[current_entity] = entity_text
+                    # 将孤立的I-视为B-（IOB2规范不允许，但为了健壮性）
+                    current_entity = entity_type
+                    current_tokens = [token]
             else:
-                # 结束当前实体
+                # O标签或其他：结束当前实体
                 if current_entity:
                     entity_text = ' '.join(current_tokens)
                     if current_entity in entities:
@@ -243,6 +256,42 @@ class NERReportGenerator:
     def _get_entity_text(self, entities: Dict[str, str], entity_type: str) -> str:
         """获取指定实体类型的文本"""
         return entities.get(entity_type, "")
+    
+    def _normalize_entity_text(self, entity_text: str) -> str:
+        """规范化实体文本（去除首尾空格，统一空格）"""
+        return ' '.join(entity_text.split()) if entity_text else ""
+    
+    def _compare_entity_sets(self, true_text: str, pred_text: str) -> bool:
+        """比较两个实体文本集合是否相等
+        
+        当同一类型有多个实体时，它们用 " | " 分隔。
+        此方法将实体文本分割成集合进行比较，忽略顺序。
+        
+        Args:
+            true_text: 真实实体文本（可能包含多个实体，用 " | " 分隔）
+            pred_text: 预测实体文本（可能包含多个实体，用 " | " 分隔）
+            
+        Returns:
+            如果两个实体集合相等（忽略顺序），返回True；否则返回False
+        """
+        # 规范化文本
+        true_normalized = self._normalize_entity_text(true_text)
+        pred_normalized = self._normalize_entity_text(pred_text)
+        
+        # 如果都为空，认为相等
+        if not true_normalized and not pred_normalized:
+            return True
+        
+        # 如果只有一个为空，不相等
+        if not true_normalized or not pred_normalized:
+            return False
+        
+        # 分割成实体集合（去除空字符串）
+        true_entities = set(e.strip() for e in true_normalized.split('|') if e.strip())
+        pred_entities = set(e.strip() for e in pred_normalized.split('|') if e.strip())
+        
+        # 比较集合是否相等
+        return true_entities == pred_entities
     
     def _write_csv_report(self, report_data: Dict[str, Any], output_path: Path, specified_entities: Optional[List[str]] = None):
         """写入 CSV 报告文件"""
@@ -588,12 +637,8 @@ class NERReportGenerator:
                 true_entity_text = self._get_entity_text(true_entities, entity_type)
                 pred_entity_text = self._get_entity_text(pred_entities, entity_type)
                 
-                # 规范化文本用于比较（去除首尾空格，统一空格）
-                true_normalized = ' '.join(true_entity_text.split()) if true_entity_text else ""
-                pred_normalized = ' '.join(pred_entity_text.split()) if pred_entity_text else ""
-                
-                # 检查是否有识别错误（使用规范化后的文本比较）
-                has_error = true_normalized != pred_normalized
+                # 使用集合比较来判断实体是否匹配（忽略顺序）
+                has_error = not self._compare_entity_sets(true_entity_text, pred_entity_text)
                 entity_issues[entity_type] = {
                     'true': true_entity_text,
                     'pred': pred_entity_text,
