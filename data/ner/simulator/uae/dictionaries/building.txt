@@ -1833,7 +1833,7 @@ Villa 227
 Al Tawhidi Building II
 Al Fardan Centre Sharjah
 Al Yasmin Building
-Al Kail Gate Phase 2, Building 1-9
+Al Kail Gate Phase 2
 Dubai Municipality Building
 Mohammed Ibrahim Tower
 Gold Centre
@@ -10315,7 +10315,7 @@ Al Tawhidi Building 2
 Maples 2
 Wasl Oasis 2
 Al Fattan Marine Towers
-Al Kail Gate Phase 2, Building 1-9
+Al Kail Gate Phase 2
 Al Kawakeb Building Block A
 Al Kawakeb Building Block B
 Al Kawakeb Building Block C
@@ -16526,7 +16526,6 @@ khail heights al khail
 khail heigths al quoz
 khoory inn
 la violeta 1 villa
-landmark restaurant
 majid property
 mazda showroom
 mercure city
