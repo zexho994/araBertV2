@@ -1651,7 +1651,6 @@ Sheikh Humaid Bin Saqr Al Qassimi Street
 Zabeel Park Jogging Track
 4th Interchange
 Interchange 4-1
-JLT Exit
 Lailak 2nd Street
 20 B Street
 Sharjah Riding Club Road
@@ -1688,7 +1687,6 @@ Al Majlis Street
 As Suhoul Street
 Al Thiba Road
 Aشارع ١
-Exit 2
 Rahma Almasoud Al Muhairbi Street
 Baniyas Najda Street
 Crescent Rd
@@ -2092,7 +2090,6 @@ Bay Avenue
 Rumiah Street
 1 East 99
 Alnahar st
-Exit to Creek Park Gate 5
 Suhool Street
 King Faisal road street
 Street H
@@ -2102,7 +2099,6 @@ Al Hadiqah road
 Al Madheef Street
 Al ithihad road
 Al etihad Street
-Unit C1005
 Al Ohood Street
 Al Zakhmi Street
 Esbigi st
@@ -2112,9 +2108,7 @@ Saheel Street
 شارع القدس Al Quds Street
 صُوغِيَّة
 Sheikh Hamdan Bin Zaid Alnehyan
-Way to the beach and the golf course
 Al Zumorrud Street
-FZJOB 1308
 Za'abeel Road
 1 Tram
 17th Cross Street
@@ -2126,7 +2120,6 @@ Al Qasar Rd(F19)
 29 D Street
 Al Resasi Street
 Al Marmoum
-Warehouse 7
 Al Aweer Road
 Street N405
 Jumeriah Tram
