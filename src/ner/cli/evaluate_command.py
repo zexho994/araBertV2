@@ -1,13 +1,3 @@
-"""评估 NER 模型的命令
-
-说明：
-- 当前实现默认从模型目录读取 tokenizer 与标签映射，从而进行文本级评估。
-- 支持 `--output-dir` 持久化评估指标 JSON；可选 `--detailed-report` 生成详细报告（未实现）。
-
-# TODO: 支持基于 DataLoader 的批量评估，并尊重 `--batch-size`。
-# TODO: 将 `--metrics` 与 `--detailed-report` 真正接入评估与报告逻辑（当前未使用）。
-"""
-
 from .base import BaseCommand
 
 
@@ -72,7 +62,7 @@ class EvaluateCommand(BaseCommand):
             help="Generate detailed evaluation report (Excel format)"
         )
         parser.add_argument(
-            "--confidence-threshold",
+            "--confidence-threshold","--ct",
             type=float,
             default=0.5,
             help="Confidence threshold for predictions (default: 0.5)"
