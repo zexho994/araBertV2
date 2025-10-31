@@ -441,11 +441,12 @@ class NERTrainer:
         # 遍历训练数据集
         for batch_idx, batch in enumerate(progress_bar):
 
-            # 将批次数据移动到设备
-            batch = {k: v.to(self.device) for k, v in batch.items()}
+            # 将批次数据移动到设备（跳过非张量字段如 original_tokens, original_labels）
+            batch = {k: v.to(self.device) if isinstance(v, torch.Tensor) else v for k, v in batch.items()}
             
-            # 前向传播, 返回损失
-            outputs = self.model(**batch)
+            # 前向传播, 返回损失（只传递张量字段给模型）
+            model_inputs = {k: v for k, v in batch.items() if isinstance(v, torch.Tensor)}
+            outputs = self.model(**model_inputs)
             loss = outputs['loss'] if isinstance(outputs, dict) else outputs.loss
             
             # 梯度累积：将损失除以累积步数，使得累积的梯度保持正确的平均值
@@ -547,11 +548,12 @@ class NERTrainer:
         with torch.no_grad():
             for batch in tqdm(self.data_loaders['val'], desc="Validating", leave=False):
 
-                # 将批次数据移动到设备
-                batch = {k: v.to(self.device) for k, v in batch.items()}
+                # 将批次数据移动到设备（跳过非张量字段如 original_tokens, original_labels）
+                batch = {k: v.to(self.device) if isinstance(v, torch.Tensor) else v for k, v in batch.items()}
                 
-                # 前向传播, 返回损失与 logits
-                outputs = self.model(**batch)
+                # 前向传播, 返回损失与 logits（只传递张量字段给模型）
+                model_inputs = {k: v for k, v in batch.items() if isinstance(v, torch.Tensor)}
+                outputs = self.model(**model_inputs)
 
                 # loss 是损失值, 是当前批次所有样本的平均损失
                 loss = outputs['loss'] if isinstance(outputs, dict) else outputs.loss

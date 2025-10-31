@@ -373,12 +373,34 @@ class BertNERModel(NERModel):
                 loss_config = getattr(self.config, 'loss_config', None)
                 if loss_config:
                     from ..training.losses import LossFactory
+                    
+                    # Ensure label2id and id2label are dicts, not lists
+                    label2id = getattr(self.config, 'label2id', {})
+                    id2label = getattr(self.config, 'id2label', {})
+                    
+                    # Convert lists to dicts if needed
+                    if isinstance(label2id, list):
+                        label2id = {label: idx for idx, label in enumerate(label2id)}
+                    if isinstance(id2label, list):
+                        id2label = {idx: label for label, idx in enumerate(id2label)}
+                    
+                    # Validate loss_config is a dict, not a list
+                    if not isinstance(loss_config, dict):
+                        raise TypeError(f"loss_config must be a dict, got {type(loss_config)}: {loss_config}")
+                    
                     self.loss_fct = LossFactory.create_loss(
                         config=loss_config,
-                        label2id=self.config.label2id,
-                        id2label=self.config.id2label,
+                        label2id=label2id,
+                        id2label=id2label,
                         num_labels=self.num_labels
                     )
+                    
+                    # Verify loss_fct is an nn.Module before moving to device
+                    if not isinstance(self.loss_fct, nn.Module):
+                        raise TypeError(f"LossFactory.create_loss() returned {type(self.loss_fct)}, expected nn.Module. "
+                                      f"loss_config: {loss_config}, label2id type: {type(label2id)}, "
+                                      f"id2label type: {type(id2label)}")
+                    
                     # Move loss function to the same device as the model
                     self.loss_fct = self.loss_fct.to(logits.device)
                 else:
