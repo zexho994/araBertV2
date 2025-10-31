@@ -359,28 +359,21 @@ zone 1
 مدينة الرياض
 مشيرف
 AJMAN CITY
-AL NAHYAN
 AL QUSAIS INDUSTRIAL AREA 5
 Abu Hail
 Ajman Freezone
 Al Aamerah
-Al Barsha
 Al Barsha 1
 Al Barsha 2
 Al Barsha Heights TECOM
 Al Barsha S
-Al Barsha South
-Al Barsha South 2
 Al Bateen
 Al Buteen
 Al Danah
 Al Danah-Khalifa Street
 Al Dhait North
-Al Dhait South
 Al Falah
 Al Fayah
-Al Furjan
-Al Hamidiya 1
 Al Hamriya
 Al Hudaiba
 Al Jadaf
@@ -393,24 +386,16 @@ Al Jazirah alhamra
 Al Juraina 1
 Al Jurf 1
 Al Jurf 2
-Al Karama
-Al Khalidiya District
 Al Khan
 Al Khawaneej
 Al Khawaneej 1
 Al Khawaneej 2
 Al Majarah
-Al Majaz
-Al Majaz 1
-Al Majaz 2
 Al Majaz 3
 Al Manara
-Al Manhal
 Al Mankhool
-Al Mina
 Al Muhaisnah 2
 Al Mushrif
-Al Nahda
 Al Nahda 2
 Al Nakheel
 Al Nakhil
@@ -421,15 +406,11 @@ Al Nuamiya
 Al Qarayen 1 District
 Al Qouz 1
 Al Quasis Inds Area 5
-Al Qudra
 Al Quoz 1
 Al Quoz Industrial Area 2
 Al Qusaidat
 Al Qusais 5
-Al Qusais Industrial 5
-Al Qusais Industrial Area
 Al Qusais Industrial Area 1
-Al Qusais Industrial Area 3
 Al Rahah
 Al Rashidiya 1
 Al Rashidiya 2
@@ -448,17 +429,14 @@ Al Shamkhah
 Al Shiokh Al Gharb
 Al Shuwaheen
 Al Sufouh
-Al Uraibi
 Al Wadha
 Al Wahda
 Al Warqa
-Al Warqa 1
 Al Warqaa 1
 Al Warqaa 4
 Al Yalayis 1
 Al Yalayis 2
 Al Yalayis 4
-Al Zahiyah
 Al Zahra
 Al Zahraa
 Al Zahya
@@ -468,27 +446,20 @@ Al dait east
 Al jazraa
 Al jubail
 Al khalidiya
-Al mamzar
 Al manara area
 Al marri
 Al rumailah 3
-Al-Bidya
 Al-Ghanim
 Al-Jarina 1
 Alheera Suburb
-Almajaz 3
-Arjan
 Barsha Heights
 Behind JLT
 Bu Tena
 Bur Duba
 Bur dubai
-Business Bay
-Cluster 1
 Cluster 11
 Community 134
 DIC industry area
-DIP 2
 Damac hills
 Deira
 Deira City Center DCC
@@ -500,14 +471,11 @@ Dubai Hills Estate
 Dubai International City
 Dubai International Financial Center DIFC
 Dubai Internet City
-Dubai Investment Park 2
 Dubai Investment Park DIP 2
-Dubai Production City
 Dubai Silicon Oasis
 Dubai South
 Dubai Sports City
 Dubai Studio City
-Dubai marina
 FDH-500
 Falcon City of Wonders
 Fujairah Heritage
@@ -523,27 +491,19 @@ Hor Al Anz
 Hor Al Anz East
 Industrial Area 12
 International City
-JVC
 JVT
 Jazirat Al Hamra
 Jebel Ali Shooting Club
 Jlt
-Julfar
 Jumeirah
-Jumeirah 1
 Jumeirah Beach Residence JBR
-Jumeirah Islands
 Jumeirah Lakes Tower
 Jumeirah Lakes Towers
 Jumeirah Lakes Towers JLT
-Jumeirah Village
-Jumeirah Village Circle
 Jumeirah Village Circle JVC
 Jumeriah 1
 Kalba
 Khalifa City
-Liwan
-Liwara 2
 MBZ
 MBZ CITY
 MIRDIF
@@ -556,21 +516,16 @@ Marina
 Meshairef
 Meydan South
 Mira Community
-Mirbah
 Mirbih
 Mohamed Bin Zayed City
 Motor City
-Mughaider Suburb
 Muhaisanah 2dis
-Muhaisnah
-Muhaisnah 3
 Muraqqabat
 Muraqubat
 Murbeh
 Nad Al Hamar village
 Nadd Al Sheba
 New Al Maireed
-New al Falah
 Opera District
 Oud Al Muteena 1
 Qidfa
@@ -583,7 +538,6 @@ Ras Al Khor Industrial Area 3
 Rashdiya 3
 Rawda 3
 Riggat Al Buteen
-SAIH SHUAIB 2
 Saih Shuaib 3
 Satwa
 Shabiya9
@@ -612,14 +566,11 @@ Urbana 2
 WINDSOR RESIDENCE
 Wadi Al Safa 2
 Wadi Al Safa 5
-Warsan Village
 West 18 2
 YES ISLAND
 Yas Acres South
-Zone 1
 Zone 5
 Zone I
-Zone J
 abu Dhabi city
 al nadha2
 dubai airport
@@ -627,11 +578,8 @@ dubai airport freezone
 impz
 kuwaitat
 mardif
-mirdiff
-muweilah commercial
 nternational city
 satwa roundabout
-sonapur
 the gardens
 الجرينة 1
 الروضة 3
