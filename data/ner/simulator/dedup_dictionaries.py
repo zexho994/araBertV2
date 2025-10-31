@@ -5,9 +5,11 @@
 
 用于对词典文件进行去重处理，去重时忽略大小写。
 支持处理任何国家/地区的词典文件。
+支持处理单个文件或整个目录。
 
 使用方法：
     python3 data/ner/simulator/dedup_dictionaries.py -d uae/dictionaries
+    python3 data/ner/simulator/dedup_dictionaries.py -d uae/dictionaries/community.txt
     python3 data/ner/simulator/dedup_dictionaries.py -d path/to/dictionaries
 """
 
@@ -25,29 +27,37 @@ logger = logging.getLogger(__name__)
 class DictionaryDeduplicator:
     """词典去重工具类"""
     
-    def __init__(self, directory: str = None):
+    def __init__(self, path: str = None):
         """
         初始化去重工具
         
         Args:
-            directory: 词典文件所在目录，支持相对路径（相对于simulator/）或绝对路径
+            path: 词典文件路径或目录路径，支持相对路径（相对于simulator/）或绝对路径
+                  可以是单个文件或目录
         """
-        if directory is None:
-            # 如果未指定目录，使用脚本所在目录
-            self.directory = Path(__file__).parent
+        if path is None:
+            # 如果未指定路径，使用脚本所在目录
+            self.path = Path(__file__).parent
+            self.is_file = False
         else:
-            dir_path = Path(directory)
+            file_or_dir_path = Path(path)
             
             # 如果是相对路径，相对于simulator目录解析
-            if not dir_path.is_absolute():
+            if not file_or_dir_path.is_absolute():
                 # 脚本在 simulator/ 目录下
                 simulator_dir = Path(__file__).parent
-                self.directory = (simulator_dir / directory).resolve()
+                self.path = (simulator_dir / path).resolve()
             else:
-                self.directory = dir_path
+                self.path = file_or_dir_path
         
-        if not self.directory.exists():
-            raise ValueError(f"目录不存在: {self.directory}")
+        if not self.path.exists():
+            raise ValueError(f"路径不存在: {self.path}")
+        
+        # 检测是文件还是目录
+        self.is_file = self.path.is_file()
+        if not self.is_file:
+            # 如果是目录，保存为directory属性以保持兼容性
+            self.directory = self.path
     
     def _read_file(self, file_path: Path) -> List[str]:
         """
@@ -220,6 +230,35 @@ class DictionaryDeduplicator:
         logger.info("失败: %d", len(results) - sum(results.values()))
         
         return results
+    
+    def process(self, pattern: str = "*.txt", dry_run: bool = False) -> Dict[str, bool]:
+        """
+        处理文件或目录
+        
+        Args:
+            pattern: 文件匹配模式，默认为 "*.txt"（仅在处理目录时使用）
+            dry_run: 是否为演练模式（不实际写入文件）
+            
+        Returns:
+            处理结果字典 {文件名: 是否成功}
+        """
+        if self.is_file:
+            # 处理单个文件
+            logger.info("处理文件: %s", self.path)
+            logger.info("演练模式: %s", '是' if dry_run else '否')
+            logger.info("-" * 60)
+            
+            success = self.process_file(self.path, dry_run=dry_run)
+            results = {self.path.name: success}
+            
+            logger.info("-" * 60)
+            logger.info("处理完成!")
+            logger.info("成功: %s", "是" if success else "否")
+            
+            return results
+        else:
+            # 处理目录
+            return self.process_directory(pattern=pattern, dry_run=dry_run)
 
 
 def main():
@@ -231,8 +270,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例:
-  # 去重UAE词典（相对于simulator目录）
+  # 去重UAE词典目录（相对于simulator目录）
   python3 data/ner/simulator/dedup_dictionaries.py -d uae/dictionaries
+  
+  # 处理单个文件
+  python3 data/ner/simulator/dedup_dictionaries.py -d uae/dictionaries/community.txt
   
   # 演练模式（不实际修改文件）
   python3 data/ner/simulator/dedup_dictionaries.py -d uae/dictionaries --dry-run
@@ -241,7 +283,7 @@ def main():
   python3 data/ner/simulator/dedup_dictionaries.py \\
       -d /Users/zexho/Documents/python_script/araBertv2/data/ner/simulator/uae/dictionaries
   
-  # 处理特定模式的文件
+  # 处理特定模式的文件（仅对目录有效）
   python3 data/ner/simulator/dedup_dictionaries.py -d uae/dictionaries -p "city*.txt"
   
   # 如果在simulator目录下执行
@@ -254,7 +296,7 @@ def main():
         '-d', '--directory',
         type=str,
         required=True,
-        help='词典文件所在目录（相对于simulator/目录或绝对路径）'
+        help='词典文件或目录路径（相对于simulator/目录或绝对路径，可以是单个文件或目录）'
     )
     
     parser.add_argument(
@@ -273,8 +315,8 @@ def main():
     args = parser.parse_args()
     
     try:
-        deduplicator = DictionaryDeduplicator(directory=args.directory)
-        deduplicator.process_directory(pattern=args.pattern, dry_run=args.dry_run)
+        deduplicator = DictionaryDeduplicator(path=args.directory)
+        deduplicator.process(pattern=args.pattern, dry_run=args.dry_run)
     except (ValueError, IOError, OSError) as e:
         logger.error("执行失败: %s", e)
         return 1
