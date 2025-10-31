@@ -385,16 +385,27 @@ class NEREvaluator:
 
         y_true_sequences: List[List[str]] = []
         y_pred_sequences: List[List[str]] = []
+        original_tokens_list: List[List[str]] = []  # 存储原始tokens，用于对齐验证
 
         # 获取 'O' 标签的 ID（用于置信度过滤）
         o_label_id = self.label2id.get('O', 0)
 
         with torch.no_grad():
             for batch in dataloader:
-                # 将批次迁移到设备
-                batch = {k: v.to(self.device) for k, v in batch.items()}
+                # 保存原始tokens信息（如果batch中包含）
+                batch_original_tokens = None
+                if 'original_tokens' in batch:
+                    # 如果是tensor，需要转换为list
+                    if isinstance(batch['original_tokens'], torch.Tensor):
+                        batch_original_tokens = batch['original_tokens'].tolist() if batch['original_tokens'].dim() == 0 else None
+                    else:
+                        batch_original_tokens = batch['original_tokens']
+                
+                # 将批次迁移到设备（但原始tokens不需要迁移）
+                batch_for_model = {k: v.to(self.device) if isinstance(v, torch.Tensor) and k not in ['original_tokens', 'original_labels'] else v 
+                                  for k, v in batch.items()}
 
-                outputs = self.model(**batch)
+                outputs = self.model(**{k: v for k, v in batch_for_model.items() if k not in ['original_tokens', 'original_labels']})
                 logits = outputs['logits'] if isinstance(outputs, dict) else outputs.logits
 
                 # 若存在损失则累积
@@ -416,12 +427,12 @@ class NEREvaluator:
                     # 不使用置信度阈值，直接使用 argmax
                     predictions = torch.argmax(logits, dim=-1)
 
-                batch_labels = batch.get('labels', None)
+                batch_labels = batch_for_model.get('labels', None)
                 if batch_labels is None:
                     # 若无标签，无法计算指标
                     continue
 
-                # 逐样本解码（仅保留 labels != -100 的位置）
+                # 逐样本解码（仅保留 labels != -100 的位置，这些对应word-level的标签）
                 for i in range(batch_labels.size(0)):
                     mask_i = batch_labels[i] != -100
                     true_ids = batch_labels[i][mask_i].tolist()
@@ -432,6 +443,33 @@ class NEREvaluator:
 
                     y_true_sequences.append(true_seq)
                     y_pred_sequences.append(pred_seq)
+                    
+                    # 获取原始tokens（如果可用）
+                    if batch_original_tokens is not None and isinstance(batch_original_tokens, list) and i < len(batch_original_tokens):
+                        original_tokens_list.append(batch_original_tokens[i])
+                    elif 'original_tokens' in batch:
+                        # 从batch中直接获取
+                        if isinstance(batch['original_tokens'], list) and i < len(batch['original_tokens']):
+                            original_tokens_list.append(batch['original_tokens'][i])
+                        else:
+                            original_tokens_list.append([])
+                    else:
+                        # 尝试从dataset中获取（回退方案）
+                        try:
+                            dataset = dataloader.dataset
+                            # 计算当前样本在dataset中的索引（需要考虑batch索引）
+                            # 简单回退：使用已处理的样本数量
+                            sample_idx = len(original_tokens_list)
+                            if hasattr(dataset, 'processed_datasets') and sample_idx < len(dataset.processed_datasets):
+                                orig_tokens = dataset.processed_datasets[sample_idx].get('original_tokens', [])
+                                if isinstance(orig_tokens, list):
+                                    original_tokens_list.append(orig_tokens)
+                                else:
+                                    original_tokens_list.append([])
+                            else:
+                                original_tokens_list.append([])
+                        except Exception:
+                            original_tokens_list.append([])
 
         token_metrics = self.metrics_calculator.compute_token_metrics(y_true_sequences, y_pred_sequences)
         entity_metrics = self.metrics_calculator.compute_entity_metrics(y_true_sequences, y_pred_sequences)
@@ -443,6 +481,7 @@ class NEREvaluator:
             'per_entity_metrics': per_entity_metrics,
             'predictions': y_pred_sequences,
             'true_labels': y_true_sequences,
+            'original_tokens': original_tokens_list,  # 添加原始tokens信息
             'num_samples': len(y_true_sequences)
         }
 

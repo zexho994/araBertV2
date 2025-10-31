@@ -250,7 +250,7 @@ For more information on each command, use:
         help='Evaluation batch size'
     )
     eval_parser.add_argument(
-        '--detailed-report',
+        '--detailed-report', '--dr',
         action='store_true',
         help='Generate detailed evaluation report (Excel format)'
     )

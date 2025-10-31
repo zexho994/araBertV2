@@ -235,11 +235,19 @@ class NERDataLoader:
         attention_mask = torch.stack([item['attention_mask'] for item in batch])
         labels = torch.stack([item['labels'] for item in batch])
         
-        return {
+        result = {
             'input_ids': input_ids,
             'attention_mask': attention_mask,
             'labels': labels
         }
+        
+        # 如果batch中包含原始tokens和labels，也传递它们（用于评估时的对齐）
+        if 'original_tokens' in batch[0]:
+            result['original_tokens'] = [item.get('original_tokens', []) for item in batch]
+        if 'original_labels' in batch[0]:
+            result['original_labels'] = [item.get('original_labels', []) for item in batch]
+        
+        return result
     
     def prepare_loaders(self, train_dataset: List[Dict[str, Any]], 
                            val_dataset: List[Dict[str, Any]],

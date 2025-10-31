@@ -62,7 +62,7 @@ class EvaluateCommand(BaseCommand):
             help="Generate detailed evaluation report (Excel format)"
         )
         parser.add_argument(
-            "--confidence-threshold","--ct",
+            "--confidence-threshold",
             type=float,
             default=0.5,
             help="Confidence threshold for predictions (default: 0.5)"
@@ -220,14 +220,25 @@ class EvaluateCommand(BaseCommand):
             true_labels = []
             predictions = results.get('predictions', [])
             
-            for ex in val_dataset:
-                tokens = ex.get('tokens')
-                labels = ex.get('labels')
-                if tokens is None or labels is None:
-                    continue
-                
-                texts.append(' '.join(tokens))
-                true_labels.append(labels)
+            # 优先使用评估结果中的原始tokens（如果可用），确保对齐一致
+            original_tokens_from_results = results.get('original_tokens', [])
+            
+            if original_tokens_from_results and len(original_tokens_from_results) == len(predictions):
+                # 使用评估结果中的原始tokens，确保与预测标签对齐
+                for tokens, labels in zip(original_tokens_from_results, results.get('true_labels', [])):
+                    if tokens and labels:
+                        texts.append(' '.join(tokens))
+                        true_labels.append(labels)
+            else:
+                # 回退到从原始数据集读取
+                for ex in val_dataset:
+                    tokens = ex.get('tokens')
+                    labels = ex.get('labels')
+                    if tokens is None or labels is None:
+                        continue
+                    
+                    texts.append(' '.join(tokens))
+                    true_labels.append(labels)
             
             if not texts:
                 self.logger.warning("No valid examples found for detailed report")
@@ -257,8 +268,10 @@ class EvaluateCommand(BaseCommand):
             
             # 生成Excel报告
             report_generator = NERReportGenerator(logger=self.logger)
+            # 传递原始tokens列表（如果可用），确保对齐一致
+            tokens_list = original_tokens_from_results if original_tokens_from_results and len(original_tokens_from_results) == len(predictions) else None
             report_path = report_generator.generate_excel_report(
-                texts, true_labels, predictions, results, entity_types, str(report_path), specified_entities
+                texts, true_labels, predictions, results, entity_types, str(report_path), specified_entities, tokens_list
             )
             
             if report_path:
