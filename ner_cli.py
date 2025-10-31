@@ -27,6 +27,9 @@ Examples:
     # Evaluate with detailed report
     python ner.py evaluate --model-path ./models/uae_model --data-path ./data/uae_test.json --country uae --detailed-report
     
+    # Evaluate with confidence threshold (more aligned with production predictions)
+    python ner.py evaluate --model-path ./models/uae_model --data-path ./data/uae_test.json --country uae --confidence-threshold 0.7
+    
     # Evaluate with entity focus and detailed report (generates both Excel and JSONL files)
     python ner.py evaluate --model-path ./models/uae_model --data-path ./data/uae_test.json --country uae --detailed-report --entity "country,city"
     
@@ -62,6 +65,7 @@ Examples:
   %(prog)s train --country uae --data-path ./data/train.json
   %(prog)s evaluate --model-path ./models/uae_model --data-path ./data/test.json --country uae
   %(prog)s evaluate --model-path ./models/uae_model --data-path ./data/test.json --country uae --detailed-report
+  %(prog)s evaluate --model-path ./models/uae_model --data-path ./data/test.json --country uae --confidence-threshold 0.7
   %(prog)s evaluate --model-path ./models/uae_model --data-path ./data/test.json --country uae --detailed-report --entity "country,city"
   %(prog)s predict --model-path ./models/uae_model --text "Dubai Marina"
   %(prog)s predict --model-path ./models/uae_model --file ./input.jsonl --output-file predictions.json --detailed-report
@@ -254,6 +258,12 @@ For more information on each command, use:
         '--entity', '-e',
         type=str,
         help='Comma-separated list of entity types to focus on (e.g., "country,city"). If specified, will create a special section for samples where all specified entities have issues and generate a separate JSONL file with problematic data.'
+    )
+    eval_parser.add_argument(
+        '--confidence-threshold','--ct',
+        type=float,
+        default=0.5,
+        help='Confidence threshold for predictions (default: 0.5)'
     )
 
     # Predict command

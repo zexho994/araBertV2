@@ -18,6 +18,7 @@
 from typing import Dict, List, Any, Optional
 
 import torch
+import torch.nn.functional as F
 from seqeval.metrics import (
     accuracy_score,
     precision_score,
@@ -367,9 +368,13 @@ class NEREvaluator:
             'num_samples': len(texts)
         }
 
-    def evaluate_dataloader(self, dataloader) -> Dict[str, Any]:
+    def evaluate_dataloader(self, dataloader, confidence_threshold: Optional[float] = None) -> Dict[str, Any]:
         """基于 DataLoader 进行评估（与训练时对齐方式一致）
 
+        Args:
+            dataloader: 数据加载器
+            confidence_threshold: 置信度阈值（可选）。如果提供，只有置信度高于阈值的预测才会被保留，否则设为 'O'
+        
         返回：
             指标与可选的平均损失（若 batch 含 labels）
         """
@@ -380,6 +385,9 @@ class NEREvaluator:
 
         y_true_sequences: List[List[str]] = []
         y_pred_sequences: List[List[str]] = []
+
+        # 获取 'O' 标签的 ID（用于置信度过滤）
+        o_label_id = self.label2id.get('O', 0)
 
         with torch.no_grad():
             for batch in dataloader:
@@ -395,7 +403,18 @@ class NEREvaluator:
                     total_loss += float(loss.item())
                     num_batches += 1
 
-                predictions = torch.argmax(logits, dim=-1)
+                # 根据是否使用置信度阈值选择不同的预测方式
+                if confidence_threshold is not None:
+                    # 计算概率分布
+                    probabilities = F.softmax(logits, dim=-1)
+                    # 获取最大概率和对应的预测
+                    max_probs, predictions = torch.max(probabilities, dim=-1)
+                    # 如果最大概率低于阈值，将预测设为 'O'
+                    o_label_tensor = torch.full_like(predictions, o_label_id, device=self.device)
+                    predictions = torch.where(max_probs >= confidence_threshold, predictions, o_label_tensor)
+                else:
+                    # 不使用置信度阈值，直接使用 argmax
+                    predictions = torch.argmax(logits, dim=-1)
 
                 batch_labels = batch.get('labels', None)
                 if batch_labels is None:

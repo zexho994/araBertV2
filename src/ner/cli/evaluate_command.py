@@ -71,6 +71,12 @@ class EvaluateCommand(BaseCommand):
             action="store_true",
             help="Generate detailed evaluation report (Excel format)"
         )
+        parser.add_argument(
+            "--confidence-threshold",
+            type=float,
+            default=0.5,
+            help="Confidence threshold for predictions (default: 0.5)"
+        )
     
     def execute(self, args) -> bool:
         try:
@@ -163,8 +169,11 @@ class EvaluateCommand(BaseCommand):
             model = model.to(device)
             evaluator = NEREvaluator(model, tokenizer, label_list, device, logger=self.logger)
 
+            # 获取置信度阈值参数
+            confidence_threshold = getattr(args, 'confidence_threshold', 0.5)
+
             # 运行基于 DataLoader 的评估
-            results = evaluator.evaluate_dataloader(val_loader)
+            results = evaluator.evaluate_dataloader(val_loader, confidence_threshold=confidence_threshold)
             
             # 打印评估结果
             evaluator.print_evaluate_results(results)
