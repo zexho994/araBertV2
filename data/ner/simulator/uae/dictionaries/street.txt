@@ -200,7 +200,7 @@ Al-Dhabi Street
 Al-Sanda Street
 Al. Mina Road
 AlSayourah St.
-Alezz Bin Abdul Salam street 61135
+Alezz Bin Abdul Salam street
 Alfay street
 Alreyadh Street
 Altawoun street
@@ -1420,7 +1420,6 @@ Sheikh Ammar Bridge
 Sheikh Khalifa Bin Zayed Al Nahyan Road
 شارع سيف غُباش
 S133
-Q4
 Cluster B
 16E شارع
 E66
@@ -1866,8 +1865,6 @@ E 55
 A7 Street
 Al Sukouk Street
 Al Orobah st
-apartmint 1801
-University of
 68 St
 Barakah Street
 Qirtas Street
@@ -2154,7 +2151,6 @@ Oman-Hatta Road
 Sheikh Zayed Al Nahyan Road
 Al Qasar Rd(F19)
 29 D Street
-55.4276277
 Al Resasi Street
 Al Marmoum
 Warehouse 7
