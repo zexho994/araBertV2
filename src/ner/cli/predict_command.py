@@ -187,25 +187,6 @@ class PredictCommand(BaseCommand):
                             prediction = model.predict(processed_text, tokenizer=tokenizer, confidence_threshold=args.confidence_threshold)
                             predictions.append(prediction)
                 
-                # 输出预测结果
-                if args.output_file:
-                    with open(args.output_file, 'w', encoding='utf-8') as f:
-                        if args.output_format == "json":
-                            json.dump(predictions, f, indent=2, ensure_ascii=False)
-                        else:
-                            for pred in predictions:
-                                if args.output_format == "text":
-                                    for token, label in zip(pred['tokens'], pred['labels']):
-                                        f.write(f"{token}\t{label}\n")
-                                    f.write("\n")
-                                elif args.output_format == "conll":
-                                    for token, label in zip(pred['tokens'], pred['labels']):
-                                        f.write(f"{token} {label}\n")
-                                    f.write("\n")
-                else:
-                    for pred in predictions:
-                        self.logger.info(json.dumps(pred, indent=2, ensure_ascii=False))
-                
                 # 生成详细报告
                 if getattr(args, 'detailed_report', False):
                     # 检查是否有真实标签（JSONL格式且包含labels）
