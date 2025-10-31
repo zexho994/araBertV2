@@ -282,7 +282,6 @@ Muscat Street
 Nabad Street
 Nife Road St
 Old Airport Street
-On 56
 Othman Bin Madhoon Street
 Qasba street
 Qidfa street
@@ -295,7 +294,6 @@ Reken St
 Royal Street
 SHARI ALSHAWWAF
 STREET 13D
-Safia
 Salem bin sultan street
 Shammal street
 Sharjah ring RD
@@ -314,19 +312,15 @@ Sheikh Zayed rd
 Shk Khalifa bin Zayed Street
 Shk. Khalifa bin zayed
 St11
-Street -27
-Street 1
 Street 11
 Street 11b
 Street 19
-Street 2
 Street 20C
 Street 22
 Street 22b
 Street 23
 Street 29B
 Street 2D
-Street 3
 Street 32
 Street 37
 Street 39
@@ -334,10 +328,8 @@ Street 40A
 Street 43
 Street 47B
 Street 48
-Street 5
 Street 52
 Street 54
-Street 6
 Street 60
 Street 64
 Street 69
@@ -731,7 +723,6 @@ Al Hilali
 طريق خزام
 5 St
 شارع عمان
-I
 52nd Street
 318th Road
 29th Street
@@ -758,7 +749,6 @@ Al Diyafah Street
 Khartoum St
 Sharjah-Kalba Road
 شارع 10
-Cluster T
 Al Fahidi Street
 شارع الشيخ مكتوم بن راشد
 39B Street
@@ -866,7 +856,6 @@ Al Marija Street
 Sheikh Mohammed Bin Zayed Road
 Yas Marina Circuit
 Street 4
-5A
 Cluster C
 74th Street
 Street 12 Al Gharayen
@@ -913,7 +902,6 @@ King Faisal Street
 Sabkha - Dubai Old Souk
 Al Sayorah Street
 Al Afnan Street
-E44
 شارع ١٩
 Khalid Bin Al Waleed Road
 Street 38
@@ -922,7 +910,6 @@ Street 38
 Al Tasamuh Street
 شارع هزاع بن زايد الأول
 8 Street
-D77
 Ali Bin Abi Taleb Street
 Al Musalla Road
 Fatima Bint Mubarak Street
@@ -984,14 +971,12 @@ SCF Workers Accommodation
 شارع 2
 1st Street
 Expo Village Boulevard
-E89
 شارع حلب
 24 St
 Street 10
 Al Corniche St
 Sheikh Zayed Bin Hamdan Al Nahyan Street
 19 Street
-A
 شارع الرفاعة
 Lazuward North East
 AL Shuaibah
@@ -1021,7 +1006,6 @@ Al Mualla Street
 شارع الامام أحمد بن حنبل
 15 c street
 Sten Street
-D62
 Sheikh Khalifa Bin Zayed Al Nahyan Highway
 4C Street
 42B Street
@@ -1047,7 +1031,6 @@ Al Soor Street
 37D Street
 شارع الأعمال
 شارع - ٣١٨
-D67
 329th Road
 2148 Industrial 3
 79D Street
@@ -1113,7 +1096,6 @@ Arabian Gulf Street
 Clock Tower Roundabout
 شارع الرِّفاعة
 شارع المركز المالي
-D86
 Al Nahdah Street
 Murbah Street
 32D Street
@@ -1149,7 +1131,6 @@ Al Albaany Street
 Al Marakib Street
 Al Nasr Street
 Al Noor St
-S118
 29 St
 ‘Uqdat Al Muwaij‘I Street
 C3 Street
@@ -1219,7 +1200,6 @@ Wasit Street
 Al Shasha Street
 Al Meydan Road
 Sheikh Zayed Street
-D54
 D591
 شارع ٢٦
 شارع الثنيه
@@ -1339,7 +1319,6 @@ Butina
 Fourth Industrial Street
 Street 82
 Al NAKHEEL Road
-St
 7C Street
 Saif Ghobash Street
 Al Shamil Street
@@ -1374,7 +1353,6 @@ Doha St
 Nadd Al Hamar Road
 Al Badee Road
 21 B Street
-D94
 Al Arsad Street
 شارع خالد بن سلطان
 22 A Street
@@ -1471,7 +1449,6 @@ Nadd - Hessa St
 Hamdan Street
 16 B Street
 Bin Daher Street
-4th
 Al Khayay St
 Al Thowima Street
 Doha Road
@@ -1644,7 +1621,6 @@ Al Khutout Street
 شارع الحَدبة
 شارع - ٤
 شارع عمرو بن ثابت
-D 55
 شارع فرحات
 32 St
 السلج
@@ -1683,7 +1659,6 @@ Al Worood 2 Street
 4 Rd
 شارع السطوة
 Al Abtal Street
-D68
 Mina Road
 WADI AL SAFA 3
 Al Rawabit Street
@@ -1715,7 +1690,6 @@ Al Thiba Road
 Aشارع ١
 Exit 2
 Rahma Almasoud Al Muhairbi Street
-1st
 Baniyas Najda Street
 Crescent Rd
 Al Maktoum Bridge
@@ -1953,7 +1927,6 @@ Ahalia Hospital Road
 Link Road
 شارع البروج
 King Khalid Bin Abdel Aziz Street
-S18
 9b St
 Al A'yad St
 AL Naser Street
