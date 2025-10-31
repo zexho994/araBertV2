@@ -35,6 +35,9 @@ Examples:
     or
     python ner.py predict # enter interactive mode
     
+    # Batch prediction with detailed report (JSONL format supported)
+    python ner.py predict --model-path ./models/uae_model --file ./input.jsonl --output-file predictions.json --detailed-report
+    
     # Create a new country configuration
     python ner.py config create --country egypt --template address_ner
 """
@@ -61,6 +64,7 @@ Examples:
   %(prog)s evaluate --model-path ./models/uae_model --data-path ./data/test.json --country uae --detailed-report
   %(prog)s evaluate --model-path ./models/uae_model --data-path ./data/test.json --country uae --detailed-report --entity "country,city"
   %(prog)s predict --model-path ./models/uae_model --text "Dubai Marina"
+  %(prog)s predict --model-path ./models/uae_model --file ./input.jsonl --output-file predictions.json --detailed-report
   %(prog)s config list
   %(prog)s data validate --data-path ./data/train.json
   %(prog)s model list
@@ -288,6 +292,17 @@ For more information on each command, use:
         type=float,
         default=0.5,
         help='Confidence threshold for predictions (default: 0.5)'
+    )
+    predict_parser.add_argument(
+        '--output-file', '-o',
+        type=str,
+        required=False,
+        help='File to save predictions'
+    )
+    predict_parser.add_argument(
+        '--detailed-report', '--dr',
+        action='store_true',
+        help='Generate detailed prediction report (Excel format) for batch prediction'
     )
 
     #----------preprocess command----------
