@@ -230,11 +230,7 @@ class PredictCommand(BaseCommand):
             self.logger.info("Starting to generate comparison report...")
             
             # 确定输出目录
-            output_dir = None
-            if getattr(args, 'output_file', None):
-                output_dir = Path(args.output_file).parent
-            else:
-                output_dir = Path.cwd()
+            output_dir = self._get_report_output_dir(args)
             
             # 从真实标签中提取实体类型
             entity_types = self._extract_entity_types_from_labels(true_labels_list)
@@ -299,11 +295,7 @@ class PredictCommand(BaseCommand):
             self.logger.info("Starting to generate prediction report...")
             
             # 确定输出目录
-            output_dir = None
-            if getattr(args, 'output_file', None):
-                output_dir = Path(args.output_file).parent
-            else:
-                output_dir = Path.cwd()
+            output_dir = self._get_report_output_dir(args)
             
             # 从预测结果中提取实体类型
             entity_types = self._extract_entity_types_from_predictions(predictions)
@@ -328,6 +320,59 @@ class PredictCommand(BaseCommand):
             self.logger.error(f"Failed to generate prediction report: {e}")
             import traceback
             self.logger.debug(traceback.format_exc())
+    
+    def _get_report_output_dir(self, args):
+        """获取报告输出目录
+        
+        优先级：
+        1. 如果指定了 --output-file，使用其父目录
+        2. 否则，使用 data/ner/result/{country} 作为默认路径
+        3. 如果无法确定 country，使用当前工作目录
+        
+        Args:
+            args: 命令行参数
+            
+        Returns:
+            Path 对象，指向输出目录
+        """
+        from pathlib import Path
+        
+        # 优先级1: 如果指定了 --output-file，使用其父目录
+        if getattr(args, 'output_file', None):
+            return Path(args.output_file).parent
+        
+        # 优先级2: 尝试获取 country 并构建默认路径
+        country = None
+        
+        # 方法1: 从 args.country 获取
+        if hasattr(args, 'country') and getattr(args, 'country', None):
+            country = args.country
+        # 方法2: 从模型路径推断 country（例如：data/ner/models/uae/v1.0.3）
+        elif hasattr(args, 'model_path') and args.model_path:
+            try:
+                # 使用字符串分割方式提取 country（更简单可靠）
+                model_path_str = str(args.model_path).replace('\\', '/')
+                # 查找 models/{country} 模式
+                if '/models/' in model_path_str:
+                    # 提取 models 后面的部分
+                    parts_after_models = model_path_str.split('/models/')[-1]
+                    if parts_after_models:
+                        # 取第一个路径段作为 country
+                        country = parts_after_models.split('/')[0]
+            except Exception:
+                # 如果解析失败，忽略
+                pass
+        
+        # 如果找到了 country，使用默认路径
+        if country:
+            default_dir = Path('data/ner/result') / country
+            default_dir.mkdir(parents=True, exist_ok=True)
+            self.logger.info(f"Using default report directory: {default_dir}")
+            return default_dir
+        
+        # 优先级3: 回退到当前工作目录
+        self.logger.warning("Using current working directory for report output")
+        return Path.cwd()
     
     def _extract_entity_types_from_labels(self, labels_list):
         """从标签列表中提取所有实体类型
