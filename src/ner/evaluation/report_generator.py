@@ -214,22 +214,20 @@ class NERReportGenerator:
                 current_entity = label[2:]  # 去掉 'B-' 前缀
                 current_tokens = [token]
             elif label.startswith('I-'):
-                # 处理I-标签
+                # 严格BIO处理：仅当 I- 与当前实体类型匹配时才追加
                 entity_type = label[2:]  # 去掉 'I-' 前缀
                 if current_entity == entity_type:
-                    # 继续当前实体
                     current_tokens.append(token)
                 else:
-                    # 不匹配的I-标签：先保存当前实体，然后将此I-视为新的B-
+                    # 非法/孤立的 I-：不启动新实体，等同于 'O'
                     if current_entity:
                         entity_text = ' '.join(current_tokens)
                         if current_entity in entities:
                             entities[current_entity] += f" | {entity_text}"
                         else:
                             entities[current_entity] = entity_text
-                    # 将孤立的I-视为B-（IOB2规范不允许，但为了健壮性）
-                    current_entity = entity_type
-                    current_tokens = [token]
+                        current_entity = None
+                        current_tokens = []
             else:
                 # O标签或其他：结束当前实体
                 if current_entity:
@@ -257,10 +255,6 @@ class NERReportGenerator:
         """获取指定实体类型的文本"""
         return entities.get(entity_type, "")
     
-    def _normalize_entity_text(self, entity_text: str) -> str:
-        """规范化实体文本（去除首尾空格，统一空格）"""
-        return ' '.join(entity_text.split()) if entity_text else ""
-    
     def _compare_entity_sets(self, true_text: str, pred_text: str) -> bool:
         """比较两个实体文本集合是否相等
         
@@ -275,8 +269,8 @@ class NERReportGenerator:
             如果两个实体集合相等（忽略顺序），返回True；否则返回False
         """
         # 规范化文本
-        true_normalized = self._normalize_entity_text(true_text)
-        pred_normalized = self._normalize_entity_text(pred_text)
+        true_normalized = true_text
+        pred_normalized = pred_text
         
         # 如果都为空，认为相等
         if not true_normalized and not pred_normalized:
