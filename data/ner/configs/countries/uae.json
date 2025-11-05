@@ -84,8 +84,8 @@
         }
     },
     "data": {
-        "train_file": "data/ner/raw_data/0.7.2/simulated_20251029_113658.jsonl",
-        "val_file": "data/ner/raw_data/0.7.2/simulated_20251029_113658.jsonl",
+        "train_file": "data/ner/raw_data/0.8.1/0.8.1_train.jsonl",
+        "val_file": "data/ner/raw_data/0.8.1/0.8.1_eval.jsonl",
         "test_file": "data/ner/datasets/uae/test.jsonl",
         "max_length": 512,
         "doc_stride": 128,
