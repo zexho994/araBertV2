@@ -1,9 +1,7 @@
 7 pearls
-9W A BLOCK
 AL Hamidiya1
 AL MAMZAR AREA
 AL WARQA 1
-Ablock
 Abu Dhabi New Al Falah
 Abu Shaghara
 Abushagara
@@ -114,16 +112,11 @@ Almamzar
 Altarfa
 Arjan
 Asharij Bida Bin Ammar
-B Block
 BUNI YAS SHARIQ
 Back of
 Bani yas
 Barsha South 1
 spring
-Block 1
-Block A
-Block B
-Block C
 Business Bay
 CC9
 Canal view
