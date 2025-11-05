@@ -185,7 +185,7 @@
             "punctuation": {
                 "enabled": true,
                 "probability": 0.1,
-                "characters": [".", ",", ";", "-", "—", "/", "\\", "@", "#", "%", "*", "&"],
+                "characters": [".", ",", "-", "—", "/"],
                 "max_consecutive": 3
             },
             "numbers": {
@@ -211,9 +211,14 @@
                 "enabled": true,
                 "probability": 0.2,
                 "word_list": [
-                    "Near", "Opposite", "Behind", "beside",
+                    "near", "opposite", "behind", "beside",
+                    "nearby", "adjacent", "next", "previous",
+                    "next to", "close to", "front of", "back of",
+                    "flat", "apartment", "unit", "floor", "room", "th",
                     "بجانب", "قريب من", "مقابل", "خلف", "أمام",
-                    "North", "South", "East", "West", "Central","al", "Al"
+                    "north", "south", "east", "west", "central",
+                    "al", "Al","al.", "Al."
+                    
                 ],
                 "max_per_address": 2
             },
@@ -241,21 +246,21 @@
                 "patterns": [
                     {"template": " Flat {num}", "weight": 0.15},
                     {"template": " Apartment {num}", "weight": 0.1},
-                    {"template": " Apt {num}", "weight": 0.08},
-                    {"template": " Apt. {num}", "weight": 0.06},
+                    {"template": " Aprt {num}", "weight": 0.04},
+                    {"template": " Apt {num}", "weight": 0.04},
+                    {"template": " Apt. {num}", "weight": 0.03},
+                    {"template": " Aprt. {num}", "weight": 0.03},
                     {"template": " Unit {num}", "weight": 0.1},
-                    {"template": " Floor {num}", "weight": 0.07},
-                    {"template": " Fl {num}", "weight": 0.04},
-                    {"template": " Fl. {num}", "weight": 0.03},
-                    {"template": " Room {num}", "weight": 0.04},
+                    {"template": " Floor {num}", "weight": 0.1},
+                    {"template": " Room {num}", "weight": 0.05},
                     {"template": " #{num}", "weight": 0.06},
                     {"template": " -{num}", "weight": 0.07},
-                    {"template": " {num}", "weight": 0.08},
+                    {"template": " {num}", "weight": 0.1},
                     {"template": " شقة {num}", "weight": 0.04},
                     {"template": " طابق {num}", "weight": 0.03},
                     {"template": " الطابق {num}", "weight": 0.02},
                     {"template": " وحدة {num}", "weight": 0.02},
-                    {"template": " Flat {num}, Floor {num2}", "weight": 0.015},
+                    {"template": " Flat {num}, Floor {num2}", "weight": 0.025},
                     {"template": " Floor {num} Unit {num2}", "weight": 0.015}
                 ],
                 "number_range": {
