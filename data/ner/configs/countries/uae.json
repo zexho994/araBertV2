@@ -62,10 +62,10 @@
             "focal_alpha": 0.25,
             "focal_gamma": 2.0,
             "weight_multipliers": {
-                "B-BUILDING": 3.0,
-                "I-BUILDING": 3.0,
-                "B-STREET": 3.0,
-                "I-STREET": 3.0,
+                "B-BUILDING": 2,
+                "I-BUILDING": 2,
+                "B-STREET": 2,
+                "I-STREET": 2,
                 "O": 0.5
             },
             "boundary_weight": 0.2
