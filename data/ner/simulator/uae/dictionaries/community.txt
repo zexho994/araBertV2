@@ -1,3 +1,38 @@
+jarn yafour 1
+Jarn yafour 2
+Naif
+Naif 1
+Al Mizhar
+Al Mizhar 1
+Al Yash
+Al Yash 3
+al yash 1
+Al Tawoon
+Hay Al Gharb
+Al Rahmanya
+Al Khan Area
+Al Khan 1
+Al Khan 2
+Al Nahda 1
+Al Nahda 2
+Al Nahda 3
+Al nabba 
+Al nabba 1
+Al nabba 2
+Al nabba 3
+New Al Zahia 
+New Al Zahia 1
+New Al Zahia 2
+New Al Zahia 3
+al madam
+almadam
+al madam 1
+al madam 2
+almadam 1
+almadam 2
+al suyoh
+al suyoh suburb
+al suyoh suburb 1
 7 pearls
 AL Hamidiya1
 AL MAMZAR AREA
@@ -35,12 +70,13 @@ Al Kifaf apartments
 Al Lazima
 Al Mad District
 Al Majaz
+Al majaz 1
 Al Majaz 2
+Majaz 1
 Al Mamzar
 Al Manhal
 Al Mina
 Al Muroor
-Al Nahda 1
 Al Nahyan
 Al Nahyan Camp
 Al Nakhil 2
@@ -61,6 +97,9 @@ Al Rams
 Al Reef Downtown
 Al Reem
 Al Riffa
+Al Riffa 1
+Al Riffa 2
+al riffah
 Al Ruwayyah
 Al Sabkha
 Al Shaagi
@@ -82,8 +121,6 @@ Al bustan
 Al dhaith north
 Al ghubaiba
 Al khabisi
-Al majaz 1
-Al nahda
 Al quoz 3
 Al saadi
 Al safa 2
@@ -117,6 +154,16 @@ Back of
 Bani yas
 Barsha South 1
 spring
+spring 1
+spring 9
+Spring 3
+springs
+springs 10
+springs 2
+springs 13
+Springs 5
+Springs 02
+Springs 11
 Business Bay
 CC9
 Canal view
@@ -172,8 +219,6 @@ Hara Land
 Hay Al Nahda
 Hazza Al Boush West
 Hesyan
-JUMEIRAH VILLAGE CIRCLE
-JVC
 Jadaf
 Jazeerat Yas
 Jebel Ali Village
@@ -181,9 +226,6 @@ Jlt cluster A
 Julfar
 Julphar area
 Jumeira Luxury Villas
-Jumeirah 1
-Jumeirah Islands
-Jumeirah Village
 Jwaizea Track Complex
 Khor Khuwair
 LAZUWARD SW
@@ -198,7 +240,6 @@ MEYDAN SOUTH VILLAS
 MIRDIFf
 MUSHYRIF
 MUWAILEH COMMERCIAL
-Madinat Jumeirah Living
 Maha Townsquare
 Majjarah district
 Marina Square
@@ -264,9 +305,11 @@ Sama-1 Compound
 Shaam
 Shabiya
 Shabiya 12
-Sharjah Al Riffa
-Sharjah Sustainable City
+Sustainable City
 Sharqan
+al Sharqan
+Sharq
+al Sharq
 Sheik colony
 Sheikh Ahmed Square
 Sheikh Sagr City
@@ -303,9 +346,7 @@ al WASAL VILLLAGE
 al baraha
 al gadeer
 al gharain
-al riffah
 aljuraina4
-almajaz 3
 alshuwaihy
 altwar3
 behind westzone
@@ -313,6 +354,7 @@ centro courtyard 9
 chikha mohra
 cluster P
 dubai Investments Park 1
+industrial area
 industrial area 1
 industrial area 15
 khalidiya daratul
@@ -376,20 +418,19 @@ Al Jafiliya
 Al Jazeera Al Hamra
 Al Jazirah Al Hamra
 Al Jazirah alhamra
+Al Juraina
 Al Juraina 1
+Al Juraina 2
 Al Jurf 1
 Al Jurf 2
-Al Khan
 Al Khawaneej
 Al Khawaneej 1
 Al Khawaneej 2
 Al Majarah
-Al Majaz 3
 Al Manara
 Al Mankhool
 Al Muhaisnah 2
 Al Mushrif
-Al Nahda 2
 Al Nakheel
 Al Nakhil
 Al Naser Street
@@ -397,6 +438,8 @@ Al Nuaimia 1
 Al Nuaimia 3
 Al Nuamiya
 Al Qarayen 1 District
+Al Qarayen area
+Al Qarayen
 Al Qouz 1
 Al Quasis Inds Area 5
 Al Quoz 1
@@ -454,7 +497,16 @@ Cluster 11
 Community 134
 DIC industry area
 Damac hills
+Hili
+Hilis
 Deira
+Ndood Jham
+Al Hisn
+Hisn
+Kasir
+Al Kasir
+Ghadeer Al tair
+Ghadeer Al
 Deira City Center DCC
 Downtown Dubai
 Downtown Burj Dubai
@@ -490,21 +542,28 @@ Jebel Ali Shooting Club
 Jlt
 Jumeirah
 Jumeirah Beach Residence JBR
+Jumeirah Beach Residence
+JBR
 Jumeirah Lakes Tower
 Jumeirah Lakes Towers
 Jumeirah Lakes Towers JLT
 Jumeirah Village Circle JVC
+JVC
+Madinat Jumeirah Living
+The Palm Jumeirah
+JUMEIRAH VILLAGE CIRCLE
+Jumeirah 1
+Jumeirah Islands
+Jumeirah Village
 Jumeriah 1
 Kalba
 Khalifa City
 MBZ
 MBZ CITY
 MIRDIF
-Madab
 Madha
 Madinat Al Qudra
 Majan
-Majaz 1
 Marina
 Meshairef
 Meydan South
@@ -541,7 +600,6 @@ Shams Abu Dhabi
 Sheikh Zayed
 Sports City
 Suhailah
-The Palm Jumeirah
 The Views
 The Villa
 Trade Center 1
@@ -574,6 +632,7 @@ mardif
 nternational city
 satwa roundabout
 the gardens
+the garden
 الجرينة 1
 الروضة 3
 الزهراء
@@ -594,3 +653,248 @@ the gardens
 مدحا
 مدينة دبي للإعلام
 مربح
+al yasmin
+al heerah suburb
+al khan
+al nahda
+Um Al Tarafa
+Al Gharb
+Al Majaz 3
+Al Riqaibah
+al qadesia 
+al rahmaniya
+al yarmook
+emirates industrial city
+alkhan
+muwaileh
+saih alkhor suburb
+al nada
+Alqasba
+Al mahatta park 
+al mahatta
+al suyoh 7
+al taaawen
+kshisha 1 
+al rahmaniya suburb
+Al Qasimiah
+al falaj
+Al Khan Street Sheikh Rashid Building St Al Khan - Al kaser lundry shop 304 and beauty center , Sharjah , UAE
+al buhaira
+al hawyah
+England Cluster 
+Springs 9
+Muteena
+Al Safa
+Jabal Ali Industrial First  
+Mina Jebel AliJebel
+France Cluster  
+Muhaisnah 4  
+Springs 15
+Al Quoz 4  
+Al Barsha 3  
+Al Raffa
+Jarn Yafour
+ME 10  
+ME-10  
+Mezairaa  
+Mzeerʻah
+W54  
+Al Rawdah
+RBW9  
+Al Wathba
+W7 01  
+Al Marina  
+ME9  
+Al Jarf  
+Ghadeer Al Tayr
+E11  
+Zayed Port
+Al Mas'oudi
+Sheikh khalifa Residential complex  
+Ghiyathi
+Al Muneera  
+Al Rawdah Al Sharqiyah
+SE42  
+E18 02  
+YS2  
+Freezone 2  
+W12  
+Tamouh  
+SE-2  
+Al Hilaiw  
+ME-9  
+Shabiyat Al Maqam  
+Al Maqam
+Rawdat Al Reef  
+M10  
+Musaffah
+SE-24  
+M25  
+MFW-30  
+Shareat Hili  
+Sector 33  
+Al Tibbiya  
+Shabhanat Asharej  
+'Asharij
+Al Samhah
+Al Jahili
+Al Tiwayya
+Al Mu'tarid
+Sector 13  
+Al Khalidiyah
+Al Forsan Village  
+Green Mubazzarah 2  
+Mbazzarah Al Khadra
+SH12  
+Al Nakhil 1  
+Al Butain  
+Al Jerf 2
+Ajman Industrial 2
+Al Rumailah 1  
+الصفيا
+Corniche Area
+3 Al Nuaimia
+Al Rumailah 2  
+كوربيش
+Al Jerf 1
+Al Zorah
+الصفوح 1
+أبراج بحيرات الجميرا
+النهدة 2  
+النهدة
+البرشاء 2  
+البرشاء
+جميرا 1  
+الوصل‎
+Up Town Motor City  
+البرشاء 1  
+قرية جميرا الدائرية  
+قرية جميرا
+ام الشيف
+منطقة القوز الصناعية 2  
+القوز
+AL KIFAF  
+الكرامة
+الجداف
+عود ميثاء
+Dafan Al Khor
+Al Felyyah
+Dafan Al Nakheel
+Al Hail
+Khor Khwair
+Al Muniai
+Al Juwais
+مدينة الإمارات الصناعية  
+الصجعة الصناعية
+المجاز  
+المجاز 3
+الصجعة
+غرب 32  
+البطين
+الفلاح
+Civic Center  
+الجيمي
+مربعة الصوة  
+جزيرة المارية
+بدع السمح  
+سويحان
+الحصن
+وسط المدينة
+شرق 11  
+الدانة
+الوقن
+آل نهيان
+W24-02  
+المشرف
+الحفار
+الشامخة
+مصفح 36  
+مصفح
+غرب 12  
+النعيمية 1
+النخيل 1  
+الوان
+الروضة 2
+الراشدية 3
+النعيمية 2
+عجمان الصناعية 2
+الحميدية
+التلة 1
+Al Raudah
+Umm Al Thuoob
+الراس 2  
+Al Raas
+Al Salamah 2  
+Al Salmah
+الظيت الشمالي  
+مدينة الشيخ صقر
+حي الغربي
+Al Rifaa  
+Al Mashall  
+Al Sarouj
+Khuzam
+Nadd Al Hamar
+W52  
+Hadbat Al Za`Faranah
+Al Raqiyah  
+Al Fou'ah
+الصاروج
+Industrial Area 11
+شرق 18 2  
+Abu Dhabi Global Market Square  
+Al Maryah Island
+DIFC  
+المركز التجاري
+Jumeirah Lake Towers
+Bu Shaghara
+Al Qusais
+الورقاء 1  
+الورقاء
+Discovery Gardens  
+Greece  
+Dubai Media City  
+غدير الطير  
+Jumeirah Village Triangle  
+Area 4  
+Oud Al Muteena
+الشيوخ
+China Cluster  
+Al Garhoud
+Um Altarafa
+ضاحيةالمجاز
+Al Darari Commercial
+ضاحية مغيدر  
+الدراري
+Spain Cluster  
+Dunes Village  
+مجمع دبي للإستثمار 2
+قرية المجتمع الخضراء
+القصيص 2  
+اﻟﻘﺼﻴﺺ
+جنوب البرشاء  
+أرجان دبي لاند
+مسافي
+industrial 2
+Al Banah
+Al Seef  
+عود المطينة
+واحة دبي للسيليكون
+Al Noaf  
+Muwaileh Suburb
+Dubai Investment Park 1
+Al Nekheila  
+Al Abraq
+هور العنز شرق
+مدينة دبي العالمية
+Trade Centre 1  
+Trade Centre
+Umm Suqeim 2  
+المجاز 2
+Jurf Industrial 1
+الرفاع
+showka
+مريشيد
+الحليفات
+Al Habtoor  
+Alkhabaisi
+AL JURF Industrial-1

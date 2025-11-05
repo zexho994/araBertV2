@@ -212,7 +212,6 @@ Bldg No 20
 Block B Th Regents Townsquare
 Bluewater Residences
 Bos Alkhan bulding 1903
-Bos al khan tower 406
 Boulevard Plaza Tower 1
 Building 1
 Building 115
@@ -3616,7 +3615,6 @@ JVC District 16 Block M
 Central Park Towers Residences
 District 8 Block N
 خلفان بن عبيد المزروعي
-Al Khan Oasis
 1802, Fahidi Heights
 Silver Sands 2
 Skycourts Tower A
@@ -4523,7 +4521,6 @@ Grosvenor Business Tower
 Al Hanna Tower
 Riviera Lake View Apartment
 Morocco J04
-Al QuozAl
 China F01
 W1 Taryam Building
 Plaza Building
@@ -5104,7 +5101,6 @@ GEMS Systems LLC
 Bani Yas Tower
 Faisal Tower-II
 Atlantis Staff Accommodation Block S4
-Al Khan Fort
 Alfurqan Mosque
 Al hilla tower
 Capital Centre
@@ -5349,7 +5345,6 @@ Business Avenue Building
 Al Ghaith Tower
 Comfort Residency
 Hameem Labor City
-Al Quoz Park 1
 Building 42 Dubai Healthcare City
 England X01
 Villa 278
@@ -5998,7 +5993,6 @@ Al Rostamani Tower B
 Winner Sports Trading Warehouse
 Hor Al Anz Medical Clinic
 Kempinski Mall of Emirates
-Al Quoz Pond Park
 Iradium building
 Al Ghanem 153, Askan Holding
 Alkhatib Villas
@@ -7939,9 +7933,6 @@ Al Narah Apartments - Block B
 Al Nayli Building
 Al Owais Residences
 Al Owais Tower
-Al Quoz Park 1
-Al Quoz Park 2
-Al Quoz Pond Park
 Al Raha Building
 Al Ramth 1
 Al Ramth 26
@@ -11564,8 +11555,6 @@ Al Huda 1 Building
 Al Huda Towers
 Al Ikhlas Tower
 Al Jawar Tower A
-Al Khan Fort
-Al Khan Oasis
 Al Khawajah Building
 Al Khayal Tower
 Al Khazna Building
@@ -13260,7 +13249,6 @@ atlantis staff
 quoz al khail gate
 rashid city cp01
 towers jlt cluster
-al quoz al khail
 azizi plaza
 hessa tower
 lantana 1 villa
@@ -13456,7 +13444,6 @@ noor 3
 oasis village 318th al
 syann park 1
 tower majan
-village 318th al quoz
 beverly boulevard
 dar al buteen
 dmcc metro
@@ -13820,7 +13807,7 @@ estate hills
 gardenia livings
 gate jebel ali
 heights united arab emirates
-khail mall al quoz
+khail mall
 la rive
 maple 2 hills estate
 murano 5
@@ -14030,7 +14017,6 @@ emirates housing
 executive residences 2
 garhoud tower 3
 global lake view tower
-hamdan al quoz 4
 liwan 2 liwan
 mazaya 12
 mazaya 26
@@ -14096,7 +14082,6 @@ zinnia cluster villa
 al khaleej center
 al mamzar flat
 al nahda 1 mai
-al waha al quoz
 adcb bank
 aladdin container warehouse
 apple international
@@ -15122,11 +15107,10 @@ naif raod diera
 nasser rashid
 new al salam
 noor town houses
-oasis village al quoz
+oasis village
 one royal
 one royal mirage
 owais al rigga
-phase 1 al quoz
 pine residence
 palmera 4 villa
 promenade 2a
@@ -15160,7 +15144,6 @@ al khail express
 al khail heights apartments
 al qudra hayat
 al qudra zahra
-al quoz pond
 al ramth 15
 al ramth 33
 al ramth 55
@@ -15190,7 +15173,6 @@ furjan starz danube
 global village al barari
 green emirates
 green lakes s2
-hamdan al quoz
 hattan avenue villa
 haleb muhaisnah 4
 jadaf western
@@ -15260,7 +15242,6 @@ al magrudy residence
 al manar grand
 al nakhal naif
 al owais al rigga
-al quoz oasis village
 al ramth 21
 al ramth 45
 al sinyar jumeirah
@@ -15350,7 +15331,6 @@ view apartment
 vigor shop modern world
 villa del sol
 vision 2
-waha al quoz 4
 wasl 51 2
 wasl crystal 1
 wasl crystal 3
@@ -15945,7 +15925,6 @@ dulf tower 2
 energy metro station
 falcon hotel
 furjan azizi plaza
-gate al quoz
 gate gardenia
 gold souq al
 grand views meydan nad
@@ -16064,7 +16043,6 @@ hessa saudi german hospital
 id 6714181
 jawhara hotel
 jumeirah 1 iranian hospital
-khail gate al quoz
 khail gate 2
 khail gate phase 2
 khail heigths al
@@ -16250,7 +16228,6 @@ union bus
 union bus station
 united hyper
 valley hotel
-waha al quoz al
 wasl crystal 2
 wasl gate gardenia
 wasl village c21
@@ -16515,15 +16492,12 @@ ghazal w
 habib bakery hor
 habib bakery hor al
 hebiah 5th
-heigths al quoz
 hessa remraam community al
 hotel oud metha
 ali moosa abdul
 jumeirah park al worood
 jumeriah park district 2
-khail al quoz
 khail heights al khail
-khail heigths al quoz
 khoory inn
 la violeta 1 villa
 majid property
