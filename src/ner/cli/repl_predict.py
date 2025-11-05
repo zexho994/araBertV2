@@ -158,13 +158,25 @@ class PredictREPL:
             elif self.output_format == "text":
                 tokens = prediction.get("tokens", [])
                 labels = prediction.get("labels", [])
-                for tok, lab in zip(tokens, labels):
-                    print(f"{tok}\t{lab}")
+                confidences = prediction.get("confidences", [])
+                # 计算各列的最大宽度以对齐输出
+                max_token_len = max((len(str(tok)) for tok in tokens), default=0)
+                max_label_len = max((len(str(lab)) for lab in labels), default=0)
+                # 确保最小宽度，并添加适当间距
+                token_width = max(max_token_len, 10)
+                label_width = max(max_label_len, 15)
+                # 打印表头
+                print(f"{'Token':<{token_width}}  {'Label':<{label_width}}  Confidence")
+                print("-" * (token_width + label_width + 25))
+                # 打印对齐的数据行
+                for tok, lab, conf in zip(tokens, labels, confidences):
+                    print(f"{tok:<{token_width}}  {lab:<{label_width}}  {conf:.4f}")
             elif self.output_format == "conll":
                 tokens = prediction.get("tokens", [])
                 labels = prediction.get("labels", [])
-                for tok, lab in zip(tokens, labels):
-                    print(f"{tok} {lab}")
+                confidences = prediction.get("confidences", [])
+                for tok, lab, conf in zip(tokens, labels, confidences):
+                    print(f"{tok} {lab} {conf:.4f}")
             else:
                 self._log_error(f"未知输出格式: {self.output_format}")
         except Exception as e:
