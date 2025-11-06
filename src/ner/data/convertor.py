@@ -76,35 +76,34 @@ class CSVAnnotationConvert:
     def __init__(self, config_dir: str = "data/ner/configs") -> None:
         self.config_manager = ConfigManager(config_dir=config_dir)
         self._abbrev_synonyms: Dict[str, List[str]] = {
-            "street": ["st", "st."],
-            "st": ["st", "st."],
+            "street": ["street","st", "st."],
+            "st": ["street","st", "st."],
 
-            "road": ["rd", "rd."],
-            "rd": ["road", "rd."],
+            "road": ["road","rd", "rd."],
+            "rd": ["road","rd", "rd."],
 
-            "north": ["n"],
-            "west": ["w"],
-            "south": ["s"],
-            "east": ["e"],
-            "suburb": ["area"],
+            "north": ["north","n"],
+            "west": ["west","w"],
+            "south": ["south","s"],
+            "east": ["east","e"],
+            "suburb": ["suburb","area"],
             "Alhamriya": ["al hamriya"],
 
             "avenue": ["avenue", "ave", "ave."],
             "boulevard": ["boulevard", "blvd", "blvd."],
-            "drive": ["drive", "dr", "dr."],
-            "lane": ["lane", "ln", "ln."],
-            "court": ["court", "ct", "ct."],
+            "drive": ["drive","dr", "dr."],
+            "lane": ["lane","ln", "ln."],
+            "court": ["court","ct", "ct."],
             "place": ["place", "pl", "pl."],
-            "square": ["square", "sq", "sq."],
+            "square": ["square","sq", "sq."],
             "terrace": ["terrace", "ter", "ter."],
             "highway": ["highway", "hwy", "hwy."],
-            "parkway": ["parkway", "pkwy", "pkwy."],
+            "parkway": ["parkway","pkwy", "pkwy."],
             "building": ["building", "bldg", "bldg."],
             "united arab emirates": ["uae"],
             "mount": ["mt"],
             "sheikh": ["sheikh","shk","shk."],
             "al-khaimah": ["al-khaimah","al khaimah"],
-            "ajman": ["ajman"] #ajman en , arabic
         }
 
         self._entity_priority: Dict[str, int] = {
