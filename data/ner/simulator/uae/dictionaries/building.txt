@@ -352,8 +352,8 @@ Filipino House Supermarket
 Financial Metro Station
 Firmac Industries
 Flamingo International
-Flat 503
-Flat E330
+
+
 Future 3
 Gala supermarket
 Gate Tower
@@ -12377,7 +12377,7 @@ escan tower marina
 escape tower escape
 fountain downtown burj
 fountain view tower
-france cluster flat
+france cluster 
 france cluster france
 france cluster international
 france cluster p22
@@ -12499,7 +12499,7 @@ marsa al murjan
 marsa dream tower
 marsa la riviera
 marsa marina gate
-marsha marina flat
+marsha marina 
 mart 1 international
 mart 1 shop
 mass tower 1401
@@ -13194,7 +13194,6 @@ safi townhouses
 bayz danube
 city olympic park
 dafza metro
-manazil al raffa
 mbl residence
 studio one tower
 wasl north heights
@@ -13290,7 +13289,7 @@ view 2
 asiana hotel
 central tower
 la rosa 3
-mankhool flat
+mankhool 
 residency 3
 al nahda pond
 arabian oryx house
@@ -13447,7 +13446,7 @@ tower majan
 beverly boulevard
 dar al buteen
 dmcc metro
-muraqqabat flat
+muraqqabat 
 palm tree
 palmera 4
 rashid city district
@@ -13619,7 +13618,7 @@ al jaddaf rotana
 al meraikhi tower
 al murjan tower
 al nahda homes
-al rigga flat
+al rigga 
 deira souk nayef kamal
 arjan miracle hills
 capital tower
@@ -13690,7 +13689,6 @@ marina mag 218
 mur residence
 olympic park 2
 ritaj community
-rolla al raffa
 sarab 2a
 sharjah american
 socio tower
@@ -13717,23 +13715,23 @@ victory heights villa
 wings c
 al aman 12
 al fahad 2
-al mankhool flat
+al mankhool 
 al noor 3
 al qudra nshama
 ajmal sarah tower
 aman 12
-cluster flat
+cluster 
 cluster g arch tower
 crown tower
 damac park tower
 damac westside
-flat number 1613 arjan
+
 geepas tower arjan
 harbour creek gate tower
 heights rb
 hills 2 basswood
 hyatt place
-jaddaf flat
+jaddaf 
 marina residence 1
 masar 1
 mont rose tower
@@ -13835,8 +13833,7 @@ k mbl residence
 lakepoint tower
 majan al rabia
 majan al rabia tower
-mamzar flat
-manazil al raffa 01
+mamzar 
 muhaisnah 4 madina
 q gardens boutique
 safi townhouses villa
@@ -14002,7 +13999,6 @@ wasl gate jebel ali
 x jumeirah
 zarooni 3
 zayed al kawakeb
-al jaddaf flat
 al jaddaf rotana suite
 barsha south miracle
 burj al buteen
@@ -14077,10 +14073,9 @@ town square hayat townhouses
 tree hilton
 vita damac hills
 zahrawi azurite tower
-zayed flat
 zinnia cluster villa
 al khaleej center
-al mamzar flat
+al mamza
 al nahda 1 mai
 adcb bank
 aladdin container warehouse
@@ -14595,7 +14590,6 @@ zayed maze tower
 al anz plaza
 al furjan prime
 al jaddaf azurite
-al rolla al raffa
 al suq al kabeer
 abu hail center
 accommodation town square
@@ -14632,7 +14626,7 @@ jumeirah seven
 alkhail gate community
 khair 5
 lake city tower cluster
-lawnz danube 4 flat
+lawnz danube 4
 liwan united
 liwan united arab
 marina residences 5
@@ -14928,7 +14922,6 @@ lulu gym
 mango market
 mazaya 13
 mazaya 15
-mina al raffa
 nmc speciality hospital
 north heights al
 one jlt
@@ -14971,7 +14964,6 @@ warsan 4 sandy
 wasl gate community
 al din metro
 al khair 4
-al mina al raffa
 al ramth 12
 al ramth 30
 al ramth 5
@@ -15016,7 +15008,7 @@ mazaya 1
 mini mart
 mira oasis
 mohamed ben zayed rode
-muteena flat
+muteena
 nad alhammar villa
 nahda 1 bsm
 nahda 2 al sharhan
@@ -15084,7 +15076,7 @@ glamz residence tower
 gold souq gate
 green lakes s3
 group headquarters
-hassani 20 flat
+hassani 20
 hills socio
 hyper market
 jbr murjan
@@ -15193,7 +15185,6 @@ liwan mha
 london city
 lootah 4
 manara residence
-masaken al raffa
 max hotel
 mazaya 11
 modern world
@@ -15206,7 +15197,7 @@ oaks liwa
 plaza jebel
 qudra town square zahra
 quoz oasis village
-rabia tower flat
+rabia tower
 ramth 21
 ramth 32
 ramth 45
@@ -15279,7 +15270,6 @@ hawai twin
 heights 1 hills
 hills rochester
 jlt green lakes
-kuwait al raffa
 kuwaiti masjeed area
 la coleccion avenue
 la mer villa
@@ -15342,7 +15332,7 @@ al khail heigths
 al khail hills
 al mankhool apartment
 al mankhool manazel tower
-al rabia tower flat
+al rabia tower
 al ramth 43
 al sinyar jumeirah 3
 al thamam 47
@@ -15397,7 +15387,7 @@ alma 1 2
 alma 1 2 villa
 mahg residence
 mail room
-majan flat
+majan
 majan sarab 5
 majan z1
 manazel emirates
@@ -15477,7 +15467,7 @@ credence high school
 crown plaza hotel
 damac hills rochester
 downtown towers
-dubailand flat
+dubailand
 dulf tower
 emerald avenue
 emirates driving institute al
@@ -15487,7 +15477,7 @@ festival plaza mall
 golden sands 3
 hamar al zarooni
 hammar hassani
-hassani 23 flat
+hassani 23
 jardin residence
 jbr amwaj 4
 jlt cluster q saba
@@ -15658,7 +15648,7 @@ square noor townhouses villa
 square oud metha
 square rawda 1
 sur la mer villa
-telal 19 flat
+telal 19 
 total mini
 total mini mart
 tower dar
@@ -15685,7 +15675,7 @@ al ghurair 1084
 al hamar hassani 23
 al mamzar apartment
 al mamzar towers
-al muteena deira flat
+al muteena deira 
 al qaizi residence
 al ramth 10
 al rawda residence
@@ -15783,8 +15773,7 @@ al hamar hassani 20
 al jabri tower 4
 al masraf tower
 al mizhar mall
-al muteena flat
-al raffa new
+al muteena 
 al ramth 20
 al ramth 37
 al thamam 11
@@ -15848,12 +15837,11 @@ majan sarab 2a
 majan sarab 5a
 mamsha bahar
 manama international
-manazil al raffa 03
 marzouqi shop 03
 modelux tower 1
 monaco residency
 mulberry 1 a2
-mur residence flat
+mur residence 
 muteena 1 emirates cooperative
 nad tower nad al
 nahda al bustan
@@ -15933,7 +15921,7 @@ hebiah third damac hills
 hills queen meadows
 ali nook
 ivory grand
-j60 flat
+j60 
 jacobs garden
 jamal tower
 jbr bahar 2
@@ -15963,7 +15951,7 @@ nasr square oud metha
 oasis 5
 phase 2 apartment
 plaza f
-plaza flat
+plaza 
 polo residence e4
 qusais 1 al jabri
 rabia tower majan dubailand
@@ -16056,8 +16044,8 @@ mankhool nashwan
 marina tower
 marine towers
 masaken al qusais 1
-mazaya 14 flat
-mazaya 26 flat
+mazaya 14 
+mazaya 26 
 meena bazar
 metha garden
 murjan 4
@@ -16067,7 +16055,7 @@ night stay hotel room
 oud metha garden
 oud metha gulf
 oud metha sultan
-paradise view 1 flat
+paradise view 1 
 pg upperhouse
 phase 2 warsan akasya
 pita restaurant
@@ -16099,7 +16087,7 @@ station al rigga
 thamam 18
 tower majan dubailand uae
 umm suqeim al barsha
-view 1 flat
+view 1 
 view villas gardens
 wadi alsafa 2
 warsan 4 sandy signature
@@ -16115,7 +16103,7 @@ al basha 7
 al din metro station
 al furjan apartment
 al mawakeb school
-al mur residence flat
+al mur residence 
 al rabia tower apartment
 al ramth 39
 al ramth 67
@@ -16129,7 +16117,7 @@ al thammam 11
 api muhaisnah
 aswaaq community
 aswaaq community mall
-awqaf 232 flat
+awqaf 232 
 azizi samia
 bagaara jumeirah
 baniyas square deira tower
@@ -16187,11 +16175,11 @@ majan sooma
 maktoum hospital deira
 masaken al muteena 01
 mazaya 12 apartment
-mazaya 5 flat
+mazaya 5 
 meydan mag eye
 mizhar dubaiarabian center
 muhaisnah 4 taxi
-novi 1 flat
+novi 1 
 orchard complex b
 ost tower 4
 parcel id
@@ -16211,7 +16199,7 @@ rove healthcare
 sabkha baniyas al mashreq
 safa 3 al
 salam school
-sandy signature 2 flat
+sandy signature 2 
 satwa d90
 sheikh zayed nook
 south 2 science park
@@ -16417,13 +16405,13 @@ millenium airport
 millenium airport hotel
 modern school
 muteena masaken
-oriental house 2 flat
+oriental house 2 
 otaiba 15th
 otaiba 15th b
 otaiba 15th b al
 oud metha umm
 park district 8 g12
-point liwan flat
+point liwan 
 post group
 qx united
 ramth 03
