@@ -1184,7 +1184,8 @@ def main():
     
     # 默认配置文件路径
     # default_config = "data/ner/simulator/uae/config/generator_config.json"
-    default_config = "data/ner/simulator/uae/config/generator_config_0.7.2.json"
+    # default_config = "data/ner/simulator/uae/config/generator_config_0.7.2.json"
+    default_config = "data/ner/simulator/uae/config/generator_config_0.8.2.json"
     
     # 从命令行参数获取配置文件路径
     config_path = sys.argv[1] if len(sys.argv) > 1 else default_config
