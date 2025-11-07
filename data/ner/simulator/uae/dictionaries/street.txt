@@ -1043,7 +1043,6 @@ Al Ghubaiba Road
 45 C Street
 2 A Street
 شارع الشيخ محمد بن زايد
-Dubai - Sharjah Road
 91D Street
 شارع هور العنز
 7th A Street
@@ -1652,7 +1651,7 @@ Zabeel Park Jogging Track
 Interchange 4-1
 Lailak 2nd Street
 20 B Street
-Sharjah Riding Club Road
+Riding Club Road
 Al Worood 2 Street
 4 Rd
 شارع السطوة
