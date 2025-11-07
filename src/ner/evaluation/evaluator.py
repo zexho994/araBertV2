@@ -230,6 +230,81 @@ class NERMetrics:
         
         return per_entity_metrics
 
+    def compute_token_per_entity_metrics(
+        self, 
+        y_true: List[List[str]], 
+        y_pred: List[List[str]]
+    ) -> Dict[str, Dict[str, float]]:
+        """计算 token 级别的每个实体类别指标
+        
+        Args:
+            y_true: 真实标签序列（二维）
+            y_pred: 预测标签序列（二维）
+            
+        Returns:
+            每个实体类别对应的 token 级别 precision/recall/f1/support 指标
+
+        实现说明：
+        - 对于每个实体类型，计算该类型的所有 token（包括 B- 和 I- 标签）的指标
+        - 使用 token 级别的 TP/FP/FN 计算 precision/recall/f1
+        - support 表示该实体类型的真实 token 数量
+        """
+        token_per_entity_metrics = {}
+        
+        # 展平序列以便处理
+        true_flat = [label for seq in y_true for label in seq]
+        pred_flat = [label for seq in y_pred for label in seq]
+        
+        for entity_type in self.entity_types:
+            # 定义该实体类型的所有标签（B- 和 I-）
+            b_label = f'B-{entity_type}'
+            i_label = f'I-{entity_type}'
+            entity_labels = {b_label, i_label}
+            
+            # 计算该实体类型的 token 级别 TP/FP/FN
+            tp = 0  # True Positive: 真实标签和预测标签都是该实体类型且匹配
+            fp = 0  # False Positive: 预测标签是该实体类型，但真实标签不是或标签不匹配
+            fn = 0  # False Negative: 真实标签是该实体类型，但预测标签不是或标签不匹配
+            
+            true_support = 0  # 真实标签中该实体类型的 token 数量
+            
+            for true_label, pred_label in zip(true_flat, pred_flat):
+                true_is_entity = true_label in entity_labels
+                pred_is_entity = pred_label in entity_labels
+                
+                if true_is_entity:
+                    true_support += 1
+                
+                if true_is_entity and pred_is_entity:
+                    # 两个标签都是该实体类型
+                    if true_label == pred_label:
+                        tp += 1
+                    else:
+                        # 标签不匹配：例如真实是 B-，预测是 I-
+                        # 这种情况我们将其视为 FP 和 FN
+                        fp += 1
+                        fn += 1
+                elif true_is_entity and not pred_is_entity:
+                    # 真实标签是该实体类型，但预测不是
+                    fn += 1
+                elif not true_is_entity and pred_is_entity:
+                    # 预测标签是该实体类型，但真实不是
+                    fp += 1
+            
+            # 计算指标
+            precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+            recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+            f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+            
+            token_per_entity_metrics[entity_type] = {
+                'token_precision': float(precision),
+                'token_recall': float(recall),
+                'token_f1': float(f1),
+                'token_support': int(true_support)
+            }
+        
+        return token_per_entity_metrics
+
     def _extract_entities_for_type(
         self,
         sequences: List[List[str]],
@@ -410,11 +485,13 @@ class NEREvaluator:
         token_metrics = self.metrics_calculator.compute_token_metrics(y_true_sequences, y_pred_sequences)
         entity_metrics = self.metrics_calculator.compute_entity_metrics(y_true_sequences, y_pred_sequences)
         per_entity_metrics = self.metrics_calculator.compute_per_entity_metrics(y_true_sequences, y_pred_sequences)
+        token_per_entity_metrics = self.metrics_calculator.compute_token_per_entity_metrics(y_true_sequences, y_pred_sequences)
 
         results: Dict[str, Any] = {
             'token_metrics': token_metrics,
             'entity_metrics': entity_metrics,
             'per_entity_metrics': per_entity_metrics,
+            'token_per_entity_metrics': token_per_entity_metrics,
             'predictions': y_pred_sequences,
             'true_labels': y_true_sequences,
             'original_tokens': original_tokens_list,  # 添加原始tokens信息
@@ -447,10 +524,18 @@ class NEREvaluator:
         for metric, value in results.get('entity_metrics', {}).items():
             self.logger.info(f"  {metric}: {value:.4f}")
         
-        # 打印逐实体指标
+        # 打印逐实体指标（实体级别）
         if 'per_entity_metrics' in results:
-            self.logger.info("Per-Entity Metrics:")
+            self.logger.info("Per-Entity Metrics (Entity-level):")
             for entity, metrics in results['per_entity_metrics'].items():
+                self.logger.info(f"  {entity}:")
+                for metric, value in metrics.items():
+                    self.logger.info(f"    {metric}: {value:.4f}")
+        
+        # 打印 token 级别的逐实体指标
+        if 'token_per_entity_metrics' in results:
+            self.logger.info("Per-Entity Metrics (Token-level):")
+            for entity, metrics in results['token_per_entity_metrics'].items():
                 self.logger.info(f"  {entity}:")
                 for metric, value in metrics.items():
                     self.logger.info(f"    {metric}: {value:.4f}")
