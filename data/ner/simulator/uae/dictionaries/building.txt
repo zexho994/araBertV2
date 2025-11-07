@@ -209,7 +209,6 @@ Black Ramada
 Black White
 Bldg 104
 Bldg No 20
-Block B Th Regents Townsquare
 Bluewater Residences
 Bos Alkhan bulding 1903
 Boulevard Plaza Tower 1
@@ -352,8 +351,6 @@ Filipino House Supermarket
 Financial Metro Station
 Firmac Industries
 Flamingo International
-
-
 Future 3
 Gala supermarket
 Gate Tower
@@ -1484,6 +1481,8 @@ China D08
 Horizon Building
 Old Sharjah's Ruler Palace
 Al Hafeet Tower
+Al Hafeet Tower 2
+Al Hafeet Tower 10
 Sadaf 3
 Al Mamzar Building
 Clock Plaza Building
@@ -1831,6 +1830,7 @@ Villa 227
 Al Tawhidi Building II
 Al Fardan Centre Sharjah
 Al Yasmin Building
+Al Yasmin Building 4
 Al Kail Gate Phase 2
 Dubai Municipality Building
 Mohammed Ibrahim Tower
@@ -2003,7 +2003,6 @@ movenpick J B R accommodation
 Cluster Q
 DAMAC XL Tower
 Thoban Building
-Al Rawabi "1"
 Al Maha Building
 Al Gadheer Towers
 Burj Gate Tower
@@ -16609,3 +16608,6 @@ Ritaj Block M
 Ritaj Block K
 Rove At The Park
 The Outlet Village by Dubai Retail
+Finance house
+Dubai Finance house
+Finance house of Dubai

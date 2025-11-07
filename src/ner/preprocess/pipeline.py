@@ -217,11 +217,11 @@ class PunctuationFilterStep(BaseStep):
 
     # 默认保留的标点类别
     # 这些类别通常是可见字符，如括号、引号、连字符等
-    DEFAULT_KEEP_PUNCTUATION_CATEGORIES = [',','.','/','(',')','[',']','|','\\','\'']
+    DEFAULT_KEEP_PUNCTUATION_CATEGORIES = ['.','(',')','[',']','|','\\','\'']
 
     # 默认移除的标点类别
     # 这些类别通常是控制字符或不可见字符，如换行符、制表符等
-    DEFAULT_REMOVE_PUNCTUATION_CATEGORIES = ['~', '?', '!', ':', '-']
+    DEFAULT_REMOVE_PUNCTUATION_CATEGORIES = ['~', '?', '!', ':', '-', ',', '，', '/']
     
     # 默认需要去重的重复标点符号
     # 这些标点符号如果连续出现会被合并为单个字符

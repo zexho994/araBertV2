@@ -24,7 +24,6 @@
 18 Street
 18A Street
 18th St
-19 Thani Bin Murshid Al Rumaithi St
 19A Street
 203b King Faisal St
 204 Al Muntasir Rd
@@ -90,7 +89,6 @@
 8th street
 9 الأهالي
 90th Street
-925 Sultan Bin Zayed The First Street
 93rd Street
 98 St (Service Road)
 A Street
@@ -189,8 +187,6 @@ Al Wasl Road
 Al ain dubai road
 Al heyaab street
 Al islam street
-Al khan Corniche
-Al khan street
 Al mahata Street
 Al nida street
 Al waha street
@@ -1870,7 +1866,6 @@ Al Humaideya Rd
 44 A Street
 Al KhalidiyahW17-01
 كْوَار
-Unit B 4
 East 33
 Al Sheikh Zayed St
 street 414
@@ -1967,7 +1962,6 @@ Salam&hamdan Street
 Diera Old Souk - Bur Dubai
 OFC 203
 Al Reef2
-Unit H33
 Al Mubari Street
 Shaikh Khalifa Street
 Moh'd Bin Rashed Blvd
@@ -2052,7 +2046,6 @@ Shaikh Zayed Second Street
 شارع الرَّواسِي
 Street No 18A
 Al Farqad Street
-Units 706
 Sheikh Rasheed street
 2 Beach Walk
 Imam Al Shafee Street
