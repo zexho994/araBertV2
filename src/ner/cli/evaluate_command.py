@@ -6,7 +6,6 @@ class EvaluateCommand(BaseCommand):
 
     说明：
     - 当前实现默认从模型目录读取 tokenizer 与标签映射，从而进行文本级评估。
-    - 支持 `--output-dir` 持久化评估指标 JSON；可选 `--detailed-report` 生成详细报告（未实现）。
 
     # TODO: 支持基于 DataLoader 的批量评估，并使用 `--batch-size`。
     """

@@ -146,7 +146,6 @@ class NERMetrics:
             'token_accuracy': float(accuracy)
         }
 
-
     def compute_entity_metrics(
         self,
         y_true: List[List[str]],
