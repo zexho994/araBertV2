@@ -122,7 +122,6 @@ def test_postprocess_rules():
     from src.ner.postprocess import Postprocessor
     from src.ner.postprocess.rules import (
         BIOConsistencyRule,
-        EntityBoundaryRule
     )
     
     # 测试用例

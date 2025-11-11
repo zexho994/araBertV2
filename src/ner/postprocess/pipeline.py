@@ -74,7 +74,6 @@ class Postprocessor:
         postprocessor = Postprocessor([
             ConsistencyRule(),
             ConfidenceThresholdRule(threshold=0.5),
-            EntityBoundaryRule()
         ])
         
         result = postprocessor.apply(tokens, labels, confidences)

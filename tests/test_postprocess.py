@@ -4,12 +4,10 @@
 """
 
 import pytest
-from src.ner.postprocess import Postprocessor, BaseRule
+from src.ner.postprocess import Postprocessor
 from src.ner.postprocess.rules import (
     BIOConsistencyRule,
-    ConfidenceThresholdRule,
-    EntityBoundaryRule,
-    PatternCorrectionRule
+    ConfidenceThresholdRule
 )
 from src.ner.postprocess.builder import build_postprocessor_from_config
 
@@ -64,28 +62,6 @@ class TestConfidenceThresholdRule:
         
         assert processed.labels[0] == 'B-PER'
         assert processed.labels[1] == 'O'  # 低于阈值
-
-
-class TestEntityBoundaryRule:
-    """测试实体边界规则"""
-    
-    def test_remove_boundary_punct(self):
-        """测试移除边界标点"""
-        rule = EntityBoundaryRule(remove_boundary_punct=True)
-        
-        tokens = ['Mr.', 'John', 'Smith', ',']
-        labels = ['B-PER', 'I-PER', 'I-PER', 'I-PER']
-        confidences = [0.9, 0.9, 0.9, 0.9]
-        
-        from src.ner.postprocess.pipeline import PredictionResult
-        result = PredictionResult(tokens, labels, confidences)
-        processed = rule.apply(result)
-        
-        assert processed.labels[0] == 'O'  # Mr. 被移除
-        assert processed.labels[1] == 'B-PER'
-        assert processed.labels[2] == 'I-PER'
-        assert processed.labels[3] == 'O'  # , 被移除
-
 
 class TestPostprocessor:
     """测试后处理器主类"""

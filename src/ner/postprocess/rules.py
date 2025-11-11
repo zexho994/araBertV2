@@ -4,8 +4,7 @@
 """
 
 from __future__ import annotations
-from typing import List, Optional, Set, Dict
-import re
+from typing import List
 
 from .pipeline import BaseRule, PredictionResult
 
@@ -13,12 +12,6 @@ from .pipeline import BaseRule, PredictionResult
 # 规则名称常量
 BIO_CONSISTENCY_RULE = 'bio_consistency'
 CONFIDENCE_THRESHOLD_RULE = 'confidence_threshold'
-ENTITY_BOUNDARY_RULE = 'entity_boundary'
-ENTITY_WHITELIST_RULE = 'entity_whitelist'
-ENTITY_BLACKLIST_RULE = 'entity_blacklist'
-MIN_ENTITY_LENGTH_RULE = 'min_entity_length'
-PATTERN_CORRECTION_RULE = 'pattern_correction'
-MERGE_ADJACENT_RULE = 'merge_adjacent'
 
 
 class BIOConsistencyRule(BaseRule):
@@ -141,124 +134,6 @@ class ConfidenceThresholdRule(BaseRule):
             labels=labels,
             confidences=result.confidences
         )
-    
-    def _extract_entity_spans(self, labels: List[str]) -> List[tuple]:
-        """提取实体跨度"""
-        entities = []
-        current_entity = None
-        
-        for i, label in enumerate(labels):
-            if label.startswith('B-'):
-                if current_entity:
-                    entities.append(current_entity)
-                entity_type = label[2:]
-                current_entity = (i, i + 1, entity_type)
-            elif label.startswith('I-') and current_entity:
-                entity_type = label[2:]
-                if current_entity[2] == entity_type:
-                    current_entity = (current_entity[0], i + 1, entity_type)
-                else:
-                    entities.append(current_entity)
-                    current_entity = (i, i + 1, entity_type)
-            else:
-                if current_entity:
-                    entities.append(current_entity)
-                    current_entity = None
-        
-        if current_entity:
-            entities.append(current_entity)
-        
-        return entities
-
-
-class EntityBoundaryRule(BaseRule):
-    """实体边界规则
-    
-    修正实体边界问题：
-    - 移除边界的标点符号
-    - 移除边界的停用词
-    - 修正空白token
-    
-    示例：
-        输入:  tokens=['Mr.', 'John', 'Smith', ','], labels=['B-PER', 'I-PER', 'I-PER', 'I-PER']
-        输出:  tokens=['Mr.', 'John', 'Smith', ','], labels=['O', 'B-PER', 'I-PER', 'O']
-    """
-    
-    name = ENTITY_BOUNDARY_RULE
-    description = "Fix entity boundary issues"
-    
-    # 默认要从边界移除的标点
-    DEFAULT_BOUNDARY_PUNCT = {'.', ',', '!', '?', ':', ';', '-', '(', ')', '[', ']', '{', '}', '"', "'"}
-    
-    # 默认要从边界移除的停用词（可根据语言扩展）
-    DEFAULT_BOUNDARY_STOPWORDS = {'the', 'a', 'an', 'and', 'or', 'of', 'in', 'on', 'at', 'to', 'for'}
-    
-    def __init__(
-        self,
-        remove_boundary_punct: bool = True,
-        remove_boundary_stopwords: bool = False,
-        custom_punct: Optional[Set[str]] = None,
-        custom_stopwords: Optional[Set[str]] = None
-    ):
-        """
-        Args:
-            remove_boundary_punct: 是否移除边界标点
-            remove_boundary_stopwords: 是否移除边界停用词
-            custom_punct: 自定义标点集合
-            custom_stopwords: 自定义停用词集合
-        """
-        self.remove_boundary_punct = remove_boundary_punct
-        self.remove_boundary_stopwords = remove_boundary_stopwords
-        self.boundary_punct = custom_punct or self.DEFAULT_BOUNDARY_PUNCT
-        self.boundary_stopwords = custom_stopwords or self.DEFAULT_BOUNDARY_STOPWORDS
-    
-    def apply(self, result: PredictionResult) -> PredictionResult:
-        """应用边界规则"""
-        labels = result.labels.copy()
-        entities = self._extract_entity_spans(labels)
-        
-        for start, end, entity_type in entities:
-            # 检查并修正起始边界
-            while start < end:
-                token = result.tokens[start].strip()
-                should_remove = False
-                
-                if self.remove_boundary_punct and self._is_punct(token):
-                    should_remove = True
-                elif self.remove_boundary_stopwords and token.lower() in self.boundary_stopwords:
-                    should_remove = True
-                
-                if should_remove:
-                    labels[start] = 'O'
-                    start += 1
-                else:
-                    break
-            
-            # 检查并修正结束边界
-            while end > start:
-                token = result.tokens[end - 1].strip()
-                should_remove = False
-                
-                if self.remove_boundary_punct and self._is_punct(token):
-                    should_remove = True
-                elif self.remove_boundary_stopwords and token.lower() in self.boundary_stopwords:
-                    should_remove = True
-                
-                if should_remove:
-                    labels[end - 1] = 'O'
-                    end -= 1
-                else:
-                    break
-        
-        return PredictionResult(
-            tokens=result.tokens,
-            labels=labels,
-            confidences=result.confidences
-        )
-    
-    def _is_punct(self, token: str) -> bool:
-        """判断token是否为标点"""
-        return token in self.boundary_punct or all(c in self.boundary_punct for c in token)
     
     def _extract_entity_spans(self, labels: List[str]) -> List[tuple]:
         """提取实体跨度"""

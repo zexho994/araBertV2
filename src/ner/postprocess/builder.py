@@ -12,14 +12,10 @@ from .pipeline import Postprocessor
 from .rules import (
     BIOConsistencyRule,
     ConfidenceThresholdRule,
-    EntityBoundaryRule,
-    PatternCorrectionRule,
 
     # 规则名称常量
     BIO_CONSISTENCY_RULE,
     CONFIDENCE_THRESHOLD_RULE,
-    ENTITY_BOUNDARY_RULE,
-    PATTERN_CORRECTION_RULE
 )
 
 
@@ -27,8 +23,6 @@ from .rules import (
 RULE_FACTORY = {
     BIO_CONSISTENCY_RULE: BIOConsistencyRule,
     CONFIDENCE_THRESHOLD_RULE: ConfidenceThresholdRule,
-    ENTITY_BOUNDARY_RULE: EntityBoundaryRule,
-    PATTERN_CORRECTION_RULE: PatternCorrectionRule,
 }
 
 
@@ -100,8 +94,4 @@ def get_default_postprocessor() -> Postprocessor:
     """
     return Postprocessor([
         BIOConsistencyRule(fix_orphan_i='to_b'),
-        EntityBoundaryRule(
-            remove_boundary_punct=True,
-            remove_boundary_stopwords=False
-        ),
     ])
