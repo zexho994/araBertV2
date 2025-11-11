@@ -159,12 +159,13 @@
             {
                 "type": "min_entity_length",
                 "params": {
-                    "min_length": 2,
+                    "min_length": 1,
                     "min_length_by_type": {
-                        "BUILDING": 2,
-                        "STREET": 3,
-                        "COMMUNITY": 3,
-                        "COUNTRY": 3
+                        "BUILDING": 1,
+                        "STREET": 1,
+                        "COMMUNITY": 1,
+                        "EMIRATE": 1,
+                        "COUNTRY": 1
                     }
                 }
             },
