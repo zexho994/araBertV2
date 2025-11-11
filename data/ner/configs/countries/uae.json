@@ -148,6 +148,18 @@
                 "params": {
                     "fix_orphan_i": "to_b"
                 }
+            },
+            {
+                "type": "confidence_threshold",
+                "params": {
+                    "threshold": 0.5
+                }
+            },
+            {
+                "type": "regex_filter",
+                "params": {
+                    "patterns": ["^[\\d\\p{P}]+$", "^PO \\d{5}$"]
+                }
             }
         ]
     },
