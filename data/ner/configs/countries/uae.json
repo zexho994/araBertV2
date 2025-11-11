@@ -158,7 +158,8 @@
             {
                 "type": "regex_filter",
                 "params": {
-                    "patterns": ["^[\\d\\s]+$", "^PO \\d{5}$", "Al"]
+                    "patterns": ["^[\\d\\s]+$", "^PO \\d{5}$", "Al"],
+                    "join_with": " "
                 }
             }
         ]
