@@ -4,25 +4,24 @@
 """
 
 from __future__ import annotations
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 import json
 from pathlib import Path
 
-from .pipeline import Postprocessor, BaseRule
+from .pipeline import Postprocessor
 from .rules import (
     BIOConsistencyRule,
     ConfidenceThresholdRule,
     EntityBoundaryRule,
     MinEntityLengthRule,
     PatternCorrectionRule,
-    MergeAdjacentRule,
+
     # 规则名称常量
     BIO_CONSISTENCY_RULE,
     CONFIDENCE_THRESHOLD_RULE,
     ENTITY_BOUNDARY_RULE,
     MIN_ENTITY_LENGTH_RULE,
-    PATTERN_CORRECTION_RULE,
-    MERGE_ADJACENT_RULE,
+    PATTERN_CORRECTION_RULE
 )
 
 
@@ -33,7 +32,6 @@ RULE_FACTORY = {
     ENTITY_BOUNDARY_RULE: EntityBoundaryRule,
     MIN_ENTITY_LENGTH_RULE: MinEntityLengthRule,
     PATTERN_CORRECTION_RULE: PatternCorrectionRule,
-    MERGE_ADJACENT_RULE: MergeAdjacentRule,
 }
 
 

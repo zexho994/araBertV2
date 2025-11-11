@@ -25,7 +25,6 @@ tokens, labels, confidences = postprocessor.apply(tokens, labels, confidences)
 | `EntityBoundaryRule` | 边界修正 | `remove_boundary_punct=True` |
 | `MinEntityLengthRule` | 最小长度过滤 | `min_length=2` |
 | `PatternCorrectionRule` | 模式匹配修正 | `patterns={}` |
-| `MergeAdjacentRule` | 合并相邻实体 | `max_gap=1` |
 
 ## 从配置加载
 
@@ -89,5 +88,5 @@ class MyRule(BaseRule):
 
 **宽松**：
 ```python
-[BIOConsistencyRule(), MergeAdjacentRule()]
+[BIOConsistencyRule()]
 ```

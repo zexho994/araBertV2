@@ -101,10 +101,6 @@ class Postprocessor:
 - **修正**：根据模式修正实体类型
 - **参数**：`patterns` (dict)
 
-### 5.6 MergeAdjacentRule
-- **功能**：合并相邻同类实体
-- **修正**：跨越连接符合并实体
-- **参数**：`merge_across_tokens`, `max_gap`
 
 ## 6. 集成方式
 
@@ -224,8 +220,7 @@ Postprocessor([
 **宽松组合**（高召回场景）：
 ```python
 Postprocessor([
-    BIOConsistencyRule(),
-    MergeAdjacentRule()
+    BIOConsistencyRule()
 ])
 ```
 
