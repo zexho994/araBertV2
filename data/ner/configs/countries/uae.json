@@ -141,6 +141,35 @@
         "return_entity_level_metrics": true,
         "classification_report": true
     },
+    "postprocess": {
+        "rules": [
+            {
+                "type": "bio_consistency",
+                "params": {
+                    "fix_orphan_i": "to_o"
+                }
+            },
+            {
+                "type": "entity_boundary",
+                "params": {
+                    "remove_boundary_punct": false,
+                    "remove_boundary_stopwords": false
+                }
+            },
+            {
+                "type": "min_entity_length",
+                "params": {
+                    "min_length": 2,
+                    "min_length_by_type": {
+                        "BUILDING": 2,
+                        "STREET": 3,
+                        "COMMUNITY": 3,
+                        "COUNTRY": 3
+                    }
+                }
+            }
+        ]
+    },
     "output": {
         "model_dir": "data/ner/models/uae",
         "results_dir": "data/ner/result/uae",

@@ -1,0 +1,141 @@
+"""从配置构建后处理器
+
+支持从字典配置或JSON文件加载后处理规则。
+"""
+
+from __future__ import annotations
+from typing import Dict, Any, List, Optional
+import json
+from pathlib import Path
+
+from .pipeline import Postprocessor, BaseRule
+from .rules import (
+    BIOConsistencyRule,
+    ConfidenceThresholdRule,
+    EntityBoundaryRule,
+    MinEntityLengthRule,
+    PatternCorrectionRule,
+    MergeAdjacentRule,
+    # 规则名称常量
+    BIO_CONSISTENCY_RULE,
+    CONFIDENCE_THRESHOLD_RULE,
+    ENTITY_BOUNDARY_RULE,
+    MIN_ENTITY_LENGTH_RULE,
+    PATTERN_CORRECTION_RULE,
+    MERGE_ADJACENT_RULE,
+)
+
+
+# 规则工厂映射
+RULE_FACTORY = {
+    BIO_CONSISTENCY_RULE: BIOConsistencyRule,
+    CONFIDENCE_THRESHOLD_RULE: ConfidenceThresholdRule,
+    ENTITY_BOUNDARY_RULE: EntityBoundaryRule,
+    MIN_ENTITY_LENGTH_RULE: MinEntityLengthRule,
+    PATTERN_CORRECTION_RULE: PatternCorrectionRule,
+    MERGE_ADJACENT_RULE: MergeAdjacentRule,
+}
+
+
+def build_postprocessor_from_config(config: Dict[str, Any]) -> Optional[Postprocessor]:
+    """从配置字典构建后处理器
+    
+    配置格式示例：
+    {
+        "postprocess": {
+            "rules": [
+                {
+                    "type": "bio_consistency",
+                    "params": {
+                        "fix_orphan_i": "to_b"
+                    }
+                },
+                {
+                    "type": "confidence_threshold",
+                    "params": {
+                        "threshold": 0.5,
+                        "keep_entity_if_any_high": false
+                    }
+                },
+                {
+                    "type": "entity_boundary",
+                    "params": {
+                        "remove_boundary_punct": true,
+                        "remove_boundary_stopwords": false
+                    }
+                }
+            ]
+        }
+    }
+    
+    Args:
+        config: 配置字典（可以是完整的国家配置或只包含postprocess部分）
+        
+    Returns:
+        Postprocessor: 构建好的后处理器，如果配置中没有postprocess则返回None
+    """
+    postprocess_config = config.get('postprocess', {})
+    
+    # 如果没有配置后处理规则，返回None
+    if not postprocess_config:
+        return None
+    
+    rules_config = postprocess_config.get('rules', [])
+    
+    # 如果rules为空，返回空的后处理器
+    if not rules_config:
+        return Postprocessor([])
+    
+    rules = []
+    for rule_config in rules_config:
+        rule_type = rule_config.get('type')
+        rule_params = rule_config.get('params', {})
+        
+        if rule_type not in RULE_FACTORY:
+            raise ValueError(f"Unknown rule type: {rule_type}. Available types: {list(RULE_FACTORY.keys())}")
+        
+        rule_class = RULE_FACTORY[rule_type]
+        try:
+            rule = rule_class(**rule_params)
+            rules.append(rule)
+        except TypeError as e:
+            raise ValueError(f"Invalid parameters for rule '{rule_type}': {e}")
+    
+    return Postprocessor(rules)
+
+
+def build_postprocessor_from_file(config_path: str) -> Postprocessor:
+    """从JSON配置文件构建后处理器
+    
+    Args:
+        config_path: 配置文件路径
+        
+    Returns:
+        Postprocessor: 构建好的后处理器
+    """
+    config_file = Path(config_path)
+    
+    if not config_file.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+    
+    with open(config_file, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    
+    return build_postprocessor_from_config(config)
+
+
+def get_default_postprocessor() -> Postprocessor:
+    """获取默认后处理器
+    
+    包含最常用的规则组合。
+    
+    Returns:
+        Postprocessor: 默认后处理器
+    """
+    return Postprocessor([
+        BIOConsistencyRule(fix_orphan_i='to_b'),
+        EntityBoundaryRule(
+            remove_boundary_punct=True,
+            remove_boundary_stopwords=False
+        ),
+    ])
