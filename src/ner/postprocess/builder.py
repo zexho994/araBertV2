@@ -12,10 +12,12 @@ from .pipeline import Postprocessor
 from .rules import (
     BIOConsistencyRule,
     ConfidenceThresholdRule,
+    RegexFilterRule,
 
     # 规则名称常量
     BIO_CONSISTENCY_RULE,
     CONFIDENCE_THRESHOLD_RULE,
+    REGEX_FILTER_RULE,
 )
 
 
@@ -23,6 +25,7 @@ from .rules import (
 RULE_FACTORY = {
     BIO_CONSISTENCY_RULE: BIOConsistencyRule,
     CONFIDENCE_THRESHOLD_RULE: ConfidenceThresholdRule,
+    REGEX_FILTER_RULE: RegexFilterRule,
 }
 
 

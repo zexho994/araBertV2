@@ -7,7 +7,8 @@ import pytest
 from src.ner.postprocess import Postprocessor
 from src.ner.postprocess.rules import (
     BIOConsistencyRule,
-    ConfidenceThresholdRule
+    ConfidenceThresholdRule,
+    RegexFilterRule
 )
 from src.ner.postprocess.builder import build_postprocessor_from_config
 
@@ -123,6 +124,12 @@ class TestBuilder:
                     {
                         "type": "confidence_threshold",
                         "params": {"threshold": 0.5}
+                    },
+                    {
+                        "type": "regex_filter",
+                        "params": {
+                            "patterns": ["^PO \\d{5}$"]
+                        }
                     }
                 ]
             }
@@ -130,9 +137,10 @@ class TestBuilder:
         
         postprocessor = build_postprocessor_from_config(config)
         
-        assert len(postprocessor.rules) == 2
+        assert len(postprocessor.rules) == 3
         assert isinstance(postprocessor.rules[0], BIOConsistencyRule)
         assert isinstance(postprocessor.rules[1], ConfidenceThresholdRule)
+        assert isinstance(postprocessor.rules[2], RegexFilterRule)
 
 
 if __name__ == '__main__':
