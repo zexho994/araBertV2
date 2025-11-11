@@ -91,12 +91,7 @@ class Postprocessor:
 - **修正**：移除边界的标点、停用词
 - **参数**：`remove_boundary_punct`, `remove_boundary_stopwords`
 
-### 5.4 MinEntityLengthRule
-- **功能**：过滤过短实体
-- **修正**：移除长度小于阈值的实体
-- **参数**：`min_length`, `min_length_by_type`
-
-### 5.5 PatternCorrectionRule
+### 5.4 PatternCorrectionRule
 - **功能**：基于正则模式修正
 - **修正**：根据模式修正实体类型
 - **参数**：`patterns` (dict)
@@ -212,8 +207,7 @@ Postprocessor([
 Postprocessor([
     BIOConsistencyRule(),
     ConfidenceThresholdRule(threshold=0.7),
-    EntityBoundaryRule(remove_boundary_punct=True),
-    MinEntityLengthRule(min_length=2)
+    EntityBoundaryRule(remove_boundary_punct=True)
 ])
 ```
 

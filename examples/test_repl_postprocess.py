@@ -122,8 +122,7 @@ def test_postprocess_rules():
     from src.ner.postprocess import Postprocessor
     from src.ner.postprocess.rules import (
         BIOConsistencyRule,
-        EntityBoundaryRule,
-        MinEntityLengthRule
+        EntityBoundaryRule
     )
     
     # 测试用例
@@ -143,14 +142,6 @@ def test_postprocess_rules():
             "labels": ["B-STREET", "I-STREET", "I-STREET", "I-STREET", "I-STREET"],
             "confidences": [0.8, 0.9, 0.9, 0.9, 0.8],
             "expected_change": "移除边界标点"
-        },
-        {
-            "name": "最小长度过滤",
-            "rule": MinEntityLengthRule(min_length=2),
-            "tokens": ["A", "Building"],
-            "labels": ["B-BUILDING", "B-BUILDING"],
-            "confidences": [0.7, 0.9],
-            "expected_change": "过滤单token实体"
         }
     ]
     

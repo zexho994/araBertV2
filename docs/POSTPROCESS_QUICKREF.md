@@ -23,7 +23,6 @@ tokens, labels, confidences = postprocessor.apply(tokens, labels, confidences)
 | `BIOConsistencyRule` | BIO标签一致性 | `fix_orphan_i='to_b'` |
 | `ConfidenceThresholdRule` | 置信度过滤 | `threshold=0.5` |
 | `EntityBoundaryRule` | 边界修正 | `remove_boundary_punct=True` |
-| `MinEntityLengthRule` | 最小长度过滤 | `min_length=2` |
 | `PatternCorrectionRule` | 模式匹配修正 | `patterns={}` |
 
 ## 从配置加载
@@ -83,7 +82,7 @@ class MyRule(BaseRule):
 
 **严格**：
 ```python
-[BIOConsistencyRule(), ConfidenceThresholdRule(0.7), EntityBoundaryRule(), MinEntityLengthRule(2)]
+[BIOConsistencyRule(), ConfidenceThresholdRule(0.7), EntityBoundaryRule()]
 ```
 
 **宽松**：

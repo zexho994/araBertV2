@@ -13,14 +13,12 @@ from .rules import (
     BIOConsistencyRule,
     ConfidenceThresholdRule,
     EntityBoundaryRule,
-    MinEntityLengthRule,
     PatternCorrectionRule,
 
     # 规则名称常量
     BIO_CONSISTENCY_RULE,
     CONFIDENCE_THRESHOLD_RULE,
     ENTITY_BOUNDARY_RULE,
-    MIN_ENTITY_LENGTH_RULE,
     PATTERN_CORRECTION_RULE
 )
 
@@ -30,7 +28,6 @@ RULE_FACTORY = {
     BIO_CONSISTENCY_RULE: BIOConsistencyRule,
     CONFIDENCE_THRESHOLD_RULE: ConfidenceThresholdRule,
     ENTITY_BOUNDARY_RULE: EntityBoundaryRule,
-    MIN_ENTITY_LENGTH_RULE: MinEntityLengthRule,
     PATTERN_CORRECTION_RULE: PatternCorrectionRule,
 }
 
