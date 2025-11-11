@@ -4,7 +4,8 @@
 """
 
 from __future__ import annotations
-from typing import List
+import re
+from typing import List, Optional, Tuple
 
 from .pipeline import BaseRule, PredictionResult
 
@@ -12,6 +13,60 @@ from .pipeline import BaseRule, PredictionResult
 # 规则名称常量
 BIO_CONSISTENCY_RULE = 'bio_consistency'
 CONFIDENCE_THRESHOLD_RULE = 'confidence_threshold'
+REGEX_FILTER_RULE = 'regex_filter'
+
+
+def _extract_entity_spans(labels: List[str]) -> List[Tuple[int, int, str]]:
+    """提取实体跨度"""
+    entities: List[Tuple[int, int, str]] = []
+    current_start: Optional[int] = None
+    current_end: Optional[int] = None
+    current_type: Optional[str] = None
+    
+    for i, label in enumerate(labels):
+        if label.startswith('B-'):
+            if (
+                current_start is not None
+                and current_end is not None
+                and current_type is not None
+            ):
+                entities.append((current_start, current_end, current_type))
+            current_type = label[2:]
+            current_start = i
+            current_end = i + 1
+        elif label.startswith('I-') and current_start is not None:
+            entity_type = label[2:]
+            if current_type == entity_type:
+                current_end = i + 1
+            else:
+                if (
+                    current_start is not None
+                    and current_end is not None
+                    and current_type is not None
+                ):
+                    entities.append((current_start, current_end, current_type))
+                current_type = entity_type
+                current_start = i
+                current_end = i + 1
+        else:
+            if (
+                current_start is not None
+                and current_end is not None
+                and current_type is not None
+            ):
+                entities.append((current_start, current_end, current_type))
+            current_start = None
+            current_end = None
+            current_type = None
+    
+    if (
+        current_start is not None
+        and current_end is not None
+        and current_type is not None
+    ):
+        entities.append((current_start, current_end, current_type))
+    
+    return entities
 
 
 class BIOConsistencyRule(BaseRule):
@@ -113,10 +168,10 @@ class ConfidenceThresholdRule(BaseRule):
                     labels[i] = 'O'
         else:
             # 实体级过滤：如果实体中有任何token高于阈值，保留整个实体
-            entities = self._extract_entity_spans(labels)
+            entities = _extract_entity_spans(labels)
             low_confidence_entities = set()
             
-            for start, end, entity_type in entities:
+            for start, end, _ in entities:
                 max_conf = max(result.confidences[start:end])
                 if max_conf < self.threshold:
                     low_confidence_entities.add((start, end))
@@ -135,30 +190,43 @@ class ConfidenceThresholdRule(BaseRule):
             confidences=result.confidences
         )
     
-    def _extract_entity_spans(self, labels: List[str]) -> List[tuple]:
-        """提取实体跨度"""
-        entities = []
-        current_entity = None
+class RegexFilterRule(BaseRule):
+    """正则实体过滤规则
+    
+    将token合并后的实体文本与给定正则匹配的实体全部置为'O'。
+    
+    示例：
+        patterns=[r'^https?://']
+        输入:  tokens=['访', '问', 'https', '://', 'example', '.com'], labels=['O', 'O', 'B-URL', 'I-URL', 'I-URL', 'I-URL']
+        输出:  labels=['O', 'O', 'O', 'O', 'O', 'O']
+    """
+    
+    name = REGEX_FILTER_RULE
+    description = "Filter entities whose merged text matches regex patterns"
+    
+    def __init__(self, patterns: List[str], join_with: str = '', flags: int = 0):
+        """
+        Args:
+            patterns: 正则表达式列表
+            join_with: 合并token时使用的连接符
+            flags: 传递给re.compile的flags
+        """
+        if not patterns:
+            raise ValueError("patterns must not be empty")
+        self._patterns = [re.compile(pattern, flags) for pattern in patterns]
+        self.join_with = join_with
+    
+    def apply(self, result: PredictionResult) -> PredictionResult:
+        labels = result.labels.copy()
         
-        for i, label in enumerate(labels):
-            if label.startswith('B-'):
-                if current_entity:
-                    entities.append(current_entity)
-                entity_type = label[2:]
-                current_entity = (i, i + 1, entity_type)
-            elif label.startswith('I-') and current_entity:
-                entity_type = label[2:]
-                if current_entity[2] == entity_type:
-                    current_entity = (current_entity[0], i + 1, entity_type)
-                else:
-                    entities.append(current_entity)
-                    current_entity = (i, i + 1, entity_type)
-            else:
-                if current_entity:
-                    entities.append(current_entity)
-                    current_entity = None
+        for start, end, _ in _extract_entity_spans(labels):
+            entity_text = self.join_with.join(result.tokens[start:end])
+            if any(pattern.search(entity_text) for pattern in self._patterns):
+                for idx in range(start, end):
+                    labels[idx] = 'O'
         
-        if current_entity:
-            entities.append(current_entity)
-        
-        return entities
+        return PredictionResult(
+            tokens=result.tokens,
+            labels=labels,
+            confidences=result.confidences
+        )
