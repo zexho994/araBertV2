@@ -158,7 +158,7 @@
             {
                 "type": "regex_filter",
                 "params": {
-                    "patterns": ["^[\\d\\p{P}]+$", "^PO \\d{5}$"]
+                    "patterns": ["^[\\d]+$", "^PO \\d{5}$"]
                 }
             }
         ]
