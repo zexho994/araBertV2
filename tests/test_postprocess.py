@@ -10,6 +10,8 @@ from src.ner.postprocess.rules import (
     ConfidenceThresholdRule,
     EntityBoundaryRule,
     MinEntityLengthRule,
+    PatternCorrectionRule,
+    MergeAdjacentRule,
 )
 from src.ner.postprocess.builder import build_postprocessor_from_config
 

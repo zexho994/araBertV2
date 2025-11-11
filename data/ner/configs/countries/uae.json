@@ -167,6 +167,15 @@
                         "COUNTRY": 3
                     }
                 }
+            },
+            {
+                "type": "pattern_correction",
+                "params": {
+                    "patterns": {
+                        "POSTCODE": "\\d{5,6}",
+                        "PO_BOX": "^PO \\d{5}$"
+                    }
+                }
             }
         ]
     },

@@ -39,35 +39,6 @@ RULE_FACTORY = {
 
 def build_postprocessor_from_config(config: Dict[str, Any]) -> Optional[Postprocessor]:
     """从配置字典构建后处理器
-    
-    配置格式示例：
-    {
-        "postprocess": {
-            "rules": [
-                {
-                    "type": "bio_consistency",
-                    "params": {
-                        "fix_orphan_i": "to_b"
-                    }
-                },
-                {
-                    "type": "confidence_threshold",
-                    "params": {
-                        "threshold": 0.5,
-                        "keep_entity_if_any_high": false
-                    }
-                },
-                {
-                    "type": "entity_boundary",
-                    "params": {
-                        "remove_boundary_punct": true,
-                        "remove_boundary_stopwords": false
-                    }
-                }
-            ]
-        }
-    }
-    
     Args:
         config: 配置字典（可以是完整的国家配置或只包含postprocess部分）
         
