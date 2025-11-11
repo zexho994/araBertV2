@@ -167,7 +167,8 @@
                 "params": {
                     "blacklist_files": {
                         "BUILDING": "data/ner/blacklist/uae/BUILDING_BLACK_LIST.txt",
-                        "STREET": "data/ner/blacklist/uae/STREET_BLACK_LIST.txt"
+                        "STREET": "data/ner/blacklist/uae/STREET_BLACK_LIST.txt",
+                        "COMMUNITY": "data/ner/blacklist/uae/COMMUNITY_BLACK_LIST.txt"
                     },
                     "join_with": " ",
                     "case_insensitive": true
