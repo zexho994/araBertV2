@@ -153,10 +153,32 @@ class EvaluateCommand(BaseCommand):
             batch_size = getattr(args, 'batch_size', None) or config.get('training', {}).get('batch_size', 16)
             val_loader = ner_loader_builder.create_dataloader(val_dataset, batch_size=batch_size, shuffle=False)
 
+            # 构建后处理器（从国家配置加载）
+            postprocessor = None
+            try:
+                from ..postprocess import build_postprocessor_from_config
+                postprocessor = build_postprocessor_from_config(config)
+                if postprocessor:
+                    self.logger.info(f"后处理已启用，包含 {len(postprocessor.rules)} 个规则")
+                    for rule in postprocessor.rules:
+                        self.logger.info(f"  - {rule.name}")
+                else:
+                    self.logger.info("后处理未配置")
+            except Exception as e:
+                self.logger.warning(f"加载后处理器失败: {e}")
+                postprocessor = None
+
             # 初始化评估器，迁移模型至设备
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
             model = model.to(device)
-            evaluator = NEREvaluator(model, tokenizer, label_list, device, logger=self.logger)
+            evaluator = NEREvaluator(
+                model, 
+                tokenizer, 
+                label_list, 
+                device, 
+                logger=self.logger,
+                postprocessor=postprocessor  # 传入后处理器
+            )
 
             # 获取置信度阈值参数
             confidence_threshold = getattr(args, 'confidence_threshold', 0.5)

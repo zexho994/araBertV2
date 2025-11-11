@@ -356,7 +356,8 @@ class NEREvaluator:
         tokenizer, 
         label_list: List[str],
         device: Optional[torch.device] = None,
-        logger: Optional[NERLogger] = None
+        logger: Optional[NERLogger] = None,
+        postprocessor = None
     ):
         """
         Initialize evaluator
@@ -366,6 +367,8 @@ class NEREvaluator:
             tokenizer: Tokenizer
             label_list: List of all possible labels
             device: Device to use for evaluation
+            logger: Logger instance
+            postprocessor: Optional postprocessor for prediction refinement
         """
         self.model = model
         self.tokenizer = tokenizer
@@ -373,6 +376,7 @@ class NEREvaluator:
         self.device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.metrics_calculator = NERMetrics(label_list)
         self.logger = logger
+        self.postprocessor = postprocessor
         
         # Create label mappings
         self.label2id = {label: i for i, label in enumerate(label_list)}
@@ -480,6 +484,39 @@ class NEREvaluator:
                                 original_tokens_list.append([])
                         except Exception:
                             original_tokens_list.append([])
+
+        # 应用后处理器（如果配置了）
+        if self.postprocessor:
+            if self.logger:
+                self.logger.info(f"应用后处理器，包含 {len(self.postprocessor.rules)} 个规则")
+            
+            # 为每个序列应用后处理
+            processed_pred_sequences = []
+            for i, (tokens, pred_labels) in enumerate(zip(original_tokens_list, y_pred_sequences)):
+                # 如果没有tokens信息，跳过后处理
+                if not tokens:
+                    processed_pred_sequences.append(pred_labels)
+                    continue
+                
+                # 创建虚拟的置信度（因为我们在这里没有实际的置信度信息）
+                confidences = [1.0] * len(pred_labels)
+                
+                try:
+                    # 应用后处理
+                    _, processed_labels, _ = self.postprocessor.apply(
+                        tokens, pred_labels, confidences
+                    )
+                    processed_pred_sequences.append(processed_labels)
+                except Exception as e:
+                    if self.logger:
+                        self.logger.warning(f"后处理失败（样本 {i}）: {e}")
+                    processed_pred_sequences.append(pred_labels)
+            
+            # 使用处理后的预测结果
+            y_pred_sequences = processed_pred_sequences
+            
+            if self.logger:
+                self.logger.info("后处理完成")
 
         token_metrics = self.metrics_calculator.compute_token_metrics(y_true_sequences, y_pred_sequences)
         entity_metrics = self.metrics_calculator.compute_entity_metrics(y_true_sequences, y_pred_sequences)
