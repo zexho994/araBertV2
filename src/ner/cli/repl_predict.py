@@ -39,6 +39,8 @@ class PredictREPL:
         self.country: Optional[str] = None
         # text preprocessor (built from country config when设置)
         self.preprocessor = None
+        # postprocessor (built from country config when设置)
+        self.postprocessor = None
 
     # -------------------------- 公共入口 --------------------------
     def run(self) -> None:
@@ -122,17 +124,29 @@ class PredictREPL:
             self._log_error(f"加载模型失败: {e}")
 
     def _handle_country(self, country_code: str) -> None:
-        """设置国家代码并从配置构建预处理器。"""
+        """设置国家代码并从配置构建预处理器和后处理器。"""
         try:
             from ner.preprocess import build_preprocessor_from_config  # type: ignore
+            from ner.postprocess import build_postprocessor_from_config  # type: ignore
             from ner.config import ConfigManager  # type: ignore
 
             manager = ConfigManager()
             config = manager.load_country_config(country_code)
+            self._log_info(f'加载国家配置成功')
+            
+            # 构建预处理器
             self.preprocessor = build_preprocessor_from_config(config)
-            self._log_info(f'加载国家配置成功，预处理已启用：{self.preprocessor}')
+            self._log_info(f'预处理已启用：{self.preprocessor}')
+            
+            # 构建后处理器
+            self.postprocessor = build_postprocessor_from_config(config)
+            if self.postprocessor:
+                self._log_info(f'后处理已启用: {len(self.postprocessor.rules)} 个规则')
+            else:
+                self._log_info('后处理未配置')
+            
             self.country = country_code
-            self._log_info(f"已设置国家: {country_code}，预处理已启用")
+            self._log_info(f"已设置国家: {country_code}")
         except Exception as e:
             self._log_error(f"设置国家失败: {e}")
 
@@ -143,14 +157,28 @@ class PredictREPL:
             return
 
         try:
+            # 预处理
             input_text = text
             if getattr(self, 'preprocessor', None):
                 input_text = self.preprocessor.apply_text(input_text)
+            
+            # 预测
             prediction = self.model.predict(
                 input_text,
                 tokenizer=self.tokenizer,
                 confidence_threshold=self.confidence_threshold,
             )
+
+            if self.postprocessor:
+                # 后处理
+                processed_tokens, processed_labels, processed_confidences = self.postprocessor.apply(
+                    prediction["tokens"], prediction["labels"], prediction["confidences"]
+                )
+                # 更新预测结果
+                prediction["tokens"] = processed_tokens
+                prediction["labels"] = processed_labels
+                prediction["confidences"] = processed_confidences
+
 
             if self.output_format == "json":
                 import json
