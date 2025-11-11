@@ -146,35 +146,7 @@
             {
                 "type": "bio_consistency",
                 "params": {
-                    "fix_orphan_i": "to_o"
-                }
-            },
-            {
-                "type": "entity_boundary",
-                "params": {
-                    "remove_boundary_punct": false,
-                    "remove_boundary_stopwords": false
-                }
-            },
-            {
-                "type": "min_entity_length",
-                "params": {
-                    "min_length": 1,
-                    "min_length_by_type": {
-                        "BUILDING": 1,
-                        "STREET": 1,
-                        "COMMUNITY": 1,
-                        "EMIRATE": 1,
-                        "COUNTRY": 1
-                    }
-                }
-            },
-            {
-                "type": "pattern_correction",
-                "params": {
-                    "patterns": {
-                        "POSTCODE": "\\d{5,6}"
-                    }
+                    "fix_orphan_i": "to_b"
                 }
             }
         ]
