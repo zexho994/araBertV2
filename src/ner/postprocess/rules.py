@@ -5,7 +5,8 @@
 
 from __future__ import annotations
 import re
-from typing import List, Optional, Tuple
+from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple
 
 from .pipeline import BaseRule, PredictionResult
 
@@ -14,6 +15,7 @@ from .pipeline import BaseRule, PredictionResult
 BIO_CONSISTENCY_RULE = 'bio_consistency'
 CONFIDENCE_THRESHOLD_RULE = 'confidence_threshold'
 REGEX_FILTER_RULE = 'regex_filter'
+BLACKLIST_FILTER_RULE = 'blacklist_filter'
 
 
 def _extract_entity_spans(labels: List[str]) -> List[Tuple[int, int, str]]:
@@ -230,3 +232,85 @@ class RegexFilterRule(BaseRule):
             labels=labels,
             confidences=result.confidences
         )
+
+
+class BlacklistFilterRule(BaseRule):
+    """实体黑名单过滤规则
+    
+    将合并后的实体文本与黑名单匹配的实体全部置为'O'。
+    黑名单按实体类型维护，每种类型对应一个文本文件。
+    """
+    
+    name = BLACKLIST_FILTER_RULE
+    description = "Filter entities whose merged text matches blacklist entries"
+    
+    def __init__(
+        self,
+        blacklist_files: Dict[str, str],
+        join_with: str = ' ',
+        case_insensitive: bool = False,
+        strip_whitespace: bool = True,
+    ):
+        """
+        Args:
+            blacklist_files: {实体类型: 黑名单文件路径} 映射
+            join_with: 合并token时使用的连接符
+            case_insensitive: 是否忽略大小写匹配
+            strip_whitespace: 是否在匹配前去除首尾空白
+        """
+        if not blacklist_files:
+            raise ValueError("blacklist_files must not be empty")
+        
+        self.join_with = join_with
+        self.case_insensitive = case_insensitive
+        self.strip_whitespace = strip_whitespace
+        self._blacklists = self._load_blacklists(blacklist_files)
+    
+    def apply(self, result: PredictionResult) -> PredictionResult:
+        labels = result.labels.copy()
+        
+        for start, end, entity_type in _extract_entity_spans(labels):
+            blacklist = self._blacklists.get(entity_type.upper())
+            if not blacklist:
+                continue
+            
+            entity_text = self.join_with.join(result.tokens[start:end])
+            if self.strip_whitespace:
+                entity_text = entity_text.strip()
+            if self.case_insensitive:
+                entity_text = entity_text.lower()
+            
+            if entity_text in blacklist:
+                for idx in range(start, end):
+                    labels[idx] = 'O'
+        
+        return PredictionResult(
+            tokens=result.tokens,
+            labels=labels,
+            confidences=result.confidences
+        )
+    
+    def _load_blacklists(self, blacklist_files: Dict[str, str]) -> Dict[str, Set[str]]:
+        blacklists: Dict[str, Set[str]] = {}
+        for entity_type, path_str in blacklist_files.items():
+            normalized_type = entity_type.upper()
+            file_path = Path(path_str).expanduser()
+            if not file_path.is_absolute():
+                file_path = (Path.cwd() / file_path).resolve()
+            if not file_path.exists():
+                raise FileNotFoundError(f"Blacklist file not found for '{entity_type}': {file_path}")
+            
+            entries: Set[str] = set()
+            with file_path.open('r', encoding='utf-8') as f:
+                for line in f:
+                    entry = line.strip() if self.strip_whitespace else line.rstrip('\n')
+                    if not entry:
+                        continue
+                    if self.case_insensitive:
+                        entry = entry.lower()
+                    entries.add(entry)
+            
+            if entries:
+                blacklists[normalized_type] = entries
+        
+        return blacklists

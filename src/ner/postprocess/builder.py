@@ -13,11 +13,13 @@ from .rules import (
     BIOConsistencyRule,
     ConfidenceThresholdRule,
     RegexFilterRule,
+    BlacklistFilterRule,
 
     # 规则名称常量
     BIO_CONSISTENCY_RULE,
     CONFIDENCE_THRESHOLD_RULE,
     REGEX_FILTER_RULE,
+    BLACKLIST_FILTER_RULE,
 )
 
 
@@ -26,6 +28,7 @@ RULE_FACTORY = {
     BIO_CONSISTENCY_RULE: BIOConsistencyRule,
     CONFIDENCE_THRESHOLD_RULE: ConfidenceThresholdRule,
     REGEX_FILTER_RULE: RegexFilterRule,
+    BLACKLIST_FILTER_RULE: BlacklistFilterRule,
 }
 
 

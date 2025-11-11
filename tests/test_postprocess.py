@@ -8,7 +8,8 @@ from src.ner.postprocess import Postprocessor
 from src.ner.postprocess.rules import (
     BIOConsistencyRule,
     ConfidenceThresholdRule,
-    RegexFilterRule
+    RegexFilterRule,
+    BlacklistFilterRule,
 )
 from src.ner.postprocess.builder import build_postprocessor_from_config
 
@@ -78,7 +79,7 @@ class TestPostprocessor:
         labels = ['O', 'O', 'I-PER']
         confidences = [0.9, 0.9, 0.8]
         
-        processed_tokens, processed_labels, processed_confidences = postprocessor.apply(
+        _, processed_labels, _ = postprocessor.apply(
             tokens, labels, confidences
         )
         
@@ -101,7 +102,7 @@ class TestPostprocessor:
             [0.9, 0.8]
         ]
         
-        processed_tokens, processed_labels, processed_confidences = postprocessor.apply_batch(
+        _, processed_labels, _ = postprocessor.apply_batch(
             batch_tokens, batch_labels, batch_confidences
         )
         
@@ -112,8 +113,13 @@ class TestPostprocessor:
 class TestBuilder:
     """测试配置构建器"""
     
-    def test_build_from_config(self):
+    def test_build_from_config(self, tmp_path):
         """测试从配置构建"""
+        building_file = tmp_path / "building.txt"
+        street_file = tmp_path / "street.txt"
+        building_file.write_text("Tower A\nTower B\n", encoding='utf-8')
+        street_file.write_text("Main Street\n", encoding='utf-8')
+        
         config = {
             "postprocess": {
                 "rules": [
@@ -128,7 +134,19 @@ class TestBuilder:
                     {
                         "type": "regex_filter",
                         "params": {
-                            "patterns": ["^PO \\d{5}$"]
+                            "patterns": ["^PO \\d{5}$"],
+                            "join_with": " "
+                        }
+                    },
+                    {
+                        "type": "blacklist_filter",
+                        "params": {
+                            "blacklist_files": {
+                                "BUILDING": str(building_file),
+                                "STREET": str(street_file),
+                            },
+                            "join_with": " ",
+                            "case_insensitive": True
                         }
                     }
                 ]
@@ -137,10 +155,66 @@ class TestBuilder:
         
         postprocessor = build_postprocessor_from_config(config)
         
-        assert len(postprocessor.rules) == 3
+        assert len(postprocessor.rules) == 4
         assert isinstance(postprocessor.rules[0], BIOConsistencyRule)
         assert isinstance(postprocessor.rules[1], ConfidenceThresholdRule)
         assert isinstance(postprocessor.rules[2], RegexFilterRule)
+        assert isinstance(postprocessor.rules[3], BlacklistFilterRule)
+
+
+class TestBlacklistFilterRule:
+    """测试黑名单过滤规则"""
+    
+    def test_blacklist_filter_rule(self, tmp_path):
+        """实体命中黑名单应被清除"""
+        building_file = tmp_path / "building.txt"
+        building_file.write_text("Tower 42\nForbidden Plaza\n", encoding='utf-8')
+        
+        rule = BlacklistFilterRule(
+            blacklist_files={"BUILDING": str(building_file)},
+            join_with=" ",
+            case_insensitive=True,
+        )
+        
+        tokens = ['Forbidden', 'Plaza', 'is', 'closed']
+        labels = ['B-BUILDING', 'I-BUILDING', 'O', 'O']
+        confidences = [0.9, 0.85, 0.7, 0.6]
+        
+        from src.ner.postprocess.pipeline import PredictionResult
+        result = PredictionResult(tokens, labels, confidences)
+        processed = rule.apply(result)
+        
+        assert processed.labels[:2] == ['O', 'O']
+        assert processed.labels[2:] == ['O', 'O']
+    
+    def test_blacklist_filter_rule_case_sensitive(self, tmp_path):
+        """大小写敏感时按原样匹配"""
+        street_file = tmp_path / "street.txt"
+        street_file.write_text("King Road\n", encoding='utf-8')
+        
+        rule_sensitive = BlacklistFilterRule(
+            blacklist_files={"STREET": str(street_file)},
+            join_with=" ",
+            case_insensitive=False,
+        )
+        rule_insensitive = BlacklistFilterRule(
+            blacklist_files={"STREET": str(street_file)},
+            join_with=" ",
+            case_insensitive=True,
+        )
+        
+        tokens = ['king', 'road']
+        labels = ['B-STREET', 'I-STREET']
+        confidences = [0.9, 0.9]
+        
+        from src.ner.postprocess.pipeline import PredictionResult
+        result = PredictionResult(tokens, labels, confidences)
+        
+        processed_sensitive = rule_sensitive.apply(result)
+        processed_insensitive = rule_insensitive.apply(result)
+        
+        assert processed_sensitive.labels == ['B-STREET', 'I-STREET']
+        assert processed_insensitive.labels == ['O', 'O']
 
 
 if __name__ == '__main__':
