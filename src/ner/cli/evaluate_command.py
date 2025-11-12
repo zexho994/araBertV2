@@ -213,6 +213,8 @@ class EvaluateCommand(BaseCommand):
         try:
             from ..evaluation.report_generator import NERReportGenerator
             from datetime import datetime
+            from pathlib import Path
+            import re
 
             self.logger.info(f"Starting to generate detailed report to: {out_dir}")
             
@@ -272,7 +274,22 @@ class EvaluateCommand(BaseCommand):
             
             # 生成报告文件路径
             timestamp = datetime.now().strftime("%Y%m%d%H%M")
-            report_filename = f"evaluation_report_{timestamp}.xlsx"
+
+            def _sanitize_component(value: str, fallback: str) -> str:
+                if not value:
+                    return fallback
+                sanitized = re.sub(r"[^A-Za-z0-9._-]+", "_", value)
+                sanitized = sanitized.strip("_")
+                return sanitized or fallback
+
+            country_code = _sanitize_component(getattr(args, "country", None), "unknown_country")
+            model_path_value = (
+                getattr(args, "model_path", None)
+                or (config.get("model", {}) or {}).get("name")
+                or (config.get("model", {}) or {}).get("pretrained_model")
+            )
+            model_name = _sanitize_component(Path(str(model_path_value)).name if model_path_value else "", "model")
+            report_filename = f"{country_code}_{model_name}_{timestamp}.xlsx"
             report_path = out_dir / report_filename if out_dir else report_filename
             
             # 解析指定的实体类型
